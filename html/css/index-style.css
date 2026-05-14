@@ -1,16 +1,16 @@
   :root {
-    --bg: #f3f4f6;
+    --bg: #f8f3f1;
     --surface: #ffffff;
-    --surface-subtle: #f9fafb;
-    --line: #d1d5db;
-    --text: #111827;
-    --muted: #6b7280;
-    --accent: #16a34a;
-    --accent-strong: #15803d;
-    --accent-soft: #dcfce7;
-    --warning: #b45309;
-    --warning-soft: #fef3c7;
-    --shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    --surface-subtle: #fdf5f2;
+    --line: #e7c7bd;
+    --text: #231815;
+    --muted: #8a6258;
+    --accent: #d75a3c;
+    --accent-strong: #b8462c;
+    --accent-soft: #fde2da;
+    --warning: #b7672b;
+    --warning-soft: #fde7d6;
+    --shadow: 0 12px 28px rgba(124, 54, 35, 0.10);
   }
 
   * {
@@ -33,7 +33,7 @@
 
   .band {
     background: var(--surface);
-    border: 1px solid rgba(17, 24, 39, 0.08);
+    border: 1px solid rgba(184, 70, 44, 0.10);
     border-radius: 8px;
     box-shadow: var(--shadow);
     padding: 14px;
@@ -63,7 +63,7 @@
     height: 52px;
     border-radius: 50%;
     overflow: hidden;
-    background: linear-gradient(135deg, #d1fae5, #bbf7d0);
+    background: linear-gradient(135deg, #f7cab8, #ec8f74);
     display: grid;
     place-items: center;
     font-weight: 700;
@@ -221,7 +221,7 @@
 
   .field.is-active,
   .field.has-value {
-    border-color: #86efac;
+    border-color: #ef9f88;
     background: #ffffff;
   }
 

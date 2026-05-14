@@ -4,13 +4,17 @@
 
 function doGet(e) {
   ensureProjectSetup_();
-  const template = HtmlService.createTemplateFromFile('html/index');
-  template.initialLiffId = getLiffId_();
-  template.initialQuery = JSON.stringify((e && e.parameter) || {});
-  return template
-    .evaluate()
-    .setTitle('Meal Project')
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  const params = e && e.parameter ? e.parameter : {};
+
+  return jsonOutput_({
+    ok: true,
+    service: 'meal-project-api',
+    version: 1,
+    actions: ['getLiffAppState', 'submitMealDetail', 'updateProfile'],
+    lineWebhookEnabled: true,
+    liffConfigured: Boolean(getLiffId_()),
+    query: params,
+  });
 }
 
 function doPost(e) {
@@ -36,10 +40,6 @@ function doPost(e) {
   } catch (error) {
     return jsonOutput_({ ok: false, error: error.message });
   }
-}
-
-function include(filename) {
-  return HtmlService.createHtmlOutputFromFile(filename).getContent();
 }
 
 function getLiffAppState(payload) {

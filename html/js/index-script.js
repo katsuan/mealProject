@@ -1,6 +1,7 @@
   const appConfig = window.__MEAL_APP_CONFIG__ || {};
   const initialLiffId = String(appConfig.initialLiffId || '');
   const initialQuery = appConfig.initialQuery || {};
+  const apiBaseUrl = String(appConfig.apiBaseUrl || '').trim();
   const state = {
     userId: '',
     displayName: '',
@@ -14,12 +15,31 @@
     document.getElementById('status').textContent = message;
   }
 
-  function runServer(name, ...args) {
-    return new Promise((resolve, reject) => {
-      google.script.run
-        .withSuccessHandler(resolve)
-        .withFailureHandler(reject)[name](...args);
+  async function runServer(action, payload) {
+    if (!apiBaseUrl) {
+      throw new Error('GAS API URL is not configured');
+    }
+
+    const response = await fetch(apiBaseUrl, {
+      method: 'POST',
+      mode: 'cors',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
+      body: JSON.stringify(Object.assign({ action: action }, payload || {})),
     });
+
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (!result.ok) {
+      throw new Error(result.error || 'API returned an error');
+    }
+
+    return result;
   }
 
   async function initializeApp() {
@@ -45,6 +65,11 @@
         }
       } else {
         setStatus('LIFF ID が未設定です。LINEプロフィールの取得はまだできません。');
+      }
+
+      if (!apiBaseUrl) {
+        setStatus('GAS API URL が未設定です。site-config.js を確認してください。');
+        return;
       }
 
       await reloadState();
@@ -267,7 +292,7 @@
       return;
     }
 
-    const result = await runServer('updateLiffUserProfile', {
+    const result = await runServer('updateProfile', {
       userId: userId,
       displayName: document.getElementById('display-name').value.trim(),
       idToken: state.idToken,
@@ -290,7 +315,7 @@
       return;
     }
 
-    const result = await runServer('submitMealDetailFromLiff', {
+    const result = await runServer('submitMealDetail', {
       userId: userId,
       displayName: document.getElementById('display-name').value.trim(),
       idToken: state.idToken,
