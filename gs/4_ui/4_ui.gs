@@ -90,7 +90,8 @@ function buildDailySummaryFlexMessage(userId, options) {
   const hasTarget = targetKcal > 0;
   const targetPercent = hasTarget ? (total / targetKcal) * 100 : null;
   const isOverTarget = hasTarget && total > targetKcal;
-  const detailUrl = dashboard.detailUrl || buildLiffUrl_({ mode: 'detail' });
+  const inputUrl = buildLiffUrl_({ mode: 'input' });
+  const logsUrl = buildLiffUrl_({ mode: 'logs' });
   const headline = context.headline || '今日の集計';
   const subline = context.subline || buildKcalDiffLine_(userId, total);
   const sublineColor = isOverTarget ? '#C84949' : '#6b7280';
@@ -134,11 +135,11 @@ function buildDailySummaryFlexMessage(userId, options) {
           isOverTarget: isOverTarget,
           today: today,
           pendingLine: pendingLine,
-          detailUrl: detailUrl,
+          detailUrl: inputUrl,
         }),
         buildTodayLogBubble_({
           logs: logs,
-          detailUrl: detailUrl,
+          detailUrl: logsUrl,
           pendingLine: pendingLine,
         }),
       ],
@@ -353,7 +354,7 @@ function buildDailySummaryBubble_(context) {
           color: '#FDF5F2',
           action: {
             type: 'uri',
-            label: '詳細を見る',
+            label: '入力・編集する',
             uri: context.detailUrl,
           },
         },
@@ -367,41 +368,17 @@ function buildTodayLogBubble_(context) {
   const logContents = logs.length
     ? logs.map(log => ({
         type: 'box',
-        layout: 'vertical',
-        spacing: 'xs',
+        layout: 'horizontal',
         paddingAll: '10px',
         backgroundColor: '#FDF5F2',
         cornerRadius: '10px',
         contents: [
           {
-            type: 'box',
-            layout: 'baseline',
-            contents: [
-              {
-                type: 'text',
-                text: log.menu,
-                flex: 5,
-                size: 'sm',
-                weight: 'bold',
-                wrap: true,
-                color: '#231815',
-              },
-              {
-                type: 'text',
-                text: log.meal,
-                flex: 1,
-                align: 'end',
-                size: 'xs',
-                color: '#8a6258',
-              },
-            ],
-          },
-          {
             type: 'text',
-            text: `${buildMealKcalLine(log)} / ${formatFlexLogTime_(log.mealDate)}`,
-            size: 'xs',
+            text: `${log.meal} ${formatFlexLogKcal_(log)} ${log.menu}`,
+            size: 'sm',
             wrap: true,
-            color: '#6b7280',
+            color: '#231815',
           },
         ],
       }))
@@ -464,7 +441,7 @@ function buildTodayLogBubble_(context) {
           color: '#FDF5F2',
           action: {
             type: 'uri',
-            label: '入力とログを見る',
+            label: 'ログを編集する',
             uri: context.detailUrl,
           },
         },
@@ -480,23 +457,16 @@ function formatFlexLogTime_(value) {
 
 function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
   const liffUrl = buildLiffUrl_({
-    mode: 'detail',
+    mode: 'input',
     meal: parsed.meal,
     menu: parsed.menu,
     mealDate: parsed.mealDate,
     datePreset: parsed.datePreset,
   });
   const topCandidates = (draft && draft.candidates || []).slice(0, 3);
-  const mealButtons = ['朝', '昼', '夜'].map(meal => buildSelectionButton_(meal, buildLiffUrl_({
-    mode: 'detail',
-    meal: meal,
-    menu: parsed.menu,
-    mealDate: parsed.mealDate,
-    datePreset: parsed.datePreset,
-  }), meal === parsed.meal));
   const message = {
     type: 'flex',
-    altText: `${parsed.menu} は未登録です。入力してください。`,
+    altText: `${parsed.menu} は未登録です。候補を採用するか画面で入力してください。`,
     contents: {
       type: 'bubble',
       body: {
@@ -527,7 +497,7 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
               },
               {
                 type: 'text',
-                text: '近い候補をタップすると、その数値を採用してすぐ記録します。',
+                text: '近い候補をタップすると、その候補を採用してすぐ記録します。候補と違う場合は画面で内容を入力できます。',
                 wrap: true,
                 size: 'sm',
                 color: '#8a6258',
@@ -542,20 +512,6 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
             cornerRadius: '12px',
             paddingAll: '12px',
             contents: [
-              {
-                type: 'box',
-                layout: 'horizontal',
-                spacing: 'sm',
-                contents: mealButtons,
-              },
-              {
-                type: 'text',
-                text: '日付を変えたいときは、入力画面で 今日 / 昨日 を切り替えられます。',
-                size: 'xs',
-                color: '#8a6258',
-                wrap: true,
-                margin: 'sm',
-              },
               {
                 type: 'text',
                 text: '近い候補',
@@ -587,16 +543,16 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
         layout: 'vertical',
         spacing: 'sm',
         contents: [
-          {
-            type: 'button',
-            style: 'secondary',
-            color: '#FDF5F2',
-            action: {
-              type: 'uri',
-              label: '数値を入力する',
-              uri: liffUrl,
-            },
+        {
+          type: 'button',
+          style: 'secondary',
+          color: '#FDF5F2',
+          action: {
+            type: 'uri',
+            label: '画面で入力する',
+            uri: liffUrl,
           },
+        },
         ],
       },
     },
@@ -678,22 +634,99 @@ function buildCandidatePostbackRow_(parsed, candidate) {
   };
 }
 
-function buildSelectionButton_(label, uri, isActive) {
-  return {
-    type: 'button',
-    flex: 1,
-    height: 'sm',
-    style: 'secondary',
-    color: isActive ? '#FDE2DA' : '#FDF5F2',
-    action: {
-      type: 'uri',
-      label: label,
-      uri: uri,
+function buildImageAttachChoiceFlexMessage(mealType, candidateLogs, selectionToken, senderProfile) {
+  const logs = Array.isArray(candidateLogs) ? candidateLogs.slice(0, 8) : [];
+  const message = {
+    type: 'flex',
+    altText: '画像の紐づけ先を選んでください。',
+    contents: {
+      type: 'bubble',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'md',
+        contents: [
+          {
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#FDE7D6',
+            cornerRadius: '12px',
+            paddingAll: '14px',
+            contents: [
+              {
+                type: 'text',
+                text: '画像の紐づけ先を選ぶ',
+                weight: 'bold',
+                size: 'lg',
+                color: '#B7672B',
+                wrap: true,
+              },
+              {
+                type: 'text',
+                text: `${mealType}の記録が複数あります。画像を付ける記録を選んでください。`,
+                wrap: true,
+                size: 'sm',
+                color: '#8a6258',
+                margin: 'sm',
+              },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: logs.map(log => ({
+              type: 'box',
+              layout: 'horizontal',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              spacing: 'sm',
+              paddingAll: '10px',
+              cornerRadius: '10px',
+              backgroundColor: '#FDF5F2',
+              action: {
+                type: 'postback',
+                label: `${log.meal} ${log.menu} に画像を付ける`,
+                data: buildQueryString_({
+                  action: 'attachMealImage',
+                  row: log.row,
+                  token: selectionToken,
+                }),
+                displayText: `${log.meal} ${log.menu} に画像を紐づけています...`,
+              },
+              contents: [
+                {
+                  type: 'text',
+                  text: `${log.meal} ${formatFlexLogKcal_(log)} ${log.menu}`,
+                  size: 'sm',
+                  wrap: true,
+                  color: '#231815',
+                  flex: 1,
+                },
+                {
+                  type: 'text',
+                  text: '選択',
+                  size: 'xs',
+                  weight: 'bold',
+                  color: '#B8462C',
+                  flex: 0,
+                },
+              ],
+            })),
+          },
+        ],
+      },
     },
   };
+  return applyFlexSender_(message, senderProfile);
 }
 
 function roundNutrition_(value) {
   const number = Number(value || 0);
   return Math.round(number * 10) / 10;
+}
+
+function formatFlexLogKcal_(log) {
+  const line = buildMealKcalLine(log);
+  return line.replace(/^約\s*/, '').replace(/\s+/g, '');
 }

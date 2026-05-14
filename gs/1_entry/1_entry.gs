@@ -140,6 +140,13 @@ function handleLineImageEvent_(event, userId) {
       timestamp: event && event.timestamp,
     });
 
+    if (result.selectionToken && result.candidateLogs && result.candidateLogs.length) {
+      replyLineMessages_(event.replyToken, [
+        buildImageAttachChoiceFlexMessage(result.mealType, result.candidateLogs, result.selectionToken, profile),
+      ]);
+      return;
+    }
+
     const text = result.linkedLog
       ? `画像を保存して、${result.mealType}の「${result.linkedLog.menu}」に紐づけました。`
       : `画像を保存しました。${result.mealType}帯の記録がまだ見つからなかったため、ひも付けは保留です。`;
@@ -158,7 +165,17 @@ function handleLineImageEvent_(event, userId) {
 
 function handleLinePostbackEvent_(event, userId) {
   const data = parseQueryString_(event && event.postback && event.postback.data);
-  if (String(data.action || '') !== 'logCandidate') {
+  const action = String(data.action || '');
+  if (!action) {
+    return;
+  }
+
+  if (action === 'attachMealImage') {
+    handleLineImageAttachPostback_(event, userId, data);
+    return;
+  }
+
+  if (action !== 'logCandidate') {
     return;
   }
 
@@ -193,6 +210,26 @@ function handleLinePostbackEvent_(event, userId) {
     replyLineMessages_(event.replyToken, [{
       type: 'text',
       text: '候補の記録に失敗しました。入力画面から登録してください。',
+    }]);
+  }
+}
+
+function handleLineImageAttachPostback_(event, userId, data) {
+  const profile = resolveLineProfile_(userId);
+  try {
+    const result = attachMealImageBySelection(userId, {
+      displayName: String(profile.displayName || ''),
+      selectionToken: data.token,
+      row: data.row,
+    });
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: `画像を${result.mealType}の「${result.linkedLog.menu}」に紐づけました。`,
+    }]);
+  } catch (error) {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: '画像の紐づけ先を確定できませんでした。時間を空けてもう一度画像を送ってください。',
     }]);
   }
 }

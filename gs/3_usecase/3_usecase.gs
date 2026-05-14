@@ -675,11 +675,63 @@ function attachMealImageToNearestLog(userId, payload) {
     .filter(log => sanitizeMealType_(log.meal) === mealType)
     .sort((left, right) => new Date(right.updatedAt || right.createdAt || right.mealDate) - new Date(left.updatedAt || left.createdAt || left.mealDate));
 
+  if (sameDayLogs.length > 1) {
+    const selectionToken = cachePendingImageAttachment_({
+      userId: userId,
+      mealType: mealType,
+      fileId: fileInfo.fileId,
+      imageUrl: fileInfo.url,
+      candidateRows: sameDayLogs.map(log => Number(log.row || 0)),
+    });
+    return {
+      file: fileInfo,
+      mealType: mealType,
+      selectionToken: selectionToken,
+      candidateLogs: sameDayLogs.map(serializeMealLog_),
+      linkedLog: null,
+      dashboard: getDashboardData(userId),
+    };
+  }
+
   const linkedLog = sameDayLogs[0] ? attachMealLogImage(sameDayLogs[0].row, fileInfo.fileId, fileInfo.url) : null;
 
   return {
     file: fileInfo,
     mealType: mealType,
+    linkedLog: linkedLog,
+    dashboard: getDashboardData(userId),
+  };
+}
+
+function attachMealImageBySelection(userId, payload) {
+  ensureProjectSetup_();
+  const user = ensureUserExists_(userId, payload && payload.displayName);
+  ensureUserCanUseService_(user);
+
+  const token = String(payload && payload.selectionToken || '').trim();
+  const row = Number(payload && payload.row || 0);
+  if (!token || row < 2) {
+    throw new Error('image selection is invalid');
+  }
+
+  const pending = takePendingImageAttachment_(token);
+  if (!pending || String(pending.userId || '') !== userId) {
+    throw new Error('image selection is expired');
+  }
+
+  const candidateRows = Array.isArray(pending.candidateRows) ? pending.candidateRows.map(Number) : [];
+  if (!candidateRows.includes(row)) {
+    throw new Error('selected log is not available');
+  }
+
+  const targetLog = getMealLogByRow(row);
+  if (!targetLog || targetLog.userId !== userId) {
+    throw new Error('selected log is not found');
+  }
+
+  const linkedLog = attachMealLogImage(row, pending.fileId, pending.imageUrl);
+  return {
+    mealType: String(pending.mealType || ''),
     linkedLog: linkedLog,
     dashboard: getDashboardData(userId),
   };

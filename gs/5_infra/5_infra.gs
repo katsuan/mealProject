@@ -11,6 +11,7 @@ const SCRIPT_PROPERTY_WEBAPP_URL = 'WEBAPP_URL';
 const SCRIPT_PROPERTY_ADMIN_USER_IDS = 'ADMIN_USER_IDS';
 const SCRIPT_PROPERTY_AUTO_APPROVE_USER_IDS = 'AUTO_APPROVE_USER_IDS';
 const SCRIPT_PROPERTY_DRIVE_FOLDER_ID = 'DRIVE_FOLDER_ID';
+const PENDING_IMAGE_ATTACHMENT_CACHE_PREFIX = 'PENDING_IMAGE_ATTACHMENT:';
 
 function refreshNutritionMasterCache_() {
   CacheService.getScriptCache().remove(NUTRITION_MASTER_CACHE_KEY);
@@ -291,6 +292,25 @@ function saveLineImageToDrive_(blob, fileName) {
     url: driveFile.getUrl(),
     name: driveFile.getName(),
   };
+}
+
+function cachePendingImageAttachment_(payload) {
+  const token = Utilities.getUuid();
+  CacheService.getScriptCache().put(
+    `${PENDING_IMAGE_ATTACHMENT_CACHE_PREFIX}${token}`,
+    JSON.stringify(payload || {}),
+    60 * 60 * 6
+  );
+  return token;
+}
+
+function takePendingImageAttachment_(token) {
+  const key = `${PENDING_IMAGE_ATTACHMENT_CACHE_PREFIX}${String(token || '').trim()}`;
+  const cache = CacheService.getScriptCache();
+  const raw = cache.get(key);
+  if (!raw) return null;
+  cache.remove(key);
+  return JSON.parse(raw);
 }
 
 function showLineLoadingAnimation_(chatId, loadingSeconds) {

@@ -22,20 +22,17 @@
             <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
           </div>
         </div>
-        <div id="header-summary-scope" class="header-summary-grid">
-          <div class="header-stat">
-            <div class="header-stat-label">目標カロリー</div>
-            <div id="header-target-kcal" class="header-stat-value">-</div>
-          </div>
-          <div class="header-stat">
-            <div class="header-stat-label">確定カロリー</div>
-            <div id="header-exact-kcal" class="header-stat-value">0</div>
+        <div id="header-summary-scope" class="header-summary-row">
+          <div class="header-stat header-stat-wide">
+            <div class="header-stat-label">今日の確定カロリー</div>
+            <div class="header-stat-pair">
+              <div id="header-exact-kcal" class="header-stat-value">0 kcal</div>
+              <div class="header-stat-divider">/</div>
+              <div id="header-target-kcal" class="header-stat-subvalue">-</div>
+            </div>
             <div id="header-exact-rate" class="header-stat-meta">目標比 -</div>
           </div>
-          <div class="header-stat">
-            <div class="header-stat-label">未登録件数</div>
-            <div id="header-pending-count" class="header-stat-value">0件</div>
-          </div>
+          <div id="header-pending-count" class="header-badge">0件未登録</div>
         </div>
         <div id="status-panel" class="status-panel" hidden>
           <div id="status-accordion" class="status-accordion" hidden>

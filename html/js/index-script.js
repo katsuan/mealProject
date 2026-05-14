@@ -38,6 +38,9 @@ const state = {
   dashboardLoaded: false,
   masterSearchResults: [],
   isSettingsModalOpen: false,
+  menuDirty: false,
+  isProgrammaticMenuUpdate: false,
+  appliedMenuValue: '',
 };
 
 function buildInitialQuery_(fallback) {
@@ -388,8 +391,26 @@ function hydrateQuery() {
     setMealDatePreset('today');
   }
   if (initialQuery.menu) {
-    document.getElementById('menu-name').value = initialQuery.menu;
-    updateFieldState(document.getElementById('menu-name'), false);
+    setMenuValue_(initialQuery.menu);
+  }
+}
+
+function normalizeMenuKey_(value) {
+  return String(value || '').trim().replace(/\s+/g, '').toLowerCase();
+}
+
+function setMenuValue_(value, options) {
+  const config = options || {};
+  const input = document.getElementById('menu-name');
+  state.isProgrammaticMenuUpdate = true;
+  input.value = String(value || '');
+  updateFieldState(input, false);
+  state.isProgrammaticMenuUpdate = false;
+  state.appliedMenuValue = String(value || '').trim();
+  if (config.markDirty) {
+    state.menuDirty = true;
+  } else if (!config.preserveDirty) {
+    state.menuDirty = false;
   }
 }
 
@@ -407,7 +428,14 @@ function bindViewTabs() {
       await setActiveView(button.dataset.viewTab || 'input');
     });
   });
-  setActiveView(initialQuery.mode === 'detail' ? 'summary' : 'input');
+  setActiveView(resolveInitialView_());
+}
+
+function resolveInitialView_() {
+  if (['input', 'summary', 'logs'].includes(initialQuery.mode)) {
+    return initialQuery.mode;
+  }
+  return initialQuery.mode === 'detail' ? 'summary' : 'input';
 }
 
 async function setActiveView(view) {
@@ -499,6 +527,11 @@ function bindFieldInteractions() {
     input.addEventListener('blur', () => updateFieldState(input, false));
     input.addEventListener('input', () => updateFieldState(input, input === document.activeElement));
     updateFieldState(input, false);
+  });
+  document.getElementById('menu-name').addEventListener('input', () => {
+    if (!state.isProgrammaticMenuUpdate) {
+      state.menuDirty = true;
+    }
   });
 }
 
@@ -802,7 +835,7 @@ function renderHeaderSummary_(header) {
   document.getElementById('header-target-kcal').textContent = hasTarget ? `${formatNumber(target)} kcal` : '未設定';
   document.getElementById('header-exact-kcal').textContent = `${formatNumber(exact)} kcal`;
   document.getElementById('header-exact-rate').textContent = hasTarget ? `目標比 ${rate}%` : '目標比 -';
-  document.getElementById('header-pending-count').textContent = `${pendingCount}件`;
+  document.getElementById('header-pending-count').textContent = `${pendingCount}件未登録`;
   document.getElementById('header-exact-kcal').classList.toggle('is-warning', hasTarget && rate > 100);
   document.getElementById('header-exact-rate').classList.toggle('is-warning', hasTarget && rate > 100);
 }
@@ -1001,8 +1034,13 @@ function renderDraft(draft) {
   }
 
   if (draft.menu) {
-    document.getElementById('menu-name').value = draft.menu;
-    updateFieldState(document.getElementById('menu-name'), false);
+    const currentMenu = String(document.getElementById('menu-name').value || '').trim();
+    const canReplaceMenu = !state.menuDirty ||
+      !currentMenu ||
+      normalizeMenuKey_(currentMenu) === normalizeMenuKey_(state.appliedMenuValue);
+    if (canReplaceMenu) {
+      setMenuValue_(draft.menu);
+    }
   }
   if (draft.meal) {
     setMealType(draft.meal);
@@ -1078,7 +1116,7 @@ function applyCandidate(index) {
 function applyMasterSearchResult(index) {
   const candidate = state.masterSearchResults[index];
   if (!candidate) return;
-  document.getElementById('menu-name').value = candidate.name || '';
+  setMenuValue_(candidate.name || '');
   document.getElementById('master-key').value = candidate.masterKey || '';
   document.getElementById('editing-master-key').value = '';
   applyNutritionFields(candidate, {
@@ -1100,12 +1138,11 @@ function startMasterEdit(index) {
   document.getElementById('editing-master-key').value = candidate.masterKey || '';
   document.getElementById('editing-log-row').value = '';
   document.getElementById('master-key').value = candidate.masterKey || '';
-  document.getElementById('menu-name').value = candidate.name || '';
+  setMenuValue_(candidate.name || '');
   applyNutritionFields(candidate, {
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
-  updateFieldState(document.getElementById('menu-name'), false);
   refreshMealSubmitControls_();
   setActiveView('input');
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1114,8 +1151,7 @@ function startMasterEdit(index) {
 
 function applyPendingMenu(menu) {
   const resolvedMenu = decodeURIComponent(String(menu || ''));
-  document.getElementById('menu-name').value = resolvedMenu;
-  updateFieldState(document.getElementById('menu-name'), false);
+  setMenuValue_(resolvedMenu);
   document.getElementById('master-key').value = '';
   clearEditMode_();
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1213,7 +1249,7 @@ function startEditLog(rowNumber) {
   if (!log) return;
 
   document.getElementById('editing-log-row').value = String(log.row || '');
-  document.getElementById('menu-name').value = log.menu || '';
+  setMenuValue_(log.menu || '');
   document.getElementById('master-key').value = log.masterKey || '';
   setMealType(log.meal || '朝');
   setMealDatePreset(inferDatePresetFromMealDate_(log.mealDate), String(log.mealDate || '').slice(0, 10));
@@ -1221,7 +1257,6 @@ function startEditLog(rowNumber) {
     unit: log.unit || '',
     note: log.note || '',
   });
-  updateFieldState(document.getElementById('menu-name'), false);
   refreshMealSubmitControls_();
   setActiveView('input');
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
