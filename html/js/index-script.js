@@ -948,11 +948,14 @@ function renderStreakSection_(streak, ranking) {
   document.getElementById('card-streak-current').textContent = `${Number(streak && streak.current || 0)}日`;
   document.getElementById('card-streak-longest').textContent = `${Number(streak && streak.longest || 0)}日`;
   renderRankingList_('streak-ranking', ranking || [], (item, index) => `
-    <div class="ranking-item">
+    <div class="ranking-item ${item.userId === state.userId ? 'is-self' : ''}">
       <div class="ranking-rank">#${index + 1}</div>
       <div class="ranking-avatar">${buildRankingAvatarMarkup_(item)}</div>
       <div class="ranking-main">
-        <div class="ranking-name">${escapeHtml(item.displayName)}</div>
+        <div class="ranking-name-row">
+          <div class="ranking-name">${escapeHtml(item.displayName)}</div>
+          ${item.userId === state.userId ? '<div class="ranking-self-badge">あなた</div>' : ''}
+        </div>
       </div>
       <div class="ranking-value">${escapeHtml(String(item.streak))}日</div>
     </div>

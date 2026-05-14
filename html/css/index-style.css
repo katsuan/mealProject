@@ -803,6 +803,28 @@
     font-weight: 700;
   }
 
+  .streak-cards {
+    gap: 8px;
+  }
+
+  .streak-cards .card {
+    padding: 14px 14px 12px;
+    min-height: 108px;
+    display: grid;
+    align-content: space-between;
+  }
+
+  .streak-cards .card .label {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .streak-cards .card .value {
+    margin-top: 0;
+    font-size: 32px;
+    line-height: 1;
+  }
+
   .card .value.is-warning {
     color: var(--alert);
   }
@@ -976,6 +998,13 @@
     min-width: 0;
   }
 
+  .ranking-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
   .ranking-avatar {
     width: 32px;
     height: 32px;
@@ -1001,6 +1030,10 @@
     font-weight: 700;
     color: var(--text);
     line-height: 1.4;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .ranking-meta {
@@ -1015,6 +1048,24 @@
     font-weight: 700;
     color: var(--accent-strong);
     text-align: right;
+  }
+
+  .ranking-self-badge {
+    flex: 0 0 auto;
+    border: 1px solid rgba(184, 70, 44, 0.16);
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .ranking-item.is-self {
+    border-color: #ef9f88;
+    background: #fffaf7;
+    box-shadow: 0 8px 18px rgba(184, 70, 44, 0.08);
   }
 
   .candidate-list,
