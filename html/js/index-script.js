@@ -1433,14 +1433,6 @@ document.getElementById('calorie-target').addEventListener('keydown', async even
   event.preventDefault();
   await saveProfileTarget();
 });
-document.getElementById('close-liff').addEventListener('click', () => {
-  if (window.liff && typeof liff.closeWindow === 'function') {
-    liff.closeWindow();
-    return;
-  }
-  pushStatus('notice', 'この環境では画面を閉じられません。');
-});
-
 function applyIdentityStatus_(identity) {
   if (!identity || identity.verified) return;
 

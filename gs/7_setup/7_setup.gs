@@ -31,6 +31,9 @@ function setupLineProject(config) {
   if (input.driveFolderId != null) {
     setDriveFolderId(input.driveFolderId);
   }
+  if (input.installReminderTrigger === true) {
+    installDailyReminderTrigger();
+  }
 }
 
 function ensureProjectSetup_() {
