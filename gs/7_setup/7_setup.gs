@@ -2,8 +2,12 @@
  * Project setup and trigger helpers.
  */
 
-function setupProject() {
-  const spreadsheet = SpreadsheetApp.getActive();
+function setupProject(spreadsheetId) {
+  if (spreadsheetId != null) {
+    setSpreadsheetId(spreadsheetId);
+  }
+
+  const spreadsheet = getSpreadsheet_();
   ensureSheet_(spreadsheet, SHEET.USERS, USER_COLUMNS);
   ensureSheet_(spreadsheet, SHEET.MEAL_LOGS, MEAL_LOG_COLUMNS);
   ensureSheet_(spreadsheet, SHEET.NUTRITION_MASTER, NUTRITION_MASTER_COLUMNS);
@@ -11,7 +15,7 @@ function setupProject() {
 
 function setupLineProject(config) {
   const input = config || {};
-  setupProject();
+  setupProject(input.spreadsheetId);
   configureLiff(
     input.liffId,
     input.channelId,

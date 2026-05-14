@@ -42,7 +42,7 @@ function isSameDay(left, right) {
 
 function reapplyNutritionMaster() {
   const logs = getMealLogs();
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.MEAL_LOGS);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.MEAL_LOGS);
   if (!sheet) return;
 
   logs.forEach(log => {

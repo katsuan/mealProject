@@ -91,7 +91,7 @@ function buildNutritionDraft(menu) {
 }
 
 function getNutritionMasters() {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.NUTRITION_MASTER);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.NUTRITION_MASTER);
   if (!sheet) return [];
 
   const values = sheet.getDataRange().getValues();
@@ -116,7 +116,7 @@ function registerNutritionCandidate(menu) {
 }
 
 function saveNutritionMaster(input) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.NUTRITION_MASTER);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.NUTRITION_MASTER);
   if (!sheet) {
     throw new Error('nutrition_master sheet not found');
   }

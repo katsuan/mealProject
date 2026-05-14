@@ -3,6 +3,7 @@
  */
 
 const NUTRITION_MASTER_CACHE_KEY = 'NUTRITION_MASTER_CACHE';
+const SCRIPT_PROPERTY_SPREADSHEET_ID = 'SPREADSHEET_ID';
 const SCRIPT_PROPERTY_LIFF_ID = 'LIFF_ID';
 const SCRIPT_PROPERTY_LINE_CHANNEL_ID = 'LINE_CHANNEL_ID';
 const SCRIPT_PROPERTY_LINE_CHANNEL_ACCESS_TOKEN = 'LINE_CHANNEL_ACCESS_TOKEN';
@@ -27,6 +28,30 @@ function getNutritionMasterCached() {
 function getNutritionMasterByKey_(masterKey) {
   if (!masterKey) return null;
   return getNutritionMasterCached().find(master => master.masterKey === masterKey) || null;
+}
+
+function getSpreadsheetId_() {
+  return PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_SPREADSHEET_ID) || '';
+}
+
+function setSpreadsheetId(spreadsheetId) {
+  PropertiesService.getScriptProperties()
+    .setProperty(SCRIPT_PROPERTY_SPREADSHEET_ID, String(spreadsheetId || '').trim());
+}
+
+function getSpreadsheet_() {
+  const spreadsheetId = getSpreadsheetId_();
+  if (spreadsheetId) {
+    return SpreadsheetApp.openById(spreadsheetId);
+  }
+
+  const active = SpreadsheetApp.getActive();
+  if (active) {
+    setSpreadsheetId(active.getId());
+    return active;
+  }
+
+  throw new Error('SPREADSHEET_ID is not configured');
 }
 
 function getLiffId_() {

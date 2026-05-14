@@ -69,7 +69,7 @@ function appendMealLogRecord_(userId, parsed, nutrition, options) {
 }
 
 function appendMealLog(log) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.MEAL_LOGS);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.MEAL_LOGS);
   if (!sheet) {
     throw new Error('meal_logs sheet not found');
   }
@@ -79,7 +79,7 @@ function appendMealLog(log) {
 }
 
 function getMealLogs() {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.MEAL_LOGS);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.MEAL_LOGS);
   if (!sheet) return [];
 
   const values = sheet.getDataRange().getValues();

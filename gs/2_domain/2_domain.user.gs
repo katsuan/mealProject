@@ -3,7 +3,7 @@
  */
 
 function getUserById(userId) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.USERS);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.USERS);
   if (!sheet) return null;
 
   const values = sheet.getDataRange().getValues();
@@ -16,7 +16,7 @@ function getUserById(userId) {
 }
 
 function listUsers() {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.USERS);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.USERS);
   if (!sheet) return [];
 
   const values = sheet.getDataRange().getValues();
@@ -33,7 +33,7 @@ function ensureUserExists_(userId, displayName) {
     return existing;
   }
 
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.USERS);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.USERS);
   if (!sheet) {
     throw new Error('users sheet not found');
   }
@@ -59,7 +59,7 @@ function updateUserCalorieTarget(userId, calorieTarget) {
 }
 
 function updateUserProfile(userId, patch) {
-  const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET.USERS);
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.USERS);
   if (!sheet) return false;
 
   const values = sheet.getDataRange().getValues();
