@@ -7,7 +7,8 @@ function handleTextEvent(param) {
     String(param.userId || '').trim(),
     String(param.text || '').trim(),
     String(param.displayName || '').trim(),
-    param.source || SOURCE.TEXT
+    param.source || SOURCE.TEXT,
+    param.pictureUrl || ''
   );
 
   if (result.kind === 'target_updated') {
@@ -87,7 +88,8 @@ function handleLineEvent_(event) {
     userId,
     String(event.message.text || ''),
     String(profile.displayName || ''),
-    SOURCE.LINE
+    SOURCE.LINE,
+    String(profile.pictureUrl || '')
   );
 
   if (result.kind === 'target_updated') {

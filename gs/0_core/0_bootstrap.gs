@@ -121,6 +121,7 @@ const MEAL_LOG_COL_INDEX = MEAL_LOG_COLUMNS.reduce((acc, key, index) => {
 const USER_COLUMNS = [
   'userId',
   'displayName',
+  'pictureUrl',
   'calorieTarget',
   'goalType',
   'notify',

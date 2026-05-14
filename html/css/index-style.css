@@ -956,7 +956,7 @@
 
   .ranking-item {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
     gap: 10px;
     align-items: center;
     border: 1px solid var(--line);
@@ -974,6 +974,26 @@
 
   .ranking-main {
     min-width: 0;
+  }
+
+  .ranking-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f7cab8, #ec8f74);
+    display: grid;
+    place-items: center;
+    color: var(--accent-strong);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .ranking-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .ranking-name {

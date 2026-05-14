@@ -39,6 +39,8 @@ const state = {
   masterSearchResults: [],
   isSettingsModalOpen: false,
   menuDirty: false,
+  mealDirty: false,
+  mealDateDirty: false,
   isProgrammaticMenuUpdate: false,
   appliedMenuValue: '',
 };
@@ -426,7 +428,7 @@ function setMenuValue_(value, options) {
 function bindMealTypeButtons() {
   document.querySelectorAll('.meal-type-btn').forEach(button => {
     if (button.dataset.mealType) {
-      button.addEventListener('click', () => setMealType(button.dataset.mealType));
+      button.addEventListener('click', () => setMealType(button.dataset.mealType, { markDirty: true }));
     }
   });
 }
@@ -463,7 +465,7 @@ async function setActiveView(view) {
 
 function bindMealDateButtons() {
   document.querySelectorAll('.date-chip-btn').forEach(button => {
-    button.addEventListener('click', () => setMealDatePreset(button.dataset.datePreset || 'today'));
+    button.addEventListener('click', () => setMealDatePreset(button.dataset.datePreset || 'today', null, { markDirty: true }));
   });
 }
 
@@ -473,7 +475,8 @@ function bindLogFilterButtons() {
   });
 }
 
-function setMealType(mealType) {
+function setMealType(mealType, options) {
+  const config = options || {};
   const normalized = ['朝', '昼', '夜', 'その他'].includes(mealType) ? mealType : '朝';
   document.getElementById('meal-type').value = normalized;
   document.querySelectorAll('.meal-type-btn').forEach(button => {
@@ -481,9 +484,11 @@ function setMealType(mealType) {
       button.classList.toggle('is-active', button.dataset.mealType === normalized);
     }
   });
+  state.mealDirty = Boolean(config.markDirty);
 }
 
-function setMealDatePreset(datePreset, mealDate) {
+function setMealDatePreset(datePreset, mealDate, options) {
+  const config = options || {};
   const normalized = datePreset === 'yesterday' ? 'yesterday' : 'today';
   const resolvedDate = mealDate || buildMealDateFromPreset_(normalized);
   document.getElementById('meal-date').value = resolvedDate;
@@ -493,6 +498,7 @@ function setMealDatePreset(datePreset, mealDate) {
   document.getElementById('meal-date-label').textContent = normalized === 'yesterday'
     ? `昨日 (${formatDateLabel_(resolvedDate)}) の記録として保存します。`
     : `今日 (${formatDateLabel_(resolvedDate)}) の記録として保存します。`;
+  state.mealDateDirty = Boolean(config.markDirty);
 }
 
 function buildMealDateFromPreset_(datePreset) {
@@ -944,12 +950,22 @@ function renderStreakSection_(streak, ranking) {
   renderRankingList_('streak-ranking', ranking || [], (item, index) => `
     <div class="ranking-item">
       <div class="ranking-rank">#${index + 1}</div>
+      <div class="ranking-avatar">${buildRankingAvatarMarkup_(item)}</div>
       <div class="ranking-main">
         <div class="ranking-name">${escapeHtml(item.displayName)}</div>
       </div>
       <div class="ranking-value">${escapeHtml(String(item.streak))}日</div>
     </div>
   `);
+}
+
+function buildRankingAvatarMarkup_(item) {
+  const pictureUrl = String(item && item.pictureUrl || '').trim();
+  if (pictureUrl) {
+    return `<img src="${escapeHtml(pictureUrl)}" alt="${escapeHtml(item.displayName || 'user')}">`;
+  }
+  const fallback = String(item && item.displayName || 'U').trim().slice(0, 1) || 'U';
+  return `<span>${escapeHtml(fallback)}</span>`;
 }
 
 function renderPendingSummary_(pendingItems) {
@@ -1053,10 +1069,14 @@ function renderDraft(draft) {
     }
   }
   if (draft.meal) {
-    setMealType(draft.meal);
+    if (!state.mealDirty) {
+      setMealType(draft.meal);
+    }
   }
   if (draft.mealDate || draft.datePreset) {
-    setMealDatePreset(draft.datePreset || inferDatePresetFromMealDate_(draft.mealDate), draft.mealDate);
+    if (!state.mealDateDirty) {
+      setMealDatePreset(draft.datePreset || inferDatePresetFromMealDate_(draft.mealDate), draft.mealDate);
+    }
   }
 
   const prefill = draft.prefill || {};
@@ -1126,6 +1146,8 @@ function applyCandidate(index) {
 function applyMasterSearchResult(index) {
   const candidate = state.masterSearchResults[index];
   if (!candidate) return;
+  const currentMeal = document.getElementById('meal-type').value;
+  const currentMealDate = document.getElementById('meal-date').value;
   setMenuValue_(candidate.name || '');
   document.getElementById('master-key').value = candidate.masterKey || '';
   document.getElementById('editing-master-key').value = '';
@@ -1133,7 +1155,8 @@ function applyMasterSearchResult(index) {
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
-  updateFieldState(document.getElementById('menu-name'), false);
+  setMealType(currentMeal, { markDirty: state.mealDirty });
+  setMealDatePreset(inferDatePresetFromMealDate_(currentMealDate), currentMealDate, { markDirty: state.mealDateDirty });
   clearEditMode_();
   refreshMealSubmitControls_();
   setActiveView('input');
@@ -1144,6 +1167,8 @@ function applyMasterSearchResult(index) {
 function startMasterEdit(index) {
   const candidate = state.masterSearchResults[index];
   if (!candidate) return;
+  const currentMeal = document.getElementById('meal-type').value;
+  const currentMealDate = document.getElementById('meal-date').value;
 
   document.getElementById('editing-master-key').value = candidate.masterKey || '';
   document.getElementById('editing-log-row').value = '';
@@ -1153,6 +1178,8 @@ function startMasterEdit(index) {
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
+  setMealType(currentMeal, { markDirty: state.mealDirty });
+  setMealDatePreset(inferDatePresetFromMealDate_(currentMealDate), currentMealDate, { markDirty: state.mealDateDirty });
   refreshMealSubmitControls_();
   setActiveView('input');
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });

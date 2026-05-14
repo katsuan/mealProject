@@ -323,6 +323,7 @@ function getStreakRanking_(limit) {
     .map(user => ({
       userId: user.userId,
       displayName: user.displayName || 'ユーザー',
+      pictureUrl: String(user.pictureUrl || ''),
       streak: getUserStreakSummary_(user.userId).current,
     }))
     .filter(item => item.streak > 0)
@@ -337,7 +338,7 @@ function buildMealLogGroupingKey_(log) {
   return normalizeText_(String(log && log.menu || ''));
 }
 
-function handleMealMessageFlow(userId, text, displayName, source) {
+function handleMealMessageFlow(userId, text, displayName, source, pictureUrl) {
   ensureProjectSetup_();
   const inputText = String(text || '').trim();
   if (!userId) {
@@ -347,7 +348,7 @@ function handleMealMessageFlow(userId, text, displayName, source) {
     throw new Error('text is required');
   }
 
-  const user = ensureUserExists_(userId, displayName);
+  const user = ensureUserExists_(userId, displayName, pictureUrl);
 
   const adminResult = handleAdminCommand(userId, inputText);
   if (adminResult) {

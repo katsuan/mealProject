@@ -28,11 +28,17 @@ function listUsersByStatus(status) {
   return listUsers().filter(user => String(user.status || '') === targetStatus);
 }
 
-function ensureUserExists_(userId, displayName) {
+function ensureUserExists_(userId, displayName, pictureUrl) {
   const existing = getUserById(userId);
   if (existing) {
-    if (displayName && existing.displayName !== displayName) {
-      updateUserProfile(userId, { displayName: displayName });
+    if (
+      (displayName && existing.displayName !== displayName) ||
+      (pictureUrl != null && existing.pictureUrl !== String(pictureUrl || ''))
+    ) {
+      updateUserProfile(userId, {
+        displayName: displayName,
+        pictureUrl: pictureUrl,
+      });
       return getUserById(userId);
     }
     return existing;
@@ -47,6 +53,7 @@ function ensureUserExists_(userId, displayName) {
   const user = {
     userId: userId,
     displayName: displayName || '',
+    pictureUrl: String(pictureUrl || ''),
     calorieTarget: 2000,
     goalType: GOAL_TYPE.KEEP,
     notify: true,
@@ -76,6 +83,10 @@ function updateUserProfile(userId, patch) {
 
   if (Object.prototype.hasOwnProperty.call(patch, 'displayName')) {
     sheet.getRange(rowIndex + 1, USER_COL_INDEX.displayName).setValue(patch.displayName || '');
+  }
+
+  if (Object.prototype.hasOwnProperty.call(patch, 'pictureUrl')) {
+    sheet.getRange(rowIndex + 1, USER_COL_INDEX.pictureUrl).setValue(String(patch.pictureUrl || ''));
   }
 
   if (Object.prototype.hasOwnProperty.call(patch, 'calorieTarget')) {
@@ -209,6 +220,7 @@ function mapUserRow_(row) {
   return {
     userId: String(row[USER_COL_INDEX.userId - 1] || ''),
     displayName: String(row[USER_COL_INDEX.displayName - 1] || ''),
+    pictureUrl: String(row[USER_COL_INDEX.pictureUrl - 1] || ''),
     calorieTarget: toNullableNumber_(row[USER_COL_INDEX.calorieTarget - 1]),
     goalType: String(row[USER_COL_INDEX.goalType - 1] || GOAL_TYPE.KEEP),
     notify: row[USER_COL_INDEX.notify - 1] === true,
