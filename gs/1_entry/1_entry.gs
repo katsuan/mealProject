@@ -36,6 +36,14 @@ function handleLineEvent_(event) {
     return;
   }
 
+  if (String(event.source && event.source.type || '') === 'user') {
+    try {
+      showLineLoadingAnimation_(userId, 5);
+    } catch (error) {
+      // Loading animation is a best-effort enhancement.
+    }
+  }
+
   let profile = {};
   try {
     profile = getLineProfile_(userId) || {};

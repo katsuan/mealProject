@@ -174,6 +174,20 @@ function pushLineMessages_(userId, messages) {
   });
 }
 
+function showLineLoadingAnimation_(chatId, loadingSeconds) {
+  if (!chatId) return;
+  callLineApi_('/v2/bot/chat/loading/start', 'post', {
+    chatId: chatId,
+    loadingSeconds: normalizeLoadingSeconds_(loadingSeconds),
+  });
+}
+
+function normalizeLoadingSeconds_(value) {
+  const seconds = Number(value || 0);
+  if (!Number.isFinite(seconds)) return 5;
+  return Math.max(5, Math.min(60, Math.round(seconds)));
+}
+
 function getLineProfile_(userId) {
   if (!userId || !getLineChannelAccessToken_()) return null;
   return callLineApi_(`/v2/bot/profile/${encodeURIComponent(userId)}`, 'get');
