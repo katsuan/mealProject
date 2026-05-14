@@ -155,7 +155,7 @@ function buildPopularQuickReply_(userId) {
       action: {
         type: 'message',
         label: trimQuickReplyLabel_(item.menu),
-        text: `${inferMealType_(new Date())} ${item.menu}`,
+        text: `${item.menu}`,
       },
     }));
 
