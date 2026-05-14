@@ -825,6 +825,10 @@
     line-height: 1;
   }
 
+  .streak-cards + .ranking-list {
+    margin-top: 22px;
+  }
+
   .card .value.is-warning {
     color: var(--alert);
   }

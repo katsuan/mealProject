@@ -963,7 +963,12 @@ function renderStreakSection_(streak, ranking) {
 }
 
 function buildRankingAvatarMarkup_(item) {
-  const pictureUrl = String(item && item.pictureUrl || '').trim();
+  const isSelf = item && item.userId === state.userId;
+  const pictureUrl = String(
+    item && item.pictureUrl
+      ? item.pictureUrl
+      : (isSelf ? state.pictureUrl : '')
+  ).trim();
   if (pictureUrl) {
     return `<img src="${escapeHtml(pictureUrl)}" alt="${escapeHtml(item.displayName || 'user')}">`;
   }
