@@ -1,4 +1,5 @@
 const appConfig = window.__MEAL_APP_CONFIG__ || {};
+const appVersion = String(appConfig.appVersion || '').trim();
 const initialLiffId = String(appConfig.initialLiffId || '').trim();
 const apiBaseUrl = String(appConfig.apiBaseUrl || '').trim();
 const initialQuery = buildInitialQuery_(appConfig.initialQuery || {});
@@ -60,6 +61,11 @@ function pushStatus(level, message) {
   return entry;
 }
 
+function pushVersionDebug_() {
+  if (!appVersion) return;
+  pushStatus('debug', `version: ${appVersion}`);
+}
+
 function renderStatus() {
   const latest = state.statusLogs[state.statusLogs.length - 1] || {
     level: 'info',
@@ -85,7 +91,9 @@ function renderStatus() {
   textNode.textContent = latest.message;
   accordionNode.hidden = !state.statusAccordionOpen;
   accordionToggle.setAttribute('aria-expanded', state.statusAccordionOpen ? 'true' : 'false');
-  accordionToggle.textContent = state.statusAccordionOpen ? '閉じる' : 'ログ';
+  accordionToggle.textContent = state.statusAccordionOpen ? '▾' : '▸';
+  accordionToggle.setAttribute('aria-label', state.statusAccordionOpen ? 'ログを閉じる' : 'ログを開く');
+  accordionToggle.setAttribute('title', state.statusAccordionOpen ? 'ログを閉じる' : 'ログを開く');
 
   controlsNode.hidden = availableLevels.length <= 1;
   controlsNode.innerHTML = availableLevels.length > 1
@@ -179,6 +187,7 @@ async function initializeApp() {
     refreshTargetControls();
     renderStatus();
     pushStatus('info', 'プロフィールと今日の集計を準備しています。');
+    pushVersionDebug_();
 
     await initializeLiffProfile_();
 

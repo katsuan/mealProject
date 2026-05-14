@@ -234,13 +234,14 @@
 
   .status-accordion-toggle {
     flex: 0 0 auto;
-    min-height: 28px;
+    width: 28px;
+    height: 28px;
     border: 1px solid rgba(255, 255, 255, 0.88);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.76);
-    padding: 6px 10px;
-    font-size: 11px;
-    font-weight: 700;
+    padding: 0;
+    font-size: 12px;
+    font-weight: 800;
     color: currentColor;
   }
 
@@ -534,11 +535,23 @@
     color: var(--alert);
   }
 
+  .value-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  .value-row .value {
+    margin-top: 0;
+  }
+
   .card-meta {
-    margin-top: 4px;
     font-size: 11px;
     color: var(--muted);
     line-height: 1.4;
+    text-align: right;
   }
 
   .card-meta.is-warning {
@@ -613,8 +626,9 @@
     }
 
     .profile-row {
-      grid-template-columns: auto minmax(0, 1fr);
-      align-items: start;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 10px;
     }
 
     .profile-copy .name {
@@ -622,17 +636,16 @@
     }
 
     .target-cluster {
-      grid-column: 1 / -1;
-      min-width: 0;
-      justify-items: stretch;
+      min-width: 118px;
     }
 
     .target-field {
-      width: 100%;
+      min-height: 46px;
+      padding: 8px 10px;
     }
 
-    .target-field-input {
-      justify-content: flex-end;
+    .target-field input {
+      width: 60px;
     }
   }
 
@@ -646,6 +659,42 @@
       gap: 10px;
     }
 
+    .profile-copy .eyebrow {
+      font-size: 10px;
+    }
+
+    .profile-copy .name {
+      font-size: 16px;
+    }
+
+    .target-cluster {
+      min-width: 104px;
+      gap: 4px;
+    }
+
+    .target-head {
+      gap: 6px;
+    }
+
+    .target-label,
+    .target-save {
+      font-size: 10px;
+    }
+
+    .target-field {
+      min-height: 42px;
+      padding: 7px 9px;
+    }
+
+    .target-field input {
+      width: 52px;
+      font-size: 15px;
+    }
+
+    .target-field-input span {
+      font-size: 11px;
+    }
+
     .status-latest {
       padding: 10px;
     }
@@ -653,5 +702,22 @@
     .status-accordion-toggle {
       padding-left: 8px;
       padding-right: 8px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .profile-row {
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: start;
+    }
+
+    .target-cluster {
+      grid-column: 1 / -1;
+      min-width: 0;
+      justify-items: stretch;
+    }
+
+    .target-field {
+      width: 100%;
     }
   }

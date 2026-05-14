@@ -37,7 +37,7 @@
         <div class="status-panel">
           <div id="status-latest" class="status-latest is-info">
             <span id="status-text" class="status-text">プロフィールと今日の集計を準備しています。</span>
-            <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false">ログ</button>
+            <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
           </div>
           <div id="status-accordion" class="status-accordion" hidden>
             <div id="status-controls" class="status-controls" hidden></div>
@@ -157,8 +157,10 @@
           </div>
           <div class="card">
             <div class="label">目標差分</div>
-            <div id="card-diff" class="value">-</div>
-            <div id="card-diff-rate" class="card-meta">-</div>
+            <div class="value-row">
+              <div id="card-diff" class="value">-</div>
+              <div id="card-diff-rate" class="card-meta">-</div>
+            </div>
           </div>
           <div class="card">
             <div class="label">未登録件数</div>
