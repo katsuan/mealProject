@@ -10,6 +10,12 @@
     --accent-soft: #fde2da;
     --warning: #b7672b;
     --warning-soft: #fde7d6;
+    --debug: #2f6fd6;
+    --debug-soft: #e2ecff;
+    --info: #2f8f5b;
+    --info-soft: #e3f7eb;
+    --alert: #c84949;
+    --alert-soft: #fde2e2;
     --shadow: 0 12px 28px rgba(124, 54, 35, 0.10);
   }
 
@@ -143,9 +149,166 @@
     cursor: pointer;
   }
 
-  .status {
+  .target-input-wrap input:disabled,
+  .target-save:disabled,
+  button:disabled {
+    cursor: default;
+    opacity: 0.56;
+  }
+
+  .status-panel {
+    display: grid;
+    gap: 8px;
+  }
+
+  .status-latest {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: var(--info-soft);
+    color: var(--info);
+  }
+
+  .status-latest.is-debug {
+    background: var(--debug-soft);
+    color: var(--debug);
+  }
+
+  .status-latest.is-info {
+    background: var(--info-soft);
+    color: var(--info);
+  }
+
+  .status-latest.is-notice {
+    background: var(--warning-soft);
+    color: var(--warning);
+  }
+
+  .status-latest.is-warning {
+    background: var(--alert-soft);
+    color: var(--alert);
+  }
+
+  .status-badge {
+    flex: 0 0 auto;
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.88);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .status-text {
+    min-width: 0;
+    flex: 1 1 auto;
     font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .status-accordion-toggle {
+    flex: 0 0 auto;
+    min-height: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.88);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.76);
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: currentColor;
+  }
+
+  .status-accordion {
+    display: grid;
+    gap: 8px;
+  }
+
+  .status-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .status-toggle {
+    min-height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-subtle);
     color: var(--muted);
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .status-toggle.is-debug.is-active {
+    border-color: var(--debug);
+    background: var(--debug-soft);
+    color: var(--debug);
+  }
+
+  .status-toggle.is-notice.is-active {
+    border-color: var(--warning);
+    background: var(--warning-soft);
+    color: var(--warning);
+  }
+
+  .status-toggle.is-warning.is-active {
+    border-color: var(--alert);
+    background: var(--alert-soft);
+    color: var(--alert);
+  }
+
+  .status-history {
+    display: grid;
+    gap: 8px;
+  }
+
+  .status-log {
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .status-log.is-debug {
+    background: var(--debug-soft);
+    color: var(--debug);
+  }
+
+  .status-log.is-notice {
+    background: var(--warning-soft);
+    color: var(--warning);
+  }
+
+  .status-log.is-warning {
+    background: var(--alert-soft);
+    color: var(--alert);
+  }
+
+  .status-log-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .status-log-label {
+    font-weight: 800;
+  }
+
+  .status-log-time {
+    font-size: 11px;
+    opacity: 0.8;
+  }
+
+  .status-log-message {
+    margin-top: 4px;
     white-space: pre-wrap;
   }
 

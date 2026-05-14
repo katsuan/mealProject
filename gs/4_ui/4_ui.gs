@@ -49,7 +49,7 @@ function buildKcalDiffLine_(userId, total) {
 }
 
 function buildTargetUpdatedReply(userId, kcal) {
-  return `${userId} の目標カロリーを ${kcal} kcal に更新しました`;
+  return `目標カロリーを ${kcal} kcal に更新しました`;
 }
 
 function buildDailySummaryFlexMessage(userId, options) {
@@ -179,10 +179,11 @@ function buildDailySummaryFlexMessage(userId, options) {
         contents: [
           {
             type: 'button',
-            style: 'primary',
+            style: 'secondary',
+            color: '#FDF5F2',
             action: {
               type: 'uri',
-              label: '詳細をLIFFで開く',
+              label: '詳細を見る',
               uri: detailUrl,
             },
           },
@@ -205,7 +206,7 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
 
   return {
     type: 'flex',
-    altText: `${parsed.menu} は未登録です。LIFFで入力してください。`,
+    altText: `${parsed.menu} は未登録です。入力してください。`,
     contents: {
       type: 'bubble',
       body: {
@@ -227,7 +228,7 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
           },
           {
             type: 'text',
-            text: 'DBにないので、LIFFで数値を補完してください。',
+            text: 'DBにないので、数値を入力してください。',
             wrap: true,
             size: 'sm',
             color: '#6b7280',
@@ -263,10 +264,11 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
         contents: [
           {
             type: 'button',
-            style: 'primary',
+            style: 'secondary',
+            color: '#FDF5F2',
             action: {
               type: 'uri',
-              label: 'LIFFで入力する',
+              label: '入力する',
               uri: liffUrl,
             },
           },

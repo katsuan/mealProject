@@ -23,7 +23,21 @@
             <button id="save-target" type="button" class="target-save">更新</button>
           </div>
         </div>
-        <div id="status" class="status">LIFFを初期化しています。</div>
+        <div class="status-panel">
+          <div id="status-latest" class="status-latest is-info">
+            <span id="status-level" class="status-badge">INFO</span>
+            <span id="status-text" class="status-text">プロフィールと今日の集計を準備しています。</span>
+            <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false">ログ</button>
+          </div>
+          <div id="status-accordion" class="status-accordion" hidden>
+            <div class="status-controls">
+              <button type="button" class="status-toggle" data-log-toggle="debug">DEBUG</button>
+              <button type="button" class="status-toggle" data-log-toggle="notice">注意</button>
+              <button type="button" class="status-toggle" data-log-toggle="warning">警告</button>
+            </div>
+            <div id="status-history" class="status-history" hidden></div>
+          </div>
+        </div>
       </section>
 
       <section class="band">

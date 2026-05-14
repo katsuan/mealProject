@@ -18,7 +18,7 @@ function handleTextEvent(param) {
     return buildLogReply(param.userId, result.record);
   }
 
-  return 'LIFFで詳細を入力してください。';
+  return '詳細を入力してください。';
 }
 
 function handleLineWebhook_(payload) {

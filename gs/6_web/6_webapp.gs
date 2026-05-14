@@ -59,6 +59,7 @@ function getLiffAppState(payload) {
     ok: true,
     liffId: getLiffId_(),
     channelIdConfigured: Boolean(getLineChannelId_()),
+    identity: serializeIdentityState_(identity),
     dashboard: getDashboardData(user.userId),
     draft: getMealDraftState({
       meal: payload && payload.meal,
@@ -108,6 +109,7 @@ function submitMealDetailFromLiff(payload) {
 
   return {
     ok: true,
+    identity: serializeIdentityState_(identity),
     reply: buildLogReply(identity.userId, result.record),
     dashboard: result.dashboard,
     draft: getMealDraftState({
@@ -136,7 +138,17 @@ function updateLiffUserProfile(payload) {
 
   return {
     ok: true,
+    identity: serializeIdentityState_(identity),
     dashboard: getDashboardData(identity.userId),
+  };
+}
+
+function serializeIdentityState_(identity) {
+  return {
+    userId: String(identity && identity.userId || ''),
+    displayName: String(identity && identity.displayName || ''),
+    verified: Boolean(identity && identity.verified),
+    verificationError: String(identity && identity.verificationError || ''),
   };
 }
 

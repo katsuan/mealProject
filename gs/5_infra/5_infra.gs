@@ -99,13 +99,18 @@ function textOutput_(text) {
 function verifyLiffIdentity_(payload) {
   const idToken = String(payload && payload.idToken || '').trim();
   const channelId = getLineChannelId_();
+  const fallbackIdentity = {
+    userId: String(payload && payload.userId || '').trim(),
+    displayName: String(payload && payload.displayName || '').trim(),
+    verified: false,
+    verificationError: '',
+  };
 
   if (!idToken || !channelId) {
-    return {
-      userId: String(payload && payload.userId || '').trim(),
-      displayName: String(payload && payload.displayName || '').trim(),
-      verified: false,
-    };
+    fallbackIdentity.verificationError = !idToken
+      ? 'idToken is not available'
+      : 'LINE channel ID is not configured';
+    return fallbackIdentity;
   }
 
   const response = UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/verify', {
@@ -118,7 +123,10 @@ function verifyLiffIdentity_(payload) {
   });
 
   if (response.getResponseCode() !== 200) {
-    throw new Error('LIFF identity verification failed');
+    fallbackIdentity.verificationError =
+      extractLineVerifyError_(response.getContentText()) ||
+      `LINE verify failed with status ${response.getResponseCode()}`;
+    return fallbackIdentity;
   }
 
   const verified = JSON.parse(response.getContentText());
@@ -126,7 +134,19 @@ function verifyLiffIdentity_(payload) {
     userId: String(verified.sub || ''),
     displayName: String(verified.name || payload.displayName || ''),
     verified: true,
+    verificationError: '',
   };
+}
+
+function extractLineVerifyError_(body) {
+  if (!body) return '';
+
+  try {
+    const parsed = JSON.parse(body);
+    return String(parsed.error_description || parsed.error || '').trim();
+  } catch (error) {
+    return String(body || '').trim();
+  }
 }
 
 function callLineApi_(path, method, payload) {
