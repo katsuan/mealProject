@@ -441,7 +441,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
           },
           {
             type: 'text',
-            text: `${candidate.kcal || '-'} kcal / ${candidate.scorePercent}%`,
+            text: `${candidate.kcal || '-'} kcal / 一致度 ${candidate.scorePercent}%`,
             size: 'xs',
             color: '#8a6258',
             wrap: true,

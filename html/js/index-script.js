@@ -3,6 +3,7 @@ const appVersion = String(appConfig.appVersion || '').trim();
 const appCommit = String(appConfig.appCommit || '').trim();
 const initialLiffId = String(appConfig.initialLiffId || '').trim();
 const apiBaseUrl = String(appConfig.apiBaseUrl || '').trim();
+const publicAppUrl = String(appConfig.publicAppUrl || '').trim();
 const initialQuery = buildInitialQuery_(appConfig.initialQuery || {});
 const LOCAL_STATE_PREFIX = 'meal-app-state:';
 const STATUS_META = {
@@ -163,12 +164,24 @@ function bindCandidateAccordion() {
 
 function bindLoginButton() {
   document.getElementById('login-line').addEventListener('click', () => {
-    if (!window.liff || typeof liff.login !== 'function') {
-      pushStatus('warning', 'この環境ではLINEログインを開始できません。');
+    const redirectUrl = resolveLoginRedirectUrl_();
+    if (!redirectUrl) {
+      pushStatus('warning', '公開URLが未設定のため、ここではLINEログインを開始できません。');
       return;
     }
-    liff.login({ redirectUri: window.location.href });
+    if (!window.liff || typeof liff.login !== 'function') {
+      window.location.href = redirectUrl;
+      return;
+    }
+    liff.login({ redirectUri: redirectUrl });
   });
+}
+
+function resolveLoginRedirectUrl_() {
+  if (window.location.protocol !== 'file:') {
+    return window.location.href;
+  }
+  return publicAppUrl || '';
 }
 
 async function runServer(action, payload) {
@@ -239,7 +252,12 @@ async function initializeLiffProfile_() {
   try {
     await liff.init({ liffId: initialLiffId });
     if (!liff.isLoggedIn()) {
-      pushStatus('notice', 'LINEアプリ内、またはLINEログイン済みブラウザでプロフィールを取得できます。');
+      pushStatus(
+        'notice',
+        window.location.protocol === 'file:'
+          ? 'PCデバッグ中は「公開URLでLINEログイン」から公開URLを開いてログインしてください。'
+          : 'LINEアプリ内、またはLINEログイン済みブラウザでプロフィールを取得できます。'
+      );
       return;
     }
 
@@ -311,6 +329,7 @@ function renderProfileHeader() {
   document.getElementById('display-name').value = state.displayName || '';
   const loginButton = document.getElementById('login-line');
   loginButton.hidden = Boolean(state.userId);
+  loginButton.textContent = window.location.protocol === 'file:' ? '公開URLでLINEログイン' : 'LINEでログイン';
 
   const avatar = document.getElementById('avatar');
   if (state.pictureUrl) {
@@ -513,7 +532,7 @@ function renderDraft(draft) {
 
   if (prefill.hasSuggestion) {
     suggestionBox.hidden = false;
-    suggestionBox.textContent = `「${prefill.masterName}」を近い候補として下書きに入れました。推定一致度は ${prefill.scorePercent}% です。`;
+    suggestionBox.textContent = `「${prefill.masterName}」を近い候補として下書きに入れました。一致度は ${prefill.scorePercent}% です。`;
   } else {
     suggestionBox.hidden = true;
   }
@@ -530,7 +549,7 @@ function renderDraft(draft) {
         <div class="candidate-item">
           <div class="candidate-top">
             <div class="candidate-name">${escapeHtml(candidate.name)}</div>
-            <div class="candidate-score">${candidate.scorePercent}%</div>
+            <div class="candidate-score">一致度 ${candidate.scorePercent}%</div>
           </div>
           <div class="candidate-meta">カロリー ${formatNumber(candidate.kcal)} kcal / たんぱく質 ${formatNumber(candidate.protein)} g / 脂質 ${formatNumber(candidate.fat)} g / 炭水化物 ${formatNumber(candidate.carb)} g</div>
           <button type="button" class="secondary" onclick="applyCandidate(${index})">この候補を使う</button>
