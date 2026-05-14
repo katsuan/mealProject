@@ -232,9 +232,6 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
     menu: parsed.menu,
   });
   const topCandidates = (draft && draft.candidates || []).slice(0, 3);
-  const candidateLines = topCandidates.length
-    ? topCandidates.map(item => `・${item.name} (${item.kcal || '-'} kcal, ${item.scorePercent}%)`).join('\n')
-    : '候補なし';
 
   return {
     type: 'flex',
@@ -278,13 +275,21 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
                 weight: 'bold',
                 size: 'sm',
               },
-              {
-                type: 'text',
-                text: candidateLines,
-                wrap: true,
-                margin: 'sm',
-                size: 'sm',
-              },
+              topCandidates.length
+                ? {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'sm',
+                    margin: 'sm',
+                    contents: topCandidates.map(item => buildCandidatePostbackRow_(parsed, item)),
+                  }
+                : {
+                    type: 'text',
+                    text: '候補なし',
+                    wrap: true,
+                    margin: 'sm',
+                    size: 'sm',
+                  },
             ],
           },
         ],
@@ -307,6 +312,61 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
         ],
       },
     },
+  };
+}
+
+function buildCandidatePostbackRow_(parsed, candidate) {
+  return {
+    type: 'box',
+    layout: 'horizontal',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    spacing: 'sm',
+    paddingAll: '10px',
+    cornerRadius: '10px',
+    backgroundColor: '#FDF5F2',
+    action: {
+      type: 'postback',
+      label: `${candidate.name} を記録`,
+      data: buildQueryString_({
+        action: 'logCandidate',
+        meal: parsed.meal,
+        masterKey: candidate.masterKey,
+        menu: candidate.name,
+      }),
+    },
+    contents: [
+      {
+        type: 'box',
+        layout: 'vertical',
+        flex: 1,
+        spacing: 'xs',
+        contents: [
+          {
+            type: 'text',
+            text: candidate.name,
+            size: 'sm',
+            weight: 'bold',
+            wrap: true,
+          },
+          {
+            type: 'text',
+            text: `${candidate.kcal || '-'} kcal / ${candidate.scorePercent}%`,
+            size: 'xs',
+            color: '#8a6258',
+            wrap: true,
+          },
+        ],
+      },
+      {
+        type: 'text',
+        text: '記録',
+        size: 'xs',
+        weight: 'bold',
+        color: '#B8462C',
+        flex: 0,
+      },
+    ],
   };
 }
 

@@ -27,7 +27,7 @@ function handleLineWebhook_(payload) {
 }
 
 function handleLineEvent_(event) {
-  if (!event || event.type !== 'message' || !event.message || event.message.type !== 'text') {
+  if (!event) {
     return;
   }
 
@@ -42,6 +42,15 @@ function handleLineEvent_(event) {
     } catch (error) {
       // Loading animation is a best-effort enhancement.
     }
+  }
+
+  if (event.type === 'postback') {
+    handleLinePostbackEvent_(event, userId);
+    return;
+  }
+
+  if (event.type !== 'message' || !event.message || event.message.type !== 'text') {
+    return;
   }
 
   let profile = {};
@@ -79,4 +88,40 @@ function handleLineEvent_(event) {
   replyLineMessages_(event.replyToken, [
     buildMealInputPromptFlexMessage(result.parsed, result.draft),
   ]);
+}
+
+function handleLinePostbackEvent_(event, userId) {
+  const data = parseQueryString_(event && event.postback && event.postback.data);
+  if (String(data.action || '') !== 'logCandidate') {
+    return;
+  }
+
+  let profile = {};
+  try {
+    profile = getLineProfile_(userId) || {};
+  } catch (error) {
+    profile = {};
+  }
+
+  try {
+    const result = submitMealCandidate(userId, {
+      displayName: String(profile.displayName || ''),
+      masterKey: data.masterKey,
+      meal: data.meal,
+      menu: data.menu,
+    }, SOURCE.LINE);
+
+    replyLineMessages_(event.replyToken, [
+      buildDailySummaryFlexMessage(userId, {
+        dashboard: result.dashboard,
+        record: result.record,
+        headline: `${result.record.menu} を記録しました`,
+      }),
+    ]);
+  } catch (error) {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: '候補の記録に失敗しました。入力画面から登録してください。',
+    }]);
+  }
 }

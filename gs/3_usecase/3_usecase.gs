@@ -178,6 +178,36 @@ function submitMealDetail(userId, payload, source) {
   };
 }
 
+function submitMealCandidate(userId, payload, source) {
+  ensureProjectSetup_();
+  ensureUserExists_(userId, payload && payload.displayName);
+
+  const masterKey = String(payload && payload.masterKey || '').trim();
+  const master = masterKey ? getNutritionMaster(masterKey) : null;
+  if (!master || !hasAnyNutritionValue_(master)) {
+    throw new Error('candidate master is not available');
+  }
+
+  const parsed = {
+    meal: sanitizeMealType_(payload && payload.meal),
+    menu: String(master.name || payload && payload.menu || '').trim(),
+  };
+  if (!parsed.menu) {
+    throw new Error('menu is required');
+  }
+
+  const record = logMealFromMaster(userId, parsed, master, {
+    source: source || SOURCE.LINE,
+    mealDate: payload && payload.mealDate,
+  });
+
+  return {
+    parsed: parsed,
+    record: record,
+    dashboard: getDashboardData(userId),
+  };
+}
+
 function getMealDraftState(payload) {
   const menu = String(payload && payload.menu || '').trim();
   const meal = sanitizeMealType_(payload && payload.meal);

@@ -73,6 +73,21 @@
               <input id="menu-name" data-field-label="メニュー名" autocomplete="off">
             </label>
 
+            <div id="candidate-accordion" class="inline-accordion" hidden>
+              <button
+                id="candidate-accordion-toggle"
+                type="button"
+                class="inline-accordion-toggle"
+                aria-expanded="false"
+              >
+                <span id="candidate-accordion-icon" class="inline-accordion-icon">▸</span>
+                <span id="candidate-accordion-label" class="inline-accordion-label">近い候補</span>
+              </button>
+              <div id="candidate-accordion-body" class="inline-accordion-body" hidden>
+                <div id="candidate-list" class="candidate-list"></div>
+              </div>
+            </div>
+
             <div id="suggestion-box" class="notice suggestion" hidden></div>
             <div id="empty-box" class="notice warning" hidden>近い候補がまだありません。数値を入れて保存すると、次回から候補として使えます。</div>
 
@@ -132,16 +147,6 @@
       <section class="band">
         <div class="section-head">
           <div>
-            <h2>近い候補</h2>
-            <div class="section-copy">近いメニューの数値をそのままフォームに入れられます。</div>
-          </div>
-        </div>
-        <div id="candidate-list" class="candidate-list"></div>
-      </section>
-
-      <section class="band">
-        <div class="section-head">
-          <div>
             <h2>今日の集計</h2>
             <div class="section-copy">LINEに返す内容と同じ集計をここでも確認できます。</div>
           </div>
@@ -156,11 +161,11 @@
             <div id="card-estimated" class="value">0</div>
           </div>
           <div class="card">
-            <div class="label">目標差分</div>
-            <div class="value-row">
-              <div id="card-diff" class="value">-</div>
+            <div class="card-head">
+              <div class="label">目標差分</div>
               <div id="card-diff-rate" class="card-meta">-</div>
             </div>
+            <div id="card-diff" class="value">-</div>
           </div>
           <div class="card">
             <div class="label">未登録件数</div>

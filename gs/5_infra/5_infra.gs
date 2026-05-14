@@ -255,3 +255,16 @@ function buildQueryString_(params) {
     .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`)
     .join('&');
 }
+
+function parseQueryString_(value) {
+  return String(value || '')
+    .split('&')
+    .filter(Boolean)
+    .reduce((acc, pair) => {
+      const delimiterIndex = pair.indexOf('=');
+      const rawKey = delimiterIndex >= 0 ? pair.slice(0, delimiterIndex) : pair;
+      const rawValue = delimiterIndex >= 0 ? pair.slice(delimiterIndex + 1) : '';
+      acc[decodeURIComponent(rawKey)] = decodeURIComponent(rawValue);
+      return acc;
+    }, {});
+}

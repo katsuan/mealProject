@@ -27,6 +27,7 @@ const state = {
   isTargetEditing: false,
   identityWarningKey: '',
   statusAccordionOpen: false,
+  candidateAccordionOpen: false,
 };
 
 function buildInitialQuery_(fallback) {
@@ -151,6 +152,13 @@ function bindStatusToggles() {
   });
 }
 
+function bindCandidateAccordion() {
+  document.getElementById('candidate-accordion-toggle').addEventListener('click', () => {
+    state.candidateAccordionOpen = !state.candidateAccordionOpen;
+    renderCandidateAccordion_();
+  });
+}
+
 async function runServer(action, payload) {
   if (!apiBaseUrl) {
     throw new Error('GAS API URL is not configured');
@@ -181,6 +189,7 @@ async function runServer(action, payload) {
 async function initializeApp() {
   try {
     bindStatusToggles();
+    bindCandidateAccordion();
     hydrateQuery();
     bindMealTypeButtons();
     bindFieldInteractions();
@@ -401,11 +410,15 @@ function renderDraft(draft) {
   const suggestionBox = document.getElementById('suggestion-box');
   const emptyBox = document.getElementById('empty-box');
   const candidateList = document.getElementById('candidate-list');
+  const candidateAccordion = document.getElementById('candidate-accordion');
 
   if (!draft) {
     suggestionBox.hidden = true;
     emptyBox.hidden = true;
+    candidateAccordion.hidden = true;
     candidateList.innerHTML = '<div class="empty-state">候補はここに表示されます。</div>';
+    state.candidateAccordionOpen = false;
+    renderCandidateAccordion_();
     return;
   }
 
@@ -431,10 +444,15 @@ function renderDraft(draft) {
     suggestionBox.hidden = true;
   }
 
-  emptyBox.hidden = Boolean((draft.candidates || []).length);
+  const candidates = draft.candidates || [];
+  emptyBox.hidden = Boolean(candidates.length);
+  candidateAccordion.hidden = !candidates.length;
+  if (!candidates.length) {
+    state.candidateAccordionOpen = false;
+  }
 
-  candidateList.innerHTML = (draft.candidates || []).length
-    ? draft.candidates.map((candidate, index) => `
+  candidateList.innerHTML = candidates.length
+    ? candidates.map((candidate, index) => `
         <div class="candidate-item">
           <div class="candidate-top">
             <div class="candidate-name">${escapeHtml(candidate.name)}</div>
@@ -445,6 +463,7 @@ function renderDraft(draft) {
         </div>
       `).join('')
     : '<div class="empty-state">近い候補はまだありません。</div>';
+  renderCandidateAccordion_();
 }
 
 function applyNutritionFields(nutrition, extras) {
@@ -473,6 +492,43 @@ function applyCandidate(index) {
     note: candidate.note || '',
   });
   pushStatus('info', `「${candidate.name}」の数値を入力欄に反映しました。`);
+}
+
+function renderCandidateAccordion_() {
+  const draft = state.draft || null;
+  const candidates = draft && draft.candidates ? draft.candidates : [];
+  const accordion = document.getElementById('candidate-accordion');
+  const body = document.getElementById('candidate-accordion-body');
+  const icon = document.getElementById('candidate-accordion-icon');
+  const label = document.getElementById('candidate-accordion-label');
+  const toggle = document.getElementById('candidate-accordion-toggle');
+
+  if (!candidates.length) {
+    accordion.hidden = true;
+    body.hidden = true;
+    icon.textContent = '▸';
+    label.textContent = '近い候補';
+    toggle.setAttribute('aria-expanded', 'false');
+    return;
+  }
+
+  accordion.hidden = false;
+  body.hidden = !state.candidateAccordionOpen;
+  icon.textContent = state.candidateAccordionOpen ? '▾' : '▸';
+  toggle.setAttribute('aria-expanded', state.candidateAccordionOpen ? 'true' : 'false');
+  label.textContent = buildCandidateAccordionLabel_(candidates);
+}
+
+function buildCandidateAccordionLabel_(candidates) {
+  if (!candidates.length) {
+    return '近い候補';
+  }
+
+  if (candidates.length === 1) {
+    return `近い候補 (${candidates[0].name})`;
+  }
+
+  return `近い候補 (${candidates[0].name} など${candidates.length}件)`;
 }
 
 function setTargetSyncing(isLoading) {
