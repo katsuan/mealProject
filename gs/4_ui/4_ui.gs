@@ -106,200 +106,348 @@ function buildDailySummaryFlexMessage(userId, options) {
   const targetRatioColor = isOverTarget ? '#C84949' : '#231815';
   const tone = getFlexTone_(isOverTarget ? 'warning' : (today.hasPending ? 'notice' : 'success'));
   const progressWidth = hasTarget ? `${Math.max(6, Math.min(targetPercent, 100))}%` : '0%';
+  const logs = (dashboard.recentLogs || []).slice(0, 6);
 
   return {
     type: 'flex',
     altText: `${headline} 合計 ${total} kcal`,
     contents: {
-      type: 'bubble',
-      size: 'mega',
-      body: {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'md',
-        contents: [
-          {
-            type: 'box',
-            layout: 'vertical',
-            backgroundColor: tone.soft,
-            cornerRadius: '12px',
-            paddingAll: '14px',
-            contents: [
-              {
-                type: 'text',
-                text: headline,
-                weight: 'bold',
-                size: 'lg',
-                color: tone.text,
-                wrap: true,
-              },
-              {
-                type: 'text',
-                text: subline,
-                size: 'sm',
-                color: sublineColor,
-                wrap: true,
-                margin: 'sm',
-              },
-            ],
-          },
-          recordedLine ? {
-            type: 'box',
-            layout: 'vertical',
-            cornerRadius: '12px',
-            backgroundColor: '#F3F4F6',
-            paddingAll: '12px',
-            contents: [
-              {
-                type: 'text',
-                text: recordedLine,
-                size: 'sm',
-                wrap: true,
-              },
-            ],
-          } : null,
-          hasTarget ? {
-            type: 'box',
-            layout: 'vertical',
-            spacing: 'sm',
-            contents: [
-              {
-                type: 'box',
-                layout: 'vertical',
-                height: '10px',
-                backgroundColor: '#D1D5DB',
-                cornerRadius: '999px',
-                contents: [
-                  {
-                    type: 'box',
-                    layout: 'vertical',
-                    width: progressWidth,
-                    height: '10px',
-                    backgroundColor: tone.bar,
-                    cornerRadius: '999px',
-                    contents: [],
-                  },
-                ],
-              },
-            ],
-          } : null,
-          {
-            type: 'box',
-            layout: 'baseline',
-            spacing: 'sm',
-            contents: [
-              {
-                type: 'text',
-                text: '合計',
-                flex: 2,
-                size: 'sm',
-                color: '#6b7280',
-              },
-              {
-                type: 'text',
-                text: `${total} kcal`,
-                flex: 5,
-                size: 'xl',
-                weight: 'bold',
-                color: totalColor,
-              },
-            ],
-          },
-          {
-            type: 'box',
-            layout: 'baseline',
-            spacing: 'sm',
-            contents: [
-              {
-                type: 'text',
-                text: '目標比',
-                flex: 2,
-                size: 'sm',
-                color: '#6b7280',
-              },
-              {
-                type: 'text',
-                text: targetRatioLine,
-                flex: 4,
-                size: 'sm',
-                wrap: true,
-                color: targetRatioColor,
-                weight: isOverTarget ? 'bold' : 'regular',
-              },
-              hasTarget ? {
-                type: 'text',
-                text: `${targetPercentText}%`,
-                flex: 2,
-                align: 'end',
-                size: 'lg',
-                color: targetRatioColor,
-                weight: 'bold',
-              } : null,
-            ].filter(Boolean),
-          },
-          {
-            type: 'box',
-            layout: 'baseline',
-            spacing: 'sm',
-            contents: [
-              {
-                type: 'text',
-                text: 'PFC',
-                flex: 2,
-                size: 'sm',
-                color: '#6b7280',
-              },
-              {
-                type: 'text',
-                text: `P ${roundNutrition_(today.nutrition.protein)} / F ${roundNutrition_(today.nutrition.fat)} / C ${roundNutrition_(today.nutrition.carb)}`,
-                flex: 5,
-                size: 'sm',
-                wrap: true,
-              },
-            ],
-          },
-          {
-            type: 'box',
-            layout: 'baseline',
-            spacing: 'sm',
-            contents: [
-              {
-                type: 'text',
-                text: '状態',
-                flex: 2,
-                size: 'sm',
-                color: '#6b7280',
-              },
-              {
-                type: 'text',
-                text: pendingLine,
-                flex: 5,
-                size: 'sm',
-                wrap: true,
-              },
-            ],
-          },
-        ].filter(Boolean),
-      },
-      footer: {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'sm',
-        contents: [
-          {
-            type: 'button',
-            style: 'secondary',
-            color: '#FDF5F2',
-            action: {
-              type: 'uri',
-              label: '詳細を見る',
-              uri: detailUrl,
-            },
-          },
-        ],
-      },
+      type: 'carousel',
+      contents: [
+        buildDailySummaryBubble_({
+          headline: headline,
+          subline: subline,
+          sublineColor: sublineColor,
+          recordedLine: recordedLine,
+          hasTarget: hasTarget,
+          progressWidth: progressWidth,
+          tone: tone,
+          total: total,
+          totalColor: totalColor,
+          targetRatioLine: targetRatioLine,
+          targetRatioColor: targetRatioColor,
+          targetPercentText: targetPercentText,
+          isOverTarget: isOverTarget,
+          today: today,
+          pendingLine: pendingLine,
+          detailUrl: detailUrl,
+        }),
+        buildTodayLogBubble_({
+          logs: logs,
+          detailUrl: detailUrl,
+          pendingLine: pendingLine,
+        }),
+      ],
     },
   };
+}
+
+function buildDailySummaryBubble_(context) {
+  return {
+    type: 'bubble',
+    size: 'mega',
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'md',
+      contents: [
+        {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: context.tone.soft,
+          cornerRadius: '12px',
+          paddingAll: '14px',
+          contents: [
+            {
+              type: 'text',
+              text: context.headline,
+              weight: 'bold',
+              size: 'lg',
+              color: context.tone.text,
+              wrap: true,
+            },
+            {
+              type: 'text',
+              text: context.subline,
+              size: 'sm',
+              color: context.sublineColor,
+              wrap: true,
+              margin: 'sm',
+            },
+          ],
+        },
+        context.recordedLine ? {
+          type: 'box',
+          layout: 'vertical',
+          cornerRadius: '12px',
+          backgroundColor: '#F3F4F6',
+          paddingAll: '12px',
+          contents: [
+            {
+              type: 'text',
+              text: context.recordedLine,
+              size: 'sm',
+              wrap: true,
+            },
+          ],
+        } : null,
+        context.hasTarget ? {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'box',
+              layout: 'vertical',
+              height: '10px',
+              backgroundColor: '#D1D5DB',
+              cornerRadius: '999px',
+              contents: [
+                {
+                  type: 'box',
+                  layout: 'vertical',
+                  width: context.progressWidth,
+                  height: '10px',
+                  backgroundColor: context.tone.bar,
+                  cornerRadius: '999px',
+                  contents: [],
+                },
+              ],
+            },
+          ],
+        } : null,
+        {
+          type: 'box',
+          layout: 'baseline',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'text',
+              text: '合計',
+              flex: 2,
+              size: 'sm',
+              color: '#6b7280',
+            },
+            {
+              type: 'text',
+              text: `${context.total} kcal`,
+              flex: 5,
+              size: 'xl',
+              weight: 'bold',
+              color: context.totalColor,
+            },
+          ],
+        },
+        {
+          type: 'box',
+          layout: 'baseline',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'text',
+              text: '目標比',
+              flex: 2,
+              size: 'sm',
+              color: '#6b7280',
+            },
+            {
+              type: 'text',
+              text: context.targetRatioLine,
+              flex: 4,
+              size: 'sm',
+              wrap: true,
+              color: context.targetRatioColor,
+              weight: context.isOverTarget ? 'bold' : 'regular',
+            },
+            context.hasTarget ? {
+              type: 'text',
+              text: `${context.targetPercentText}%`,
+              flex: 2,
+              align: 'end',
+              size: 'lg',
+              color: context.targetRatioColor,
+              weight: 'bold',
+            } : null,
+          ].filter(Boolean),
+        },
+        {
+          type: 'box',
+          layout: 'baseline',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'text',
+              text: 'PFC',
+              flex: 2,
+              size: 'sm',
+              color: '#6b7280',
+            },
+            {
+              type: 'text',
+              text: `P ${roundNutrition_(context.today.nutrition.protein)} / F ${roundNutrition_(context.today.nutrition.fat)} / C ${roundNutrition_(context.today.nutrition.carb)}`,
+              flex: 5,
+              size: 'sm',
+              wrap: true,
+            },
+          ],
+        },
+        {
+          type: 'box',
+          layout: 'baseline',
+          spacing: 'sm',
+          contents: [
+            {
+              type: 'text',
+              text: '状態',
+              flex: 2,
+              size: 'sm',
+              color: '#6b7280',
+            },
+            {
+              type: 'text',
+              text: context.pendingLine,
+              flex: 5,
+              size: 'sm',
+              wrap: true,
+            },
+          ],
+        },
+      ].filter(Boolean),
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'sm',
+      contents: [
+        {
+          type: 'button',
+          style: 'secondary',
+          color: '#FDF5F2',
+          action: {
+            type: 'uri',
+            label: '詳細を見る',
+            uri: context.detailUrl,
+          },
+        },
+      ],
+    },
+  };
+}
+
+function buildTodayLogBubble_(context) {
+  const logs = context.logs || [];
+  const logContents = logs.length
+    ? logs.map(log => ({
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'xs',
+        paddingAll: '10px',
+        backgroundColor: '#FDF5F2',
+        cornerRadius: '10px',
+        contents: [
+          {
+            type: 'box',
+            layout: 'baseline',
+            contents: [
+              {
+                type: 'text',
+                text: log.menu,
+                flex: 5,
+                size: 'sm',
+                weight: 'bold',
+                wrap: true,
+                color: '#231815',
+              },
+              {
+                type: 'text',
+                text: log.meal,
+                flex: 1,
+                align: 'end',
+                size: 'xs',
+                color: '#8a6258',
+              },
+            ],
+          },
+          {
+            type: 'text',
+            text: `${buildMealKcalLine(log)} / ${formatFlexLogTime_(log.mealDate)}`,
+            size: 'xs',
+            wrap: true,
+            color: '#6b7280',
+          },
+        ],
+      }))
+    : [{
+        type: 'text',
+        text: 'まだ記録がありません。',
+        size: 'sm',
+        color: '#6b7280',
+        wrap: true,
+      }];
+
+  return {
+    type: 'bubble',
+    size: 'mega',
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'md',
+      contents: [
+        {
+          type: 'box',
+          layout: 'vertical',
+          backgroundColor: '#FDF5F2',
+          cornerRadius: '12px',
+          paddingAll: '14px',
+          contents: [
+            {
+              type: 'text',
+              text: '今日のログ',
+              weight: 'bold',
+              size: 'lg',
+              color: '#B8462C',
+            },
+            {
+              type: 'text',
+              text: context.pendingLine,
+              size: 'sm',
+              color: '#8a6258',
+              margin: 'sm',
+              wrap: true,
+            },
+          ],
+        },
+        {
+          type: 'box',
+          layout: 'vertical',
+          spacing: 'sm',
+          contents: logContents,
+        },
+      ],
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'sm',
+      contents: [
+        {
+          type: 'button',
+          style: 'secondary',
+          color: '#FDF5F2',
+          action: {
+            type: 'uri',
+            label: '入力とログを見る',
+            uri: context.detailUrl,
+          },
+        },
+      ],
+    },
+  };
+}
+
+function formatFlexLogTime_(value) {
+  if (!value) return '';
+  return Utilities.formatDate(new Date(value), APP_TIMEZONE, 'H:mm');
 }
 
 function buildMealInputPromptFlexMessage(parsed, draft) {
