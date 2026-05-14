@@ -240,6 +240,12 @@
     gap: 8px;
   }
 
+  .status-accordion[hidden],
+  .status-controls[hidden],
+  .status-history[hidden] {
+    display: none !important;
+  }
+
   .status-controls {
     display: flex;
     flex-wrap: wrap;
