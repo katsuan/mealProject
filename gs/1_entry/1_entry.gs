@@ -14,6 +14,10 @@ function handleTextEvent(param) {
     return result.text;
   }
 
+  if (result.kind === 'admin_text' || result.kind === 'permission_pending') {
+    return result.text;
+  }
+
   if (result.kind === 'logged') {
     return buildLogReply(param.userId, result.record);
   }
@@ -67,6 +71,7 @@ function handleLineEvent_(event) {
   }
 
   const profile = resolveLineProfile_(userId);
+  const isFirstPostToday = getMealLogsByUserAndDate(userId, new Date()).length === 0;
   const result = handleMealMessageFlow(
     userId,
     String(event.message.text || ''),
@@ -82,14 +87,29 @@ function handleLineEvent_(event) {
     return;
   }
 
+  if (result.kind === 'admin_text' || result.kind === 'permission_pending') {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: result.text,
+    }]);
+    return;
+  }
+
   if (result.kind === 'logged') {
-    replyLineMessages_(event.replyToken, [
+    const messages = [
       buildDailySummaryFlexMessage(userId, {
         dashboard: result.dashboard,
         record: result.record,
         headline: `${result.parsed.menu} を記録しました`,
       }),
-    ]);
+    ];
+    if (isFirstPostToday) {
+      messages.push({
+        type: 'text',
+        text: buildFirstPostComment(userId),
+      });
+    }
+    replyLineMessages_(event.replyToken, messages);
     return;
   }
 
@@ -105,6 +125,7 @@ function handleLinePostbackEvent_(event, userId) {
   }
 
   const profile = resolveLineProfile_(userId);
+  const isFirstPostToday = getMealLogsByUserAndDate(userId, new Date()).length === 0;
 
   try {
     const result = submitMealCandidate(userId, {
@@ -115,13 +136,20 @@ function handleLinePostbackEvent_(event, userId) {
       mealDate: data.mealDate,
     }, SOURCE.LINE);
 
-    replyLineMessages_(event.replyToken, [
+    const messages = [
       buildDailySummaryFlexMessage(userId, {
         dashboard: result.dashboard,
         record: result.record,
         headline: `${result.record.menu} を記録しました`,
       }),
-    ]);
+    ];
+    if (isFirstPostToday) {
+      messages.push({
+        type: 'text',
+        text: buildFirstPostComment(userId),
+      });
+    }
+    replyLineMessages_(event.replyToken, messages);
   } catch (error) {
     replyLineMessages_(event.replyToken, [{
       type: 'text',

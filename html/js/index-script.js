@@ -33,6 +33,9 @@ const state = {
   candidateAccordionOpen: false,
   selectedLogFilter: 'all',
   activeView: 'input',
+  userPermission: { status: 'active', canUse: true, isAdmin: false, notify: true },
+  headerLoaded: false,
+  dashboardLoaded: false,
 };
 
 function buildInitialQuery_(fallback) {
@@ -188,6 +191,10 @@ function resolveLoginRedirectUrl_() {
   return publicAppUrl || '';
 }
 
+function shouldLoadFullStateOnBoot_() {
+  return Boolean(initialQuery.menu || initialQuery.mode === 'detail');
+}
+
 async function runServer(action, payload) {
   if (!apiBaseUrl) {
     throw new Error('GAS API URL is not configured');
@@ -238,7 +245,12 @@ async function initializeApp() {
       return;
     }
 
-    await reloadState();
+    if (state.userId) {
+      await reloadHeaderState();
+      if (shouldLoadFullStateOnBoot_()) {
+        await reloadState();
+      }
+    }
   } catch (error) {
     pushStatus('warning', `初期化失敗: ${error.message}`);
     pushStatus('debug', buildErrorDetail_(error));
@@ -308,12 +320,14 @@ function bindMealTypeButtons() {
 
 function bindViewTabs() {
   document.querySelectorAll('[data-view-tab]').forEach(button => {
-    button.addEventListener('click', () => setActiveView(button.dataset.viewTab || 'input'));
+    button.addEventListener('click', async () => {
+      await setActiveView(button.dataset.viewTab || 'input');
+    });
   });
-  setActiveView(initialQuery.mode === 'detail' ? 'input' : 'input');
+  setActiveView(initialQuery.mode === 'detail' ? 'summary' : 'input');
 }
 
-function setActiveView(view) {
+async function setActiveView(view) {
   const normalized = ['input', 'summary', 'logs'].includes(view) ? view : 'input';
   state.activeView = normalized;
   document.querySelectorAll('[data-view-tab]').forEach(button => {
@@ -322,6 +336,9 @@ function setActiveView(view) {
   document.querySelectorAll('[data-view-section]').forEach(section => {
     section.hidden = section.dataset.viewSection !== normalized;
   });
+  if (normalized !== 'input') {
+    await ensureDashboardLoaded_();
+  }
 }
 
 function bindMealDateButtons() {
@@ -433,6 +450,22 @@ function renderProfileHeader() {
   }
 
   refreshTargetControls();
+  refreshMealSubmitControls_();
+}
+
+function applyPermissionState_(permission) {
+  if (!permission) return;
+  state.userPermission = permission;
+  if (!permission.canUse) {
+    pushStatus(
+      'notice',
+      permission.status === 'pending'
+        ? '現在は管理者の許可待ちです。承認されると入力と更新が使えるようになります。'
+        : '現在このアカウントは利用停止中です。'
+    );
+  }
+  refreshTargetControls();
+  refreshMealSubmitControls_();
 }
 
 function getLocalStateKey_(userId) {
@@ -472,6 +505,7 @@ function applyCachedAppState_(userId) {
 
   state.dashboard = cached.dashboard;
   state.draft = cached.draft || null;
+  state.dashboardLoaded = true;
   renderDashboard(state.dashboard);
   renderDraft(state.draft);
   pushStatus('debug', `cache: ${cached.savedAt || 'local'} の状態を先に表示しました。`);
@@ -490,6 +524,58 @@ function setSyncVisualState(isLoading) {
   });
 }
 
+function applyHeaderState_(header, permission) {
+  const safeHeader = header || {};
+  const safePermission = permission || safeHeader.permission || { status: 'active', canUse: true, isAdmin: false, notify: true };
+  state.userPermission = safePermission;
+  state.headerLoaded = true;
+
+  const input = document.getElementById('calorie-target');
+  input.value = safeHeader.user && safeHeader.user.calorieTarget != null ? safeHeader.user.calorieTarget : '';
+  updateFieldState(input, false);
+
+  if (safeHeader.user && safeHeader.user.displayName && !state.displayName) {
+    state.displayName = safeHeader.user.displayName;
+  }
+
+  refreshTargetControls();
+}
+
+async function reloadHeaderState() {
+  const userId = document.getElementById('user-id').value.trim();
+  const displayName = document.getElementById('display-name').value.trim();
+  if (!userId) return;
+
+  setTargetSyncing(true);
+  pushStatus('info', 'ヘッダーを同期中...');
+
+  try {
+    const result = await runServer('getHeaderState', {
+      userId: userId,
+      displayName: displayName,
+      idToken: state.idToken,
+    });
+    if (result.header && result.header.user) {
+      state.displayName = result.header.user.displayName || state.displayName;
+    }
+    renderProfileHeader();
+    applyHeaderState_(result.header, result.permission);
+    applyIdentityStatus_(result.identity);
+    applyPermissionState_(result.permission);
+    pushStatus('info', 'ヘッダーを同期しました。');
+  } catch (error) {
+    pushStatus('warning', `ヘッダー同期に失敗しました: ${error.message}`);
+    pushStatus('debug', buildErrorDetail_(error));
+  } finally {
+    setTargetSyncing(false);
+  }
+}
+
+async function ensureDashboardLoaded_() {
+  if (state.dashboardLoaded) return;
+  await reloadState();
+}
+
 async function reloadState() {
   const userId = document.getElementById('user-id').value.trim();
   const displayName = document.getElementById('display-name').value.trim();
@@ -497,6 +583,7 @@ async function reloadState() {
   if (!userId) {
     state.dashboard = null;
     state.draft = null;
+    state.dashboardLoaded = false;
     renderDashboard(null);
     renderDraft(null);
     renderProfileHeader();
@@ -526,12 +613,15 @@ async function reloadState() {
       : state.displayName;
     state.dashboard = result.dashboard || null;
     state.draft = result.draft || null;
+    state.dashboardLoaded = true;
 
     renderProfileHeader();
+    applyHeaderState_(result.header, result.permission);
     renderDashboard(state.dashboard);
     renderDraft(state.draft);
     saveCachedAppState_(userId, state.dashboard, state.draft);
     applyIdentityStatus_(result.identity);
+    applyPermissionState_(result.permission);
     pushStatus('info', '同期しました。');
   } catch (error) {
     pushStatus('warning', `同期に失敗しました: ${error.message}`);
@@ -545,6 +635,7 @@ async function reloadState() {
 function renderDashboard(dashboard) {
   if (!dashboard) {
     state.isTargetEditing = false;
+    clearEditMode_();
     document.getElementById('calorie-target').value = '';
     updateFieldState(document.getElementById('calorie-target'), false);
     document.getElementById('card-exact').textContent = '0';
@@ -565,6 +656,7 @@ function renderDashboard(dashboard) {
   }
 
   state.isTargetEditing = false;
+  clearEditMode_();
   document.getElementById('calorie-target').value = dashboard.user.calorieTarget ?? '';
   updateFieldState(document.getElementById('calorie-target'), false);
   document.getElementById('card-exact').textContent = formatNumber(dashboard.today.totalExact);
@@ -703,6 +795,10 @@ function renderLogList(logs) {
             <div class="log-date">${escapeHtml(formatDateTime(log.mealDate))}</div>
           </div>
           <div class="log-meta">${escapeHtml(log.meal)} / ${escapeHtml(formatLogKcal(log.kcal, log.kcalStatus))}</div>
+          <div class="log-actions">
+            <button type="button" class="secondary compact-button" onclick="startEditLog(${Number(log.row || 0)})">編集</button>
+            <button type="button" class="secondary compact-button" onclick="deleteLog(${Number(log.row || 0)}, '${encodeURIComponent(String(log.menu || ''))}')">削除</button>
+          </div>
         </div>
       `).join('')
     : '<div class="empty-state">条件に合う記録はまだありません。</div>';
@@ -804,6 +900,7 @@ function applyPendingMenu(menu) {
   document.getElementById('menu-name').value = resolvedMenu;
   updateFieldState(document.getElementById('menu-name'), false);
   document.getElementById('master-key').value = '';
+  clearEditMode_();
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
   pushStatus('info', `「${resolvedMenu}」の入力欄を開きました。`);
   reloadState();
@@ -856,17 +953,22 @@ function refreshTargetControls() {
   const button = document.getElementById('save-target');
   const field = document.getElementById('target-field');
   const hasUser = Boolean(document.getElementById('user-id').value.trim());
+  const canUse = !hasUser || state.userPermission.canUse !== false;
 
-  input.disabled = state.isTargetSyncing || !hasUser || !state.isTargetEditing;
-  button.disabled = state.isTargetSyncing || !hasUser;
+  input.disabled = state.isTargetSyncing || !hasUser || !canUse || !state.isTargetEditing;
+  button.disabled = state.isTargetSyncing || !hasUser || !canUse;
   button.textContent = state.isTargetSyncing ? '同期中...' : (state.isTargetEditing ? '保存' : '更新');
-  field.classList.toggle('is-editable', Boolean(hasUser && state.isTargetEditing && !state.isTargetSyncing));
+  field.classList.toggle('is-editable', Boolean(hasUser && canUse && state.isTargetEditing && !state.isTargetSyncing));
 }
 
 function beginTargetEdit() {
   const userId = document.getElementById('user-id').value.trim();
   if (!userId) {
     pushStatus('notice', 'LINEログイン後に目標を更新できます。');
+    return;
+  }
+  if (!state.userPermission.canUse) {
+    pushStatus('notice', '現在は目標カロリーを更新できません。');
     return;
   }
 
@@ -879,10 +981,89 @@ function beginTargetEdit() {
   updateFieldState(input, true);
 }
 
+function isEditingLog_() {
+  return Boolean(document.getElementById('editing-log-row').value.trim());
+}
+
+function clearEditMode_() {
+  document.getElementById('editing-log-row').value = '';
+  refreshMealSubmitControls_();
+}
+
+function refreshMealSubmitControls_() {
+  const submitButton = document.getElementById('meal-submit-button');
+  const cancelButton = document.getElementById('cancel-edit-button');
+  const editing = isEditingLog_();
+  const hasUser = Boolean(document.getElementById('user-id').value.trim());
+  const canUse = !hasUser || state.userPermission.canUse !== false;
+  submitButton.textContent = editing ? '保存して更新' : '保存して記録';
+  submitButton.disabled = !canUse;
+  cancelButton.disabled = !canUse;
+  cancelButton.hidden = !editing;
+}
+
+function startEditLog(rowNumber) {
+  const log = state.dashboard && state.dashboard.recentLogs
+    ? state.dashboard.recentLogs.find(item => Number(item.row) === Number(rowNumber))
+    : null;
+  if (!log) return;
+
+  document.getElementById('editing-log-row').value = String(log.row || '');
+  document.getElementById('menu-name').value = log.menu || '';
+  document.getElementById('master-key').value = log.masterKey || '';
+  setMealType(log.meal || '朝');
+  setMealDatePreset(inferDatePresetFromMealDate_(log.mealDate), String(log.mealDate || '').slice(0, 10));
+  applyNutritionFields(log, {
+    unit: log.unit || '',
+    note: log.note || '',
+  });
+  updateFieldState(document.getElementById('menu-name'), false);
+  refreshMealSubmitControls_();
+  setActiveView('input');
+  document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  pushStatus('info', `「${log.menu}」を編集しています。`);
+}
+
+async function deleteLog(rowNumber, menuName) {
+  const resolvedName = decodeURIComponent(String(menuName || ''));
+  if (!window.confirm(`「${resolvedName || 'この記録'}」を削除しますか？`)) {
+    return;
+  }
+  if (!state.userPermission.canUse) {
+    pushStatus('notice', '現在はログを編集できません。');
+    return;
+  }
+
+  setSyncVisualState(true);
+  pushStatus('info', 'ログを削除中...');
+  try {
+    const result = await runServer('deleteMealLog', {
+      userId: document.getElementById('user-id').value.trim(),
+      displayName: document.getElementById('display-name').value.trim(),
+      idToken: state.idToken,
+      row: rowNumber,
+    });
+    state.dashboard = result.dashboard || null;
+    state.dashboardLoaded = true;
+    renderDashboard(state.dashboard);
+    applyPermissionState_(result.permission);
+    pushStatus('info', 'ログを削除しました。');
+  } catch (error) {
+    pushStatus('warning', `ログ削除に失敗しました: ${error.message}`);
+    pushStatus('debug', buildErrorDetail_(error));
+  } finally {
+    setSyncVisualState(false);
+  }
+}
+
 async function saveProfileTarget() {
   const userId = document.getElementById('user-id').value.trim();
   if (!userId) {
     pushStatus('notice', 'LINEログイン後に目標を更新できます。');
+    return;
+  }
+  if (!state.userPermission.canUse) {
+    pushStatus('notice', '現在は目標カロリーを更新できません。');
     return;
   }
 
@@ -904,6 +1085,7 @@ async function saveProfileTarget() {
     renderDashboard(state.dashboard);
     saveCachedAppState_(userId, state.dashboard, state.draft);
     applyIdentityStatus_(result.identity);
+    applyPermissionState_(result.permission);
     pushStatus('info', '目標カロリーを更新しました。');
   } catch (error) {
     pushStatus('warning', `目標カロリーの更新に失敗しました: ${error.message}`);
@@ -931,15 +1113,23 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     pushStatus('notice', 'LINEログイン後に保存できます。');
     return;
   }
+  if (!state.userPermission.canUse) {
+    pushStatus('notice', '現在は管理者の許可待ちのため保存できません。');
+    return;
+  }
+
+  const editingRow = document.getElementById('editing-log-row').value.trim();
+  const action = editingRow ? 'updateMealLog' : 'submitMealDetail';
 
   setSyncVisualState(true);
-  pushStatus('info', '保存して集計を同期中...');
+  pushStatus('info', editingRow ? '更新して集計を同期中...' : '保存して集計を同期中...');
 
   try {
-    const result = await runServer('submitMealDetail', {
+    const result = await runServer(action, {
       userId: userId,
       displayName: document.getElementById('display-name').value.trim(),
       idToken: state.idToken,
+      row: editingRow,
       meal: document.getElementById('meal-type').value,
       mealDate: document.getElementById('meal-date').value,
       datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
@@ -959,13 +1149,17 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     document.getElementById('meal-reply').textContent = result.reply || '';
     state.dashboard = result.dashboard || null;
     state.draft = result.draft || null;
+    state.dashboardLoaded = true;
     renderDashboard(state.dashboard);
     renderDraft(state.draft);
     saveCachedAppState_(userId, state.dashboard, state.draft);
     applyIdentityStatus_(result.identity);
+    applyPermissionState_(result.permission);
     pushStatus(
       'info',
-      result.summaryPushed ? '保存してLINEに今日の集計を返しました。' : '保存しました。LINE送信は未実行です。'
+      editingRow
+        ? 'ログを更新しました。'
+        : (result.summaryPushed ? '保存してLINEに今日の集計を返しました。' : '保存しました。LINE送信は未実行です。')
     );
   } catch (error) {
     pushStatus('warning', `保存に失敗しました: ${error.message}`);
@@ -980,6 +1174,10 @@ document.getElementById('refresh-draft').addEventListener('click', async () => {
 });
 
 document.getElementById('save-target').addEventListener('click', handleTargetButtonClick);
+document.getElementById('cancel-edit-button').addEventListener('click', () => {
+  clearEditMode_();
+  pushStatus('info', 'ログ編集をやめました。');
+});
 document.getElementById('calorie-target').addEventListener('keydown', async event => {
   if (event.key !== 'Enter' || !state.isTargetEditing) return;
   event.preventDefault();
@@ -1084,4 +1282,7 @@ function escapeHtml(value) {
 
 window.applyCandidate = applyCandidate;
 window.applyPendingMenu = applyPendingMenu;
+window.startEditLog = startEditLog;
+window.deleteLog = deleteLog;
+refreshMealSubmitControls_();
 initializeApp();

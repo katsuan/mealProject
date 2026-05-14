@@ -82,6 +82,41 @@ function appendMealLog(log) {
   sheet.appendRow(row);
 }
 
+function getMealLogByRow(rowNumber) {
+  const row = Number(rowNumber || 0);
+  if (!Number.isFinite(row) || row < 2) return null;
+  return getMealLogs().find(log => log.row === row) || null;
+}
+
+function updateMealLog(log) {
+  const rowNumber = Number(log && log.row || 0);
+  if (!Number.isFinite(rowNumber) || rowNumber < 2) {
+    throw new Error('meal log row is invalid');
+  }
+
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.MEAL_LOGS);
+  if (!sheet) {
+    throw new Error('meal_logs sheet not found');
+  }
+
+  const row = MEAL_LOG_COLUMNS.map(key => log[key] ?? null);
+  sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
+}
+
+function deleteMealLog(rowNumber) {
+  const row = Number(rowNumber || 0);
+  if (!Number.isFinite(row) || row < 2) {
+    throw new Error('meal log row is invalid');
+  }
+
+  const sheet = getSpreadsheet_().getSheetByName(SHEET.MEAL_LOGS);
+  if (!sheet) {
+    throw new Error('meal_logs sheet not found');
+  }
+
+  sheet.deleteRow(row);
+}
+
 function getMealLogs() {
   const sheet = getSpreadsheet_().getSheetByName(SHEET.MEAL_LOGS);
   if (!sheet) return [];

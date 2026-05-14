@@ -10,7 +10,7 @@ function doGet(e) {
     ok: true,
     service: 'meal-project-api',
     version: 1,
-    actions: ['getLiffAppState', 'submitMealDetail', 'updateProfile'],
+    actions: ['getHeaderState', 'getLiffAppState', 'submitMealDetail', 'updateProfile', 'updateMealLog', 'deleteMealLog'],
     lineWebhookEnabled: true,
     liffConfigured: Boolean(getLiffId_()),
     query: params,
@@ -28,18 +28,46 @@ function doPost(e) {
     }
 
     switch (request.action || '') {
+      case 'getHeaderState':
+        return jsonOutput_(getHeaderStateFromLiff(request));
       case 'getLiffAppState':
         return jsonOutput_(getLiffAppState(request));
       case 'submitMealDetail':
         return jsonOutput_(submitMealDetailFromLiff(request));
       case 'updateProfile':
         return jsonOutput_(updateLiffUserProfile(request));
+      case 'updateMealLog':
+        return jsonOutput_(updateMealLogFromLiff(request));
+      case 'deleteMealLog':
+        return jsonOutput_(deleteMealLogFromLiff(request));
       default:
         return jsonOutput_({ ok: false, error: 'unsupported action' });
     }
   } catch (error) {
     return jsonOutput_({ ok: false, error: error.message });
   }
+}
+
+function getHeaderStateFromLiff(payload) {
+  ensureProjectSetup_();
+  const identity = verifyLiffIdentity_({
+    userId: payload && payload.userId,
+    displayName: payload && payload.displayName,
+    idToken: payload && payload.idToken,
+  });
+
+  if (!identity.userId) {
+    throw new Error('userId is required');
+  }
+
+  const user = ensureUserExists_(identity.userId, identity.displayName);
+  return {
+    ok: true,
+    liffId: getLiffId_(),
+    identity: serializeIdentityState_(identity),
+    header: getHeaderState(user.userId),
+    permission: serializeUserPermission_(user),
+  };
 }
 
 function getLiffAppState(payload) {
@@ -60,6 +88,8 @@ function getLiffAppState(payload) {
     liffId: getLiffId_(),
     channelIdConfigured: Boolean(getLineChannelId_()),
     identity: serializeIdentityState_(identity),
+    header: getHeaderState(user.userId),
+    permission: serializeUserPermission_(user),
     dashboard: getDashboardData(user.userId),
     draft: getMealDraftState({
       meal: payload && payload.meal,
@@ -112,6 +142,7 @@ function submitMealDetailFromLiff(payload) {
   return {
     ok: true,
     identity: serializeIdentityState_(identity),
+    permission: serializeUserPermission_(getUserById(identity.userId)),
     reply: buildLogReply(identity.userId, result.record),
     dashboard: result.dashboard,
     draft: getMealDraftState({
@@ -132,7 +163,8 @@ function updateLiffUserProfile(payload) {
     throw new Error('userId is required');
   }
 
-  ensureUserExists_(identity.userId, identity.displayName);
+  const user = ensureUserExists_(identity.userId, identity.displayName);
+  ensureUserCanUseService_(user);
   updateUserProfile(identity.userId, {
     displayName: identity.displayName,
     calorieTarget: payload.calorieTarget,
@@ -143,7 +175,62 @@ function updateLiffUserProfile(payload) {
   return {
     ok: true,
     identity: serializeIdentityState_(identity),
+    permission: serializeUserPermission_(getUserById(identity.userId)),
     dashboard: getDashboardData(identity.userId),
+  };
+}
+
+function updateMealLogFromLiff(payload) {
+  ensureProjectSetup_();
+  const identity = verifyLiffIdentity_(payload);
+  if (!identity.userId) {
+    throw new Error('userId is required');
+  }
+
+  const result = updateMealLogDetail(identity.userId, {
+    row: payload.row,
+    displayName: identity.displayName,
+    meal: payload.meal,
+    menu: payload.menu,
+    masterKey: payload.masterKey,
+    kcal: payload.kcal,
+    protein: payload.protein,
+    fat: payload.fat,
+    carb: payload.carb,
+    salt: payload.salt,
+    fiber: payload.fiber,
+    unit: payload.unit,
+    note: payload.note,
+    mealDate: payload.mealDate,
+  }, SOURCE.LIFF);
+
+  return {
+    ok: true,
+    identity: serializeIdentityState_(identity),
+    permission: serializeUserPermission_(getUserById(identity.userId)),
+    dashboard: result.dashboard,
+    draft: getMealDraftState({
+      meal: result.record.meal,
+      menu: result.record.menu,
+      mealDate: payload && payload.mealDate,
+      datePreset: payload && payload.datePreset,
+    }),
+  };
+}
+
+function deleteMealLogFromLiff(payload) {
+  ensureProjectSetup_();
+  const identity = verifyLiffIdentity_(payload);
+  if (!identity.userId) {
+    throw new Error('userId is required');
+  }
+
+  const result = deleteMealLogDetail(identity.userId, payload.row);
+  return {
+    ok: true,
+    identity: serializeIdentityState_(identity),
+    permission: serializeUserPermission_(getUserById(identity.userId)),
+    dashboard: result.dashboard,
   };
 }
 

@@ -24,6 +24,12 @@ function getTodaySummary(userId) {
   return getSummaryByDate(userId, new Date());
 }
 
+function getYesterdaySummary(userId) {
+  const date = new Date();
+  date.setDate(date.getDate() - 1);
+  return getSummaryByDate(userId, date);
+}
+
 function getSummaryByDate(userId, date) {
   const logs = getMealLogsByUserAndDate(userId, date);
   return summarizeMealLogs(logs);
@@ -81,6 +87,19 @@ function handleSetTargetCommand(userId, text) {
   return buildTargetUpdatedReply(userId, kcal);
 }
 
+function getHeaderState(userId) {
+  const user = ensureUserExists_(userId);
+  const today = getTodaySummary(userId);
+  const totalIntake = Number(today.totalExact || 0) + Number(today.totalEstimated || 0);
+  return {
+    user: user,
+    todayExact: Number(today.totalExact || 0),
+    pendingCount: (today.pendingItems || []).length,
+    targetDiff: user.calorieTarget == null ? null : user.calorieTarget - totalIntake,
+    permission: serializeUserPermission_(user),
+  };
+}
+
 function parseTargetKcal(text) {
   const match = String(text || '').match(/(\d+)/);
   return match ? Number(match[1]) : null;
@@ -104,6 +123,83 @@ function getDashboardData(userId) {
     targetDiff: user.calorieTarget == null ? null : user.calorieTarget - totalIntake,
     detailUrl: buildLiffUrl_({ mode: 'detail' }),
   };
+}
+
+function isAdminCommand_(text) {
+  return /^(承認一覧|承認\s+\S+|拒否\s+\S+|停止\s+\S+)/.test(String(text || '').trim());
+}
+
+function handleAdminCommand(userId, text) {
+  if (!isAdminUser_(userId)) {
+    return null;
+  }
+
+  const input = String(text || '').trim();
+  if (input === '承認一覧') {
+    const pendingUsers = listUsersByStatus('pending');
+    if (!pendingUsers.length) {
+      return {
+        kind: 'admin_text',
+        text: '承認待ちユーザーはいません。',
+      };
+    }
+
+    return {
+      kind: 'admin_text',
+      text: [
+        '承認待ちユーザー一覧',
+        ...pendingUsers.map(user => `${user.displayName || '未設定'} / ${user.userId}`),
+      ].join('\n'),
+    };
+  }
+
+  const approveMatch = input.match(/^承認\s+(\S+)$/);
+  if (approveMatch) {
+    const targetUserId = approveMatch[1];
+    const targetUser = getUserById(targetUserId);
+    if (!targetUser) {
+      return { kind: 'admin_text', text: '対象ユーザーが見つかりません。' };
+    }
+
+    updateUserStatus(targetUserId, 'active');
+    try {
+      pushLineMessages_(targetUserId, [{
+        type: 'text',
+        text: '利用が承認されました。食事の記録を始められます。',
+      }]);
+    } catch (error) {
+      // best-effort notification
+    }
+    return {
+      kind: 'admin_text',
+      text: `${targetUser.displayName || targetUserId} を承認しました。`,
+    };
+  }
+
+  const rejectMatch = input.match(/^(拒否|停止)\s+(\S+)$/);
+  if (rejectMatch) {
+    const targetUserId = rejectMatch[2];
+    const targetUser = getUserById(targetUserId);
+    if (!targetUser) {
+      return { kind: 'admin_text', text: '対象ユーザーが見つかりません。' };
+    }
+
+    updateUserStatus(targetUserId, 'inactive');
+    try {
+      pushLineMessages_(targetUserId, [{
+        type: 'text',
+        text: '現在このアカウントは利用停止中です。必要であれば管理者へ連絡してください。',
+      }]);
+    } catch (error) {
+      // best-effort notification
+    }
+    return {
+      kind: 'admin_text',
+      text: `${targetUser.displayName || targetUserId} を停止しました。`,
+    };
+  }
+
+  return null;
 }
 
 function getWeeklyChartData_(userId, days) {
@@ -251,7 +347,23 @@ function handleMealMessageFlow(userId, text, displayName, source) {
     throw new Error('text is required');
   }
 
-  ensureUserExists_(userId, displayName);
+  const user = ensureUserExists_(userId, displayName);
+
+  const adminResult = handleAdminCommand(userId, inputText);
+  if (adminResult) {
+    return adminResult;
+  }
+
+  if (user.status !== 'active' && !isAdminUser_(userId)) {
+    return {
+      kind: 'permission_pending',
+      text: user.status === 'pending'
+        ? '現在は管理者の許可待ちです。承認されると記録を始められます。'
+        : '現在このアカウントは利用停止中です。',
+      dashboard: getDashboardData(userId),
+      permission: serializeUserPermission_(user),
+    };
+  }
 
   if (isSetTargetCommand(inputText)) {
     return {
@@ -287,7 +399,8 @@ function handleMealMessageFlow(userId, text, displayName, source) {
 
 function submitMealDetail(userId, payload, source) {
   ensureProjectSetup_();
-  ensureUserExists_(userId, payload.displayName);
+  const user = ensureUserExists_(userId, payload.displayName);
+  ensureUserCanUseService_(user);
 
   const parsed = {
     meal: sanitizeMealType_(payload.meal),
@@ -334,7 +447,8 @@ function submitMealDetail(userId, payload, source) {
 
 function submitMealCandidate(userId, payload, source) {
   ensureProjectSetup_();
-  ensureUserExists_(userId, payload && payload.displayName);
+  const user = ensureUserExists_(userId, payload && payload.displayName);
+  ensureUserCanUseService_(user);
 
   const masterKey = String(payload && payload.masterKey || '').trim();
   const master = masterKey ? getNutritionMaster(masterKey) : null;
@@ -392,6 +506,107 @@ function getMealDraftState(payload) {
   };
 }
 
+function updateMealLogDetail(userId, payload, source) {
+  ensureProjectSetup_();
+  const user = ensureUserExists_(userId, payload && payload.displayName);
+  ensureUserCanUseService_(user);
+
+  const row = Number(payload && payload.row || 0);
+  const currentLog = getMealLogByRow(row);
+  if (!currentLog || currentLog.userId !== userId) {
+    throw new Error('編集対象のログが見つかりません。');
+  }
+
+  const parsed = {
+    meal: sanitizeMealType_(payload.meal),
+    menu: String(payload.menu || '').trim(),
+  };
+  if (!parsed.menu) {
+    throw new Error('menu is required');
+  }
+  if (toNullableNumber_(payload.kcal) == null) {
+    throw new Error('kcal is required');
+  }
+
+  const existingMaster = payload.masterKey ? getNutritionMaster(payload.masterKey) : null;
+  const shouldReuseMasterKey = existingMaster &&
+    normalizeText_(existingMaster.name) === normalizeText_(parsed.menu);
+
+  const savedMaster = saveNutritionMaster({
+    masterKey: shouldReuseMasterKey ? payload.masterKey : '',
+    name: parsed.menu,
+    kcal: payload.kcal,
+    protein: payload.protein,
+    fat: payload.fat,
+    carb: payload.carb,
+    salt: payload.salt,
+    fiber: payload.fiber,
+    unit: payload.unit,
+    note: payload.note,
+    status: 'active',
+    source: source || SOURCE.LIFF,
+  });
+
+  const updatedLog = Object.assign({}, currentLog, {
+    mealDate: payload.mealDate ? new Date(payload.mealDate) : currentLog.mealDate,
+    meal: sanitizeMealType_(parsed.meal),
+    menu: parsed.menu,
+    kcal: toNullableNumber_(savedMaster.kcal),
+    protein: toNullableNumber_(savedMaster.protein),
+    fat: toNullableNumber_(savedMaster.fat),
+    carb: toNullableNumber_(savedMaster.carb),
+    salt: toNullableNumber_(savedMaster.salt),
+    fiber: toNullableNumber_(savedMaster.fiber),
+    kcalStatus: hasAnyNutritionValue_(savedMaster) ? KCAL_STATUS.EXACT : KCAL_STATUS.PENDING,
+    masterKey: savedMaster.masterKey,
+    source: source || SOURCE.LIFF,
+    updatedAt: new Date(),
+  });
+  updateMealLog(updatedLog);
+
+  return {
+    record: updatedLog,
+    savedMaster: savedMaster,
+    dashboard: getDashboardData(userId),
+    draft: buildNutritionDraft(parsed.menu),
+  };
+}
+
+function deleteMealLogDetail(userId, row) {
+  ensureProjectSetup_();
+  const user = ensureUserExists_(userId);
+  ensureUserCanUseService_(user);
+
+  const currentLog = getMealLogByRow(row);
+  if (!currentLog || currentLog.userId !== userId) {
+    throw new Error('削除対象のログが見つかりません。');
+  }
+
+  deleteMealLog(row);
+  return {
+    ok: true,
+    dashboard: getDashboardData(userId),
+  };
+}
+
+function buildFirstPostComment(userId) {
+  const yesterday = getYesterdaySummary(userId);
+  const yesterdayTotal = Number(yesterday.totalExact || 0) + Number(yesterday.totalEstimated || 0);
+  if (yesterdayTotal > 0) {
+    const user = getUserById(userId);
+    const target = Number(user && user.calorieTarget || 0);
+    const percent = target > 0 ? Math.round((yesterdayTotal / target) * 100) : null;
+    const diff = target > 0 ? target - yesterdayTotal : null;
+    const diffText = diff == null
+      ? ''
+      : diff >= 0
+        ? ` 目標まで ${Math.round(diff)} kcal でした。`
+        : ` 目標を ${Math.round(Math.abs(diff))} kcal オーバーでした。`;
+    return `昨日は合計 ${Math.round(yesterdayTotal)} kcal 記録しました。${percent != null ? `目標比 ${percent}%。` : ''}${diffText}`.trim();
+  }
+  return '今日も1件ずつ記録していきましょう。';
+}
+
 function inferDatePresetFromMealDate_(mealDate) {
   if (!mealDate) return 'today';
   const yesterday = resolveMealDateByPreset_('yesterday');
@@ -430,7 +645,9 @@ function serializeNutritionCandidate_(candidate) {
 }
 
 function serializeMealLog_(log) {
+  const master = log.masterKey ? getNutritionMaster(log.masterKey) : null;
   return {
+    row: Number(log.row || 0),
     mealDate: toIsoDateTime_(log.mealDate),
     userId: log.userId,
     meal: log.meal,
@@ -443,6 +660,8 @@ function serializeMealLog_(log) {
     fiber: log.fiber,
     kcalStatus: log.kcalStatus,
     masterKey: log.masterKey,
+    unit: master ? String(master.unit || '') : '',
+    note: master ? String(master.note || '') : '',
     source: log.source,
     createdAt: toIsoDateTime_(log.createdAt),
     updatedAt: toIsoDateTime_(log.updatedAt),

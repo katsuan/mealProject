@@ -8,6 +8,8 @@ const SCRIPT_PROPERTY_LIFF_ID = 'LIFF_ID';
 const SCRIPT_PROPERTY_LINE_CHANNEL_ID = 'LINE_CHANNEL_ID';
 const SCRIPT_PROPERTY_LINE_CHANNEL_ACCESS_TOKEN = 'LINE_CHANNEL_ACCESS_TOKEN';
 const SCRIPT_PROPERTY_WEBAPP_URL = 'WEBAPP_URL';
+const SCRIPT_PROPERTY_ADMIN_USER_IDS = 'ADMIN_USER_IDS';
+const SCRIPT_PROPERTY_AUTO_APPROVE_USER_IDS = 'AUTO_APPROVE_USER_IDS';
 
 function refreshNutritionMasterCache_() {
   CacheService.getScriptCache().remove(NUTRITION_MASTER_CACHE_KEY);
@@ -89,6 +91,37 @@ function getWebAppUrl_() {
 
 function setWebAppUrl(webAppUrl) {
   PropertiesService.getScriptProperties().setProperty(SCRIPT_PROPERTY_WEBAPP_URL, String(webAppUrl || '').trim());
+}
+
+function getAdminUserIds_() {
+  return getCsvScriptPropertyValues_(SCRIPT_PROPERTY_ADMIN_USER_IDS);
+}
+
+function setAdminUserIds(userIds) {
+  setCsvScriptPropertyValues_(SCRIPT_PROPERTY_ADMIN_USER_IDS, userIds);
+}
+
+function getAutoApproveUserIds_() {
+  return getCsvScriptPropertyValues_(SCRIPT_PROPERTY_AUTO_APPROVE_USER_IDS);
+}
+
+function setAutoApproveUserIds(userIds) {
+  setCsvScriptPropertyValues_(SCRIPT_PROPERTY_AUTO_APPROVE_USER_IDS, userIds);
+}
+
+function getCsvScriptPropertyValues_(propertyKey) {
+  return String(PropertiesService.getScriptProperties().getProperty(propertyKey) || '')
+    .split(',')
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+}
+
+function setCsvScriptPropertyValues_(propertyKey, values) {
+  const normalized = Array.isArray(values)
+    ? values
+    : String(values || '').split(',');
+  const deduped = [...new Set(normalized.map(value => String(value || '').trim()).filter(Boolean))];
+  PropertiesService.getScriptProperties().setProperty(propertyKey, deduped.join(','));
 }
 
 function configureLiff(liffId, channelId, accessToken, webAppUrl) {

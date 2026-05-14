@@ -23,6 +23,11 @@ function listUsers() {
   return values.slice(1).map(mapUserRow_);
 }
 
+function listUsersByStatus(status) {
+  const targetStatus = String(status || '').trim();
+  return listUsers().filter(user => String(user.status || '') === targetStatus);
+}
+
 function ensureUserExists_(userId, displayName) {
   const existing = getUserById(userId);
   if (existing) {
@@ -45,12 +50,15 @@ function ensureUserExists_(userId, displayName) {
     calorieTarget: 2000,
     goalType: GOAL_TYPE.KEEP,
     notify: true,
-    status: 'active',
+    status: resolveNewUserStatus_(userId),
     createdAt: now,
     updatedAt: now,
   };
 
   sheet.appendRow(USER_COLUMNS.map(key => user[key] ?? null));
+  if (user.status === 'pending') {
+    notifyAdminsOfPendingUser_(user);
+  }
   return user;
 }
 
@@ -84,8 +92,79 @@ function updateUserProfile(userId, patch) {
     sheet.getRange(rowIndex + 1, USER_COL_INDEX.notify).setValue(Boolean(patch.notify));
   }
 
+  if (Object.prototype.hasOwnProperty.call(patch, 'status')) {
+    sheet.getRange(rowIndex + 1, USER_COL_INDEX.status).setValue(String(patch.status || 'active'));
+  }
+
   sheet.getRange(rowIndex + 1, USER_COL_INDEX.updatedAt).setValue(new Date());
   return true;
+}
+
+function updateUserStatus(userId, status) {
+  return updateUserProfile(userId, { status: status });
+}
+
+function isAdminUser_(userId) {
+  return Boolean(userId) && getAdminUserIds_().includes(String(userId || '').trim());
+}
+
+function isAutoApprovedUser_(userId) {
+  return Boolean(userId) && getAutoApproveUserIds_().includes(String(userId || '').trim());
+}
+
+function isPermissionControlEnabled_() {
+  return getAdminUserIds_().length > 0 || getAutoApproveUserIds_().length > 0;
+}
+
+function resolveNewUserStatus_(userId) {
+  if (!isPermissionControlEnabled_()) {
+    return 'active';
+  }
+  return isAdminUser_(userId) || isAutoApprovedUser_(userId) ? 'active' : 'pending';
+}
+
+function ensureUserCanUseService_(user) {
+  if (!user) {
+    throw new Error('user not found');
+  }
+  if (user.status === 'active' || isAdminUser_(user.userId)) {
+    return user;
+  }
+  if (user.status === 'pending') {
+    throw new Error('管理者の許可待ちです。');
+  }
+  throw new Error('利用が停止されています。');
+}
+
+function serializeUserPermission_(user) {
+  const safeUser = user || {};
+  return {
+    status: String(safeUser.status || 'active'),
+    canUse: String(safeUser.status || 'active') === 'active' || isAdminUser_(safeUser.userId),
+    isAdmin: isAdminUser_(safeUser.userId),
+    notify: safeUser.notify === true,
+  };
+}
+
+function notifyAdminsOfPendingUser_(user) {
+  const adminIds = getAdminUserIds_().filter(adminUserId => adminUserId !== user.userId);
+  if (!adminIds.length || !getLineChannelAccessToken_()) return;
+
+  const message = [
+    '新しい利用申請があります。',
+    `表示名: ${user.displayName || '未設定'}`,
+    `userId: ${user.userId}`,
+    `承認コマンド: 承認 ${user.userId}`,
+    `拒否コマンド: 拒否 ${user.userId}`,
+  ].join('\n');
+
+  adminIds.forEach(adminUserId => {
+    try {
+      pushLineMessages_(adminUserId, [{ type: 'text', text: message }]);
+    } catch (error) {
+      // Admin notifications are best-effort only.
+    }
+  });
 }
 
 function mapUserRow_(row) {
