@@ -150,21 +150,59 @@ function notifyAdminsOfPendingUser_(user) {
   const adminIds = getAdminUserIds_().filter(adminUserId => adminUserId !== user.userId);
   if (!adminIds.length || !getLineChannelAccessToken_()) return;
 
+  const displayName = String(user.displayName || '').trim() || '未設定';
   const message = [
     '新しい利用申請があります。',
-    `表示名: ${user.displayName || '未設定'}`,
+    `表示名: ${displayName}`,
     `userId: ${user.userId}`,
     `承認コマンド: 承認 ${user.userId}`,
     `拒否コマンド: 拒否 ${user.userId}`,
   ].join('\n');
+  const quickReplyMessage = {
+    type: 'text',
+    text: message,
+    quickReply: {
+      items: [
+        {
+          type: 'action',
+          action: {
+            type: 'message',
+            label: trimAdminQuickReplyLabel_(`承認 ${displayName}`),
+            text: `承認 ${user.userId}`,
+          },
+        },
+        {
+          type: 'action',
+          action: {
+            type: 'message',
+            label: trimAdminQuickReplyLabel_(`拒否 ${displayName}`),
+            text: `拒否 ${user.userId}`,
+          },
+        },
+        {
+          type: 'action',
+          action: {
+            type: 'message',
+            label: '承認一覧',
+            text: '承認一覧',
+          },
+        },
+      ],
+    },
+  };
 
   adminIds.forEach(adminUserId => {
     try {
-      pushLineMessages_(adminUserId, [{ type: 'text', text: message }]);
+      pushLineMessages_(adminUserId, [quickReplyMessage]);
     } catch (error) {
       // Admin notifications are best-effort only.
     }
   });
+}
+
+function trimAdminQuickReplyLabel_(value) {
+  const text = String(value || '').trim();
+  return text.length > 20 ? `${text.slice(0, 19)}…` : text;
 }
 
 function mapUserRow_(row) {
