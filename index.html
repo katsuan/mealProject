@@ -16,15 +16,14 @@
           </div>
           <div class="target-cluster">
             <div class="target-head">
-              <div class="target-label">目標カロリー</div>
+              <div id="target-label" class="target-label">目標カロリー</div>
               <button id="save-target" type="button" class="target-save">更新</button>
             </div>
-            <label id="target-field" class="field target-field" data-label="目標カロリー">
-              <span class="field-label">目標カロリー</span>
+            <label id="target-field" class="field target-field">
               <div class="target-field-input">
                 <input
                   id="calorie-target"
-                  data-field-label="目標カロリー"
+                  aria-labelledby="target-label"
                   type="number"
                   min="0"
                   step="1"
@@ -159,6 +158,7 @@
           <div class="card">
             <div class="label">目標差分</div>
             <div id="card-diff" class="value">-</div>
+            <div id="card-diff-rate" class="card-meta">-</div>
           </div>
           <div class="card">
             <div class="label">未登録件数</div>

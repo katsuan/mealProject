@@ -57,15 +57,23 @@ function buildDailySummaryFlexMessage(userId, options) {
   const dashboard = context.dashboard || getDashboardData(userId);
   const today = dashboard.today;
   const total = Number(today.totalExact || 0) + Number(today.totalEstimated || 0);
+  const targetKcal = Number(dashboard.user && dashboard.user.calorieTarget || 0);
+  const hasTarget = targetKcal > 0;
+  const targetPercent = hasTarget ? Math.round((total / targetKcal) * 100) : null;
+  const isOverTarget = hasTarget && total > targetKcal;
   const detailUrl = dashboard.detailUrl || buildLiffUrl_({ mode: 'detail' });
   const headline = context.headline || '今日の集計';
   const subline = context.subline || buildKcalDiffLine_(userId, total);
+  const sublineColor = isOverTarget ? '#C84949' : '#6b7280';
   const recordedLine = context.record
     ? `${context.record.meal} ${context.record.menu} / ${buildMealKcalLine(context.record)}`
     : '';
   const pendingLine = today.hasPending
     ? `未登録 ${today.pendingItems.length}件`
     : '未登録なし';
+  const totalColor = isOverTarget ? '#C84949' : '#231815';
+  const targetRatioLine = hasTarget ? `${targetPercent}% (${total} / ${targetKcal} kcal)` : '目標未設定';
+  const targetRatioColor = isOverTarget ? '#C84949' : '#231815';
 
   return {
     type: 'flex',
@@ -89,7 +97,7 @@ function buildDailySummaryFlexMessage(userId, options) {
             type: 'text',
             text: subline,
             size: 'sm',
-            color: '#6b7280',
+            color: sublineColor,
             wrap: true,
           },
           recordedLine ? {
@@ -125,6 +133,30 @@ function buildDailySummaryFlexMessage(userId, options) {
                 flex: 5,
                 size: 'xl',
                 weight: 'bold',
+                color: totalColor,
+              },
+            ],
+          },
+          {
+            type: 'box',
+            layout: 'baseline',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'text',
+                text: '目標比',
+                flex: 2,
+                size: 'sm',
+                color: '#6b7280',
+              },
+              {
+                type: 'text',
+                text: targetRatioLine,
+                flex: 5,
+                size: 'sm',
+                wrap: true,
+                color: targetRatioColor,
+                weight: isOverTarget ? 'bold' : 'regular',
               },
             ],
           },

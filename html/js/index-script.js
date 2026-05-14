@@ -208,7 +208,7 @@ async function initializeLiffProfile_() {
   try {
     await liff.init({ liffId: initialLiffId });
     if (!liff.isLoggedIn()) {
-      pushStatus('notice', 'LINE上から開くとプロフィールを取得できます。');
+      pushStatus('notice', 'LINEログインするとプロフィールを取得できます。');
       return;
     }
 
@@ -262,13 +262,16 @@ function bindFieldInteractions() {
 
 function updateFieldState(input, isActive) {
   const field = input.closest('.field');
+  if (!field) return;
   const label = field.querySelector('.field-label');
-  const baseLabel = input.dataset.fieldLabel || field.dataset.label || '';
   const value = String(input.value || '').trim();
 
   field.classList.toggle('is-active', Boolean(isActive));
   field.classList.toggle('has-value', Boolean(value));
-  label.textContent = baseLabel;
+  if (label) {
+    const baseLabel = input.dataset.fieldLabel || field.dataset.label || '';
+    label.textContent = baseLabel;
+  }
 }
 
 function renderProfileHeader() {
@@ -297,7 +300,7 @@ async function reloadState() {
     renderDashboard(null);
     renderDraft(null);
     renderProfileHeader();
-    pushStatus('notice', 'LINE上から開くと目標カロリーと今日の集計を同期できます。');
+    pushStatus('notice', 'LINEログインすると目標カロリーと今日の集計を同期できます。');
     return;
   }
 
@@ -341,6 +344,9 @@ function renderDashboard(dashboard) {
     document.getElementById('card-exact').textContent = '0';
     document.getElementById('card-estimated').textContent = '0';
     document.getElementById('card-diff').textContent = '-';
+    document.getElementById('card-diff').classList.remove('is-warning');
+    document.getElementById('card-diff-rate').textContent = '-';
+    document.getElementById('card-diff-rate').classList.remove('is-warning');
     document.getElementById('card-pending').textContent = '0';
     document.getElementById('nutrition-summary').textContent = '';
     document.getElementById('logs-list').innerHTML = '<div class="empty-state">ログインすると今日の記録を表示します。</div>';
@@ -354,6 +360,15 @@ function renderDashboard(dashboard) {
   document.getElementById('card-exact').textContent = formatNumber(dashboard.today.totalExact);
   document.getElementById('card-estimated').textContent = formatNumber(dashboard.today.totalEstimated);
   document.getElementById('card-diff').textContent = dashboard.targetDiff == null ? '-' : formatSignedNumber(dashboard.targetDiff);
+  document.getElementById('card-diff-rate').textContent = formatTargetRateLabel(dashboard);
+  document.getElementById('card-diff').classList.toggle(
+    'is-warning',
+    dashboard.targetDiff != null && Number(dashboard.targetDiff) < 0
+  );
+  document.getElementById('card-diff-rate').classList.toggle(
+    'is-warning',
+    dashboard.targetDiff != null && Number(dashboard.targetDiff) < 0
+  );
   document.getElementById('card-pending').textContent = String((dashboard.today.pendingItems || []).length);
   document.getElementById('nutrition-summary').textContent =
     `たんぱく質 ${formatNumber(dashboard.today.nutrition.protein)} g / 脂質 ${formatNumber(dashboard.today.nutrition.fat)} g / 炭水化物 ${formatNumber(dashboard.today.nutrition.carb)} g`;
@@ -471,7 +486,7 @@ function refreshTargetControls() {
 function beginTargetEdit() {
   const userId = document.getElementById('user-id').value.trim();
   if (!userId) {
-    pushStatus('notice', 'LINEプロフィールを取得できてから目標を更新できます。');
+    pushStatus('notice', 'LINEログイン後に目標を更新できます。');
     return;
   }
 
@@ -487,7 +502,7 @@ function beginTargetEdit() {
 async function saveProfileTarget() {
   const userId = document.getElementById('user-id').value.trim();
   if (!userId) {
-    pushStatus('notice', 'LINEプロフィールを取得できてから目標を更新できます。');
+    pushStatus('notice', 'LINEログイン後に目標を更新できます。');
     return;
   }
 
@@ -530,7 +545,7 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
 
   const userId = document.getElementById('user-id').value.trim();
   if (!userId) {
-    pushStatus('notice', 'LINEから開いてプロフィールを取得すると保存できます。');
+    pushStatus('notice', 'LINEログイン後に保存できます。');
     return;
   }
 
@@ -634,6 +649,17 @@ function formatSignedNumber(value) {
   const number = Number(value || 0);
   if (Number.isNaN(number)) return String(value);
   return number > 0 ? `+${formatNumber(number)}` : formatNumber(number);
+}
+
+function formatTargetRateLabel(dashboard) {
+  const target = Number(dashboard && dashboard.user && dashboard.user.calorieTarget || 0);
+  if (!Number.isFinite(target) || target <= 0) {
+    return '目標未設定';
+  }
+
+  const total = Number(dashboard.today.totalExact || 0) + Number(dashboard.today.totalEstimated || 0);
+  const percent = Math.round((total / target) * 100);
+  return `目標比 ${percent}%`;
 }
 
 function formatLogKcal(kcal, status) {
