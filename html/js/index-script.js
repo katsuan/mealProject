@@ -23,6 +23,7 @@ const state = {
   },
   statusSeq: 0,
   isTargetSyncing: false,
+  isTargetEditing: false,
   identityWarningKey: '',
   statusAccordionOpen: false,
 };
@@ -66,34 +67,46 @@ function renderStatus() {
     message: 'プロフィールと今日の集計を準備しています。',
   };
   const latestNode = document.getElementById('status-latest');
-  const levelNode = document.getElementById('status-level');
   const textNode = document.getElementById('status-text');
   const accordionNode = document.getElementById('status-accordion');
   const accordionToggle = document.getElementById('status-accordion-toggle');
+  const controlsNode = document.getElementById('status-controls');
+  const historyNode = document.getElementById('status-history');
+  const availableLevels = [...new Set(
+    state.statusLogs
+      .map(entry => entry.level)
+      .filter(level => level !== 'info')
+  )];
+  const selectedLevels = Object.keys(state.statusFilters).filter(level =>
+    state.statusFilters[level] && availableLevels.includes(level)
+  );
 
   latestNode.className = `status-latest ${STATUS_META[latest.level].className}`;
-  levelNode.textContent = latest.label;
   textNode.textContent = latest.message;
   accordionNode.hidden = !state.statusAccordionOpen;
   accordionToggle.setAttribute('aria-expanded', state.statusAccordionOpen ? 'true' : 'false');
   accordionToggle.textContent = state.statusAccordionOpen ? '閉じる' : 'ログ';
 
-  document.querySelectorAll('[data-log-toggle]').forEach(button => {
-    const level = button.dataset.logToggle;
-    button.classList.toggle('is-active', Boolean(state.statusFilters[level]));
-    button.classList.toggle(`is-${level}`, true);
-  });
+  controlsNode.hidden = availableLevels.length <= 1;
+  controlsNode.innerHTML = availableLevels.length > 1
+    ? availableLevels.map(level => `
+        <button
+          type="button"
+          class="status-toggle is-${level} ${state.statusFilters[level] ? 'is-active' : ''}"
+          data-log-toggle="${escapeHtml(level)}"
+        >${escapeHtml(STATUS_META[level].label)}</button>
+      `).join('')
+    : '';
 
-  const activeLevels = Object.keys(state.statusFilters).filter(level => state.statusFilters[level]);
-  const historyNode = document.getElementById('status-history');
-  if (!activeLevels.length) {
+  if (!availableLevels.length) {
     historyNode.hidden = true;
     historyNode.innerHTML = '';
     return;
   }
 
   const logs = state.statusLogs
-    .filter(entry => activeLevels.includes(entry.level))
+    .filter(entry => entry.level !== 'info')
+    .filter(entry => !selectedLevels.length || selectedLevels.includes(entry.level))
     .slice()
     .reverse();
 
@@ -117,15 +130,16 @@ function bindStatusToggles() {
     renderStatus();
   });
 
-  document.querySelectorAll('[data-log-toggle]').forEach(button => {
-    button.addEventListener('click', () => {
-      const level = button.dataset.logToggle;
-      state.statusFilters[level] = !state.statusFilters[level];
-      if (state.statusFilters[level]) {
-        state.statusAccordionOpen = true;
-      }
-      renderStatus();
-    });
+  document.getElementById('status-controls').addEventListener('click', event => {
+    const button = event.target.closest('[data-log-toggle]');
+    if (!button) return;
+
+    const level = button.dataset.logToggle;
+    state.statusFilters[level] = !state.statusFilters[level];
+    if (state.statusFilters[level]) {
+      state.statusAccordionOpen = true;
+    }
+    renderStatus();
   });
 }
 
@@ -321,7 +335,9 @@ async function reloadState() {
 
 function renderDashboard(dashboard) {
   if (!dashboard) {
+    state.isTargetEditing = false;
     document.getElementById('calorie-target').value = '';
+    updateFieldState(document.getElementById('calorie-target'), false);
     document.getElementById('card-exact').textContent = '0';
     document.getElementById('card-estimated').textContent = '0';
     document.getElementById('card-diff').textContent = '-';
@@ -332,7 +348,9 @@ function renderDashboard(dashboard) {
     return;
   }
 
+  state.isTargetEditing = false;
   document.getElementById('calorie-target').value = dashboard.user.calorieTarget ?? '';
+  updateFieldState(document.getElementById('calorie-target'), false);
   document.getElementById('card-exact').textContent = formatNumber(dashboard.today.totalExact);
   document.getElementById('card-estimated').textContent = formatNumber(dashboard.today.totalEstimated);
   document.getElementById('card-diff').textContent = dashboard.targetDiff == null ? '-' : formatSignedNumber(dashboard.targetDiff);
@@ -441,11 +459,29 @@ function setTargetSyncing(isLoading) {
 function refreshTargetControls() {
   const input = document.getElementById('calorie-target');
   const button = document.getElementById('save-target');
+  const field = document.getElementById('target-field');
   const hasUser = Boolean(document.getElementById('user-id').value.trim());
 
-  input.disabled = state.isTargetSyncing || !hasUser;
+  input.disabled = state.isTargetSyncing || !hasUser || !state.isTargetEditing;
   button.disabled = state.isTargetSyncing || !hasUser;
-  button.textContent = state.isTargetSyncing ? '同期中...' : '更新';
+  button.textContent = state.isTargetSyncing ? '同期中...' : (state.isTargetEditing ? '保存' : '更新');
+  field.classList.toggle('is-editable', Boolean(hasUser && state.isTargetEditing && !state.isTargetSyncing));
+}
+
+function beginTargetEdit() {
+  const userId = document.getElementById('user-id').value.trim();
+  if (!userId) {
+    pushStatus('notice', 'LINEプロフィールを取得できてから目標を更新できます。');
+    return;
+  }
+
+  state.isTargetEditing = true;
+  refreshTargetControls();
+
+  const input = document.getElementById('calorie-target');
+  input.focus();
+  input.select();
+  updateFieldState(input, true);
 }
 
 async function saveProfileTarget() {
@@ -478,6 +514,15 @@ async function saveProfileTarget() {
   } finally {
     setTargetSyncing(false);
   }
+}
+
+async function handleTargetButtonClick() {
+  if (state.isTargetSyncing) return;
+  if (!state.isTargetEditing) {
+    beginTargetEdit();
+    return;
+  }
+  await saveProfileTarget();
 }
 
 document.getElementById('meal-detail-form').addEventListener('submit', async event => {
@@ -530,7 +575,12 @@ document.getElementById('refresh-draft').addEventListener('click', async () => {
   await reloadState();
 });
 
-document.getElementById('save-target').addEventListener('click', saveProfileTarget);
+document.getElementById('save-target').addEventListener('click', handleTargetButtonClick);
+document.getElementById('calorie-target').addEventListener('keydown', async event => {
+  if (event.key !== 'Enter' || !state.isTargetEditing) return;
+  event.preventDefault();
+  await saveProfileTarget();
+});
 document.getElementById('close-liff').addEventListener('click', () => {
   if (window.liff && typeof liff.closeWindow === 'function') {
     liff.closeWindow();
