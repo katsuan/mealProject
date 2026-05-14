@@ -775,7 +775,10 @@ function renderMasterSearchResults_(results) {
             <div class="candidate-score">一致度 ${escapeHtml(String(item.scorePercent || 0))}%</div>
           </div>
           <div class="candidate-meta">カロリー ${formatNumber(item.kcal)} kcal / たんぱく質 ${formatNumber(item.protein)} g / 脂質 ${formatNumber(item.fat)} g / 炭水化物 ${formatNumber(item.carb)} g</div>
-          <button type="button" class="secondary compact-button" onclick="applyMasterSearchResult(${index})">入力に使う</button>
+          <div class="master-result-actions">
+            <button type="button" class="secondary compact-button" onclick="applyMasterSearchResult(${index})">入力に使う</button>
+            <button type="button" class="secondary compact-button" onclick="startMasterEdit(${index})">マスタ編集</button>
+          </div>
         </div>
       `).join('')
     : '<div class="empty-state">メニュー名や補足で検索できます。</div>';
@@ -999,15 +1002,36 @@ function applyMasterSearchResult(index) {
   if (!candidate) return;
   document.getElementById('menu-name').value = candidate.name || '';
   document.getElementById('master-key').value = candidate.masterKey || '';
+  document.getElementById('editing-master-key').value = '';
   applyNutritionFields(candidate, {
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
   updateFieldState(document.getElementById('menu-name'), false);
   clearEditMode_();
+  refreshMealSubmitControls_();
   setActiveView('input');
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
   pushStatus('info', `「${candidate.name}」を入力欄へ反映しました。`);
+}
+
+function startMasterEdit(index) {
+  const candidate = state.masterSearchResults[index];
+  if (!candidate) return;
+
+  document.getElementById('editing-master-key').value = candidate.masterKey || '';
+  document.getElementById('editing-log-row').value = '';
+  document.getElementById('master-key').value = candidate.masterKey || '';
+  document.getElementById('menu-name').value = candidate.name || '';
+  applyNutritionFields(candidate, {
+    unit: candidate.unit || '',
+    note: candidate.note || '',
+  });
+  updateFieldState(document.getElementById('menu-name'), false);
+  refreshMealSubmitControls_();
+  setActiveView('input');
+  document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  pushStatus('info', `「${candidate.name}」のマスタ編集を開きました。`);
 }
 
 function applyPendingMenu(menu) {
@@ -1102,19 +1126,24 @@ function isEditingLog_() {
 
 function clearEditMode_() {
   document.getElementById('editing-log-row').value = '';
+  document.getElementById('editing-master-key').value = '';
   refreshMealSubmitControls_();
 }
 
 function refreshMealSubmitControls_() {
   const submitButton = document.getElementById('meal-submit-button');
+  const masterButton = document.getElementById('save-master-only-button');
   const cancelButton = document.getElementById('cancel-edit-button');
   const editing = isEditingLog_();
+  const editingMaster = Boolean(document.getElementById('editing-master-key').value.trim());
   const hasUser = Boolean(document.getElementById('user-id').value.trim());
   const canUse = !hasUser || state.userPermission.canUse !== false;
   submitButton.textContent = editing ? '保存して更新' : '保存して記録';
   submitButton.disabled = !canUse;
+  masterButton.hidden = !editingMaster;
+  masterButton.disabled = !canUse;
   cancelButton.disabled = !canUse;
-  cancelButton.hidden = !editing;
+  cancelButton.hidden = !editing && !editingMaster;
 }
 
 function startEditLog(rowNumber) {
@@ -1289,6 +1318,59 @@ document.getElementById('refresh-draft').addEventListener('click', async () => {
 });
 
 document.getElementById('save-target').addEventListener('click', handleTargetButtonClick);
+document.getElementById('save-master-only-button').addEventListener('click', async () => {
+  const userId = document.getElementById('user-id').value.trim();
+  if (!userId) {
+    pushStatus('notice', 'LINEログイン後にマスタを保存できます。');
+    return;
+  }
+  if (!state.userPermission.canUse) {
+    pushStatus('notice', '現在はマスタを保存できません。');
+    return;
+  }
+
+  setSyncVisualState(true);
+  pushStatus('info', 'マスタを保存中...');
+  try {
+    const result = await runServer('saveNutritionMasterOnly', {
+      userId: userId,
+      displayName: document.getElementById('display-name').value.trim(),
+      idToken: state.idToken,
+      meal: document.getElementById('meal-type').value,
+      mealDate: document.getElementById('meal-date').value,
+      datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
+      masterKey: document.getElementById('editing-master-key').value.trim() || document.getElementById('master-key').value.trim(),
+      menu: document.getElementById('menu-name').value.trim(),
+      kcal: document.getElementById('field-kcal').value,
+      protein: document.getElementById('field-protein').value,
+      fat: document.getElementById('field-fat').value,
+      carb: document.getElementById('field-carb').value,
+      salt: document.getElementById('field-salt').value,
+      fiber: document.getElementById('field-fiber').value,
+      unit: document.getElementById('field-unit').value.trim(),
+      note: document.getElementById('field-note').value.trim(),
+    });
+    document.getElementById('master-key').value = result.savedMaster && result.savedMaster.masterKey ? result.savedMaster.masterKey : document.getElementById('master-key').value;
+    document.getElementById('editing-master-key').value = '';
+    state.dashboard = result.dashboard || state.dashboard;
+    state.draft = result.draft || state.draft;
+    if (state.dashboard) {
+      renderDashboard(state.dashboard);
+    }
+    if (state.draft) {
+      renderDraft(state.draft);
+    }
+    applyIdentityStatus_(result.identity);
+    applyPermissionState_(result.permission);
+    refreshMealSubmitControls_();
+    pushStatus('info', '栄養マスタを保存しました。');
+  } catch (error) {
+    pushStatus('warning', `マスタ保存に失敗しました: ${error.message}`);
+    pushStatus('debug', buildErrorDetail_(error));
+  } finally {
+    setSyncVisualState(false);
+  }
+});
 document.getElementById('cancel-edit-button').addEventListener('click', () => {
   clearEditMode_();
   pushStatus('info', 'ログ編集をやめました。');

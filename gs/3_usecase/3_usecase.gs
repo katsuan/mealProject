@@ -512,6 +512,46 @@ function searchNutritionMasterRecords(query, limit) {
   return findNutritionCandidates(keyword, limit || 12).map(serializeNutritionCandidate_);
 }
 
+function saveNutritionMasterOnly(userId, payload, source) {
+  ensureProjectSetup_();
+  const user = ensureUserExists_(userId, payload && payload.displayName);
+  ensureUserCanUseService_(user);
+
+  const menu = String(payload && payload.menu || '').trim();
+  if (!menu) {
+    throw new Error('menu is required');
+  }
+  if (toNullableNumber_(payload && payload.kcal) == null) {
+    throw new Error('kcal is required');
+  }
+
+  const savedMaster = saveNutritionMaster({
+    masterKey: payload && payload.masterKey,
+    name: menu,
+    kcal: payload && payload.kcal,
+    protein: payload && payload.protein,
+    fat: payload && payload.fat,
+    carb: payload && payload.carb,
+    salt: payload && payload.salt,
+    fiber: payload && payload.fiber,
+    unit: payload && payload.unit,
+    note: payload && payload.note,
+    status: 'active',
+    source: source || SOURCE.LIFF,
+  });
+
+  return {
+    savedMaster: savedMaster,
+    dashboard: getDashboardData(userId),
+    draft: getMealDraftState({
+      meal: payload && payload.meal,
+      menu: savedMaster.name,
+      mealDate: payload && payload.mealDate,
+      datePreset: payload && payload.datePreset,
+    }),
+  };
+}
+
 function updateMealLogDetail(userId, payload, source) {
   ensureProjectSetup_();
   const user = ensureUserExists_(userId, payload && payload.displayName);

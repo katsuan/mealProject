@@ -102,8 +102,9 @@ function buildDailySummaryFlexMessage(userId, options) {
     : '未登録なし';
   const totalColor = isOverTarget ? '#C84949' : '#231815';
   const targetPercentText = hasTarget ? formatPercentValue_(targetPercent) : null;
-  const targetRatioLine = hasTarget ? `${total} / ${targetKcal} kcal` : '目標未設定';
+  const targetValueLine = hasTarget ? `${targetKcal} kcal` : '目標未設定';
   const targetRatioColor = isOverTarget ? '#C84949' : '#231815';
+  const targetValueColor = '#6b7280';
   const tone = getFlexTone_(isOverTarget ? 'warning' : (today.hasPending ? 'notice' : 'success'));
   const progressWidth = hasTarget ? `${Math.max(6, Math.min(targetPercent, 100))}%` : '0%';
   const logs = (dashboard.recentLogs || []).slice(0, 6);
@@ -126,7 +127,8 @@ function buildDailySummaryFlexMessage(userId, options) {
           tone: tone,
           total: total,
           totalColor: totalColor,
-          targetRatioLine: targetRatioLine,
+          targetValueLine: targetValueLine,
+          targetValueColor: targetValueColor,
           targetRatioColor: targetRatioColor,
           targetPercentText: targetPercentText,
           isOverTarget: isOverTarget,
@@ -267,30 +269,20 @@ function buildDailySummaryBubble_(context) {
           contents: [
             {
               type: 'text',
-              text: '目標比',
+              text: '目標',
               flex: 2,
               size: 'sm',
               color: '#6b7280',
             },
             {
               type: 'text',
-              text: context.targetRatioLine,
-              flex: 4,
+              text: context.targetValueLine,
+              flex: 5,
               size: 'sm',
               wrap: true,
-              color: context.targetRatioColor,
-              weight: context.isOverTarget ? 'bold' : 'regular',
+              color: context.targetValueColor,
             },
-            context.hasTarget ? {
-              type: 'text',
-              text: `${context.targetPercentText}%`,
-              flex: 2,
-              align: 'end',
-              size: 'lg',
-              color: context.targetRatioColor,
-              weight: 'bold',
-            } : null,
-          ].filter(Boolean),
+          ],
         },
         {
           type: 'box',
@@ -299,19 +291,26 @@ function buildDailySummaryBubble_(context) {
           contents: [
             {
               type: 'text',
-              text: 'PFC',
+              text: '目標比',
               flex: 2,
               size: 'sm',
               color: '#6b7280',
             },
-            {
+            context.hasTarget ? {
               type: 'text',
-              text: `P ${roundNutrition_(context.today.nutrition.protein)} / F ${roundNutrition_(context.today.nutrition.fat)} / C ${roundNutrition_(context.today.nutrition.carb)}`,
+              text: `${context.targetPercentText}%`,
+              flex: 5,
+              size: 'lg',
+              color: context.targetRatioColor,
+              weight: 'bold',
+            } : {
+              type: 'text',
+              text: '未設定',
               flex: 5,
               size: 'sm',
-              wrap: true,
+              color: '#6b7280',
             },
-          ],
+          ].filter(Boolean),
         },
         {
           type: 'box',
@@ -333,6 +332,13 @@ function buildDailySummaryBubble_(context) {
               wrap: true,
             },
           ],
+        },
+        {
+          type: 'text',
+          text: `P ${roundNutrition_(context.today.nutrition.protein)} / F ${roundNutrition_(context.today.nutrition.fat)} / C ${roundNutrition_(context.today.nutrition.carb)}`,
+          size: 'xs',
+          wrap: true,
+          color: '#8a6258',
         },
       ].filter(Boolean),
     },

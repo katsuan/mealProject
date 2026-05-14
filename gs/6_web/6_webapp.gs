@@ -10,7 +10,7 @@ function doGet(e) {
     ok: true,
     service: 'meal-project-api',
     version: 1,
-    actions: ['getHeaderState', 'getLiffAppState', 'searchNutritionMaster', 'submitMealDetail', 'updateProfile', 'updateMealLog', 'deleteMealLog'],
+    actions: ['getHeaderState', 'getLiffAppState', 'searchNutritionMaster', 'saveNutritionMasterOnly', 'submitMealDetail', 'updateProfile', 'updateMealLog', 'deleteMealLog'],
     lineWebhookEnabled: true,
     liffConfigured: Boolean(getLiffId_()),
     query: params,
@@ -34,6 +34,8 @@ function doPost(e) {
         return jsonOutput_(getLiffAppState(request));
       case 'searchNutritionMaster':
         return jsonOutput_(searchNutritionMasterFromLiff(request));
+      case 'saveNutritionMasterOnly':
+        return jsonOutput_(saveNutritionMasterOnlyFromLiff(request));
       case 'submitMealDetail':
         return jsonOutput_(submitMealDetailFromLiff(request));
       case 'updateProfile':
@@ -63,6 +65,40 @@ function searchNutritionMasterFromLiff(payload) {
     identity: serializeIdentityState_(identity),
     permission: serializeUserPermission_(user),
     results: searchNutritionMasterRecords(payload.query, payload.limit || 12),
+  };
+}
+
+function saveNutritionMasterOnlyFromLiff(payload) {
+  ensureProjectSetup_();
+  const identity = verifyLiffIdentity_(payload);
+  if (!identity.userId) {
+    throw new Error('userId is required');
+  }
+
+  const result = saveNutritionMasterOnly(identity.userId, {
+    displayName: identity.displayName,
+    meal: payload.meal,
+    mealDate: payload.mealDate,
+    datePreset: payload.datePreset,
+    masterKey: payload.masterKey,
+    menu: payload.menu,
+    kcal: payload.kcal,
+    protein: payload.protein,
+    fat: payload.fat,
+    carb: payload.carb,
+    salt: payload.salt,
+    fiber: payload.fiber,
+    unit: payload.unit,
+    note: payload.note,
+  }, SOURCE.LIFF);
+
+  return {
+    ok: true,
+    identity: serializeIdentityState_(identity),
+    permission: serializeUserPermission_(getUserById(identity.userId)),
+    dashboard: result.dashboard,
+    draft: result.draft,
+    savedMaster: serializeNutritionCandidate_(Object.assign({ score: 1, scorePercent: 100 }, result.savedMaster)),
   };
 }
 
