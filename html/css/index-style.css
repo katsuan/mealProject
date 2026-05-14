@@ -366,6 +366,16 @@
     gap: 8px;
   }
 
+  .compact-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    margin-bottom: 10px;
+  }
+
+  .compact-grid .meal-type-btn {
+    padding: 10px 4px;
+    font-size: 12px;
+  }
+
   .meal-type-btn {
     border: 1px solid var(--line);
     border-radius: 999px;
@@ -381,6 +391,34 @@
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
+  }
+
+  .date-chip-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .date-chip-btn {
+    min-height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-subtle);
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .date-chip-btn.is-active {
+    background: var(--accent-soft);
+    border-color: #ef9f88;
+    color: var(--accent-strong);
+  }
+
+  .date-chip-label {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
   }
 
   form {
@@ -639,6 +677,49 @@
     font-size: 13px;
     color: var(--muted);
     line-height: 1.5;
+  }
+
+  .pending-summary {
+    margin-top: 12px;
+    display: grid;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-subtle);
+    padding: 12px;
+  }
+
+  .pending-summary-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .pending-summary-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .pending-summary-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border: 1px solid rgba(184, 70, 44, 0.12);
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 10px 12px;
+  }
+
+  .pending-summary-name {
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .candidate-list,

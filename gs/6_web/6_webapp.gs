@@ -64,6 +64,8 @@ function getLiffAppState(payload) {
     draft: getMealDraftState({
       meal: payload && payload.meal,
       menu: payload && payload.menu,
+      mealDate: payload && payload.mealDate,
+      datePreset: payload && payload.datePreset,
     }),
   };
 }
@@ -115,6 +117,8 @@ function submitMealDetailFromLiff(payload) {
     draft: getMealDraftState({
       meal: result.record.meal,
       menu: result.record.menu,
+      mealDate: payload && payload.mealDate,
+      datePreset: payload && payload.datePreset,
     }),
     summaryPushed: summaryPushed,
     savedMaster: serializeNutritionCandidate_(Object.assign({ score: 1, scorePercent: 100 }, result.savedMaster)),

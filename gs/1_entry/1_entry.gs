@@ -112,6 +112,7 @@ function handleLinePostbackEvent_(event, userId) {
       masterKey: data.masterKey,
       meal: data.meal,
       menu: data.menu,
+      mealDate: data.mealDate,
     }, SOURCE.LINE);
 
     replyLineMessages_(event.replyToken, [

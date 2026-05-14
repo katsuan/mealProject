@@ -307,8 +307,33 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
     mode: 'detail',
     meal: parsed.meal,
     menu: parsed.menu,
+    mealDate: parsed.mealDate,
+    datePreset: parsed.datePreset,
   });
   const topCandidates = (draft && draft.candidates || []).slice(0, 3);
+  const mealButtons = ['朝', '昼', '夜'].map(meal => buildSelectionButton_(meal, buildLiffUrl_({
+    mode: 'detail',
+    meal: meal,
+    menu: parsed.menu,
+    mealDate: parsed.mealDate,
+    datePreset: parsed.datePreset,
+  }), meal === parsed.meal));
+  const dateButtons = [
+    buildSelectionButton_('今日', buildLiffUrl_({
+      mode: 'detail',
+      meal: parsed.meal,
+      menu: parsed.menu,
+      mealDate: resolveMealDateByPreset_('today'),
+      datePreset: 'today',
+    }), parsed.datePreset !== 'yesterday'),
+    buildSelectionButton_('昨日', buildLiffUrl_({
+      mode: 'detail',
+      meal: parsed.meal,
+      menu: parsed.menu,
+      mealDate: resolveMealDateByPreset_('yesterday'),
+      datePreset: 'yesterday',
+    }), parsed.datePreset === 'yesterday'),
+  ];
 
   return {
     type: 'flex',
@@ -359,10 +384,24 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
             paddingAll: '12px',
             contents: [
               {
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                contents: dateButtons,
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                margin: 'sm',
+                contents: mealButtons,
+              },
+              {
                 type: 'text',
                 text: '近い候補',
                 weight: 'bold',
                 size: 'sm',
+                margin: 'md',
               },
               topCandidates.length
                 ? {
@@ -422,6 +461,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
         meal: parsed.meal,
         masterKey: candidate.masterKey,
         menu: candidate.name,
+        mealDate: parsed.mealDate,
       }),
       displayText: `${parsed.meal} ${candidate.name} を記録しています...`,
     },
@@ -457,6 +497,21 @@ function buildCandidatePostbackRow_(parsed, candidate) {
         flex: 0,
       },
     ],
+  };
+}
+
+function buildSelectionButton_(label, uri, isActive) {
+  return {
+    type: 'button',
+    flex: 1,
+    height: 'sm',
+    style: 'secondary',
+    color: isActive ? '#FDE2DA' : '#FDF5F2',
+    action: {
+      type: 'uri',
+      label: label,
+      uri: uri,
+    },
   };
 }
 

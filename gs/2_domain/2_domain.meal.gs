@@ -4,12 +4,16 @@
 
 function parseMealText(text) {
   const raw = String(text || '').trim();
-  const meal = raw.match(/朝|昼|夜|その他/)?.[0] || inferMealType_(new Date());
-  const menu = raw.replace(/朝|昼|夜|その他/, '').trim() || raw;
+  const datePreset = raw.indexOf('昨日') !== -1 ? 'yesterday' : 'today';
+  const mealDate = resolveMealDateByPreset_(datePreset);
+  const meal = raw.match(/朝|昼|夜|その他/)?.[0] || inferMealType_(new Date(mealDate));
+  const menu = raw.replace(/昨日|今日|朝|昼|夜|その他/g, '').trim() || raw;
 
   return {
     meal: meal,
     menu: menu,
+    datePreset: datePreset,
+    mealDate: mealDate,
   };
 }
 
@@ -133,4 +137,12 @@ function inferMealType_(date) {
   if (hour < 11) return '朝';
   if (hour < 17) return '昼';
   return '夜';
+}
+
+function resolveMealDateByPreset_(datePreset) {
+  const baseDate = new Date();
+  if (datePreset === 'yesterday') {
+    baseDate.setDate(baseDate.getDate() - 1);
+  }
+  return formatDateKey_(baseDate);
 }

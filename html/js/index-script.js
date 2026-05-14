@@ -31,6 +31,7 @@ const state = {
   identityWarningKey: '',
   statusAccordionOpen: false,
   candidateAccordionOpen: false,
+  selectedLogFilter: 'all',
 };
 
 function buildInitialQuery_(fallback) {
@@ -39,6 +40,8 @@ function buildInitialQuery_(fallback) {
     mode: params.get('mode') || String(fallback.mode || '').trim(),
     meal: params.get('meal') || String(fallback.meal || '').trim(),
     menu: params.get('menu') || String(fallback.menu || '').trim(),
+    datePreset: params.get('datePreset') || String(fallback.datePreset || '').trim(),
+    mealDate: params.get('mealDate') || String(fallback.mealDate || '').trim(),
   };
 }
 
@@ -218,6 +221,8 @@ async function initializeApp() {
     bindLoginButton();
     hydrateQuery();
     bindMealTypeButtons();
+    bindMealDateButtons();
+    bindLogFilterButtons();
     bindFieldInteractions();
     refreshTargetControls();
     renderStatus();
@@ -280,6 +285,11 @@ function hydrateQuery() {
   if (initialQuery.meal) {
     setMealType(initialQuery.meal);
   }
+  if (initialQuery.mealDate || initialQuery.datePreset) {
+    setMealDatePreset(initialQuery.datePreset || inferDatePresetFromMealDate_(initialQuery.mealDate), initialQuery.mealDate);
+  } else {
+    setMealDatePreset('today');
+  }
   if (initialQuery.menu) {
     document.getElementById('menu-name').value = initialQuery.menu;
     updateFieldState(document.getElementById('menu-name'), false);
@@ -288,7 +298,21 @@ function hydrateQuery() {
 
 function bindMealTypeButtons() {
   document.querySelectorAll('.meal-type-btn').forEach(button => {
-    button.addEventListener('click', () => setMealType(button.dataset.mealType));
+    if (button.dataset.mealType) {
+      button.addEventListener('click', () => setMealType(button.dataset.mealType));
+    }
+  });
+}
+
+function bindMealDateButtons() {
+  document.querySelectorAll('.date-chip-btn').forEach(button => {
+    button.addEventListener('click', () => setMealDatePreset(button.dataset.datePreset || 'today'));
+  });
+}
+
+function bindLogFilterButtons() {
+  document.querySelectorAll('[data-log-filter]').forEach(button => {
+    button.addEventListener('click', () => setLogFilter(button.dataset.logFilter || 'all'));
   });
 }
 
@@ -296,8 +320,57 @@ function setMealType(mealType) {
   const normalized = ['朝', '昼', '夜', 'その他'].includes(mealType) ? mealType : '朝';
   document.getElementById('meal-type').value = normalized;
   document.querySelectorAll('.meal-type-btn').forEach(button => {
-    button.classList.toggle('is-active', button.dataset.mealType === normalized);
+    if (button.dataset.mealType) {
+      button.classList.toggle('is-active', button.dataset.mealType === normalized);
+    }
   });
+}
+
+function setMealDatePreset(datePreset, mealDate) {
+  const normalized = datePreset === 'yesterday' ? 'yesterday' : 'today';
+  const resolvedDate = mealDate || buildMealDateFromPreset_(normalized);
+  document.getElementById('meal-date').value = resolvedDate;
+  document.querySelectorAll('.date-chip-btn').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.datePreset === normalized);
+  });
+  document.getElementById('meal-date-label').textContent = normalized === 'yesterday'
+    ? `昨日 (${formatDateLabel_(resolvedDate)}) の記録として保存します。`
+    : `今日 (${formatDateLabel_(resolvedDate)}) の記録として保存します。`;
+}
+
+function buildMealDateFromPreset_(datePreset) {
+  const date = new Date();
+  if (datePreset === 'yesterday') {
+    date.setDate(date.getDate() - 1);
+  }
+  return toDateInputValue_(date);
+}
+
+function inferDatePresetFromMealDate_(mealDate) {
+  const target = String(mealDate || '').slice(0, 10);
+  if (!target) return 'today';
+  return target === buildMealDateFromPreset_('yesterday') ? 'yesterday' : 'today';
+}
+
+function toDateInputValue_(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateLabel_(value) {
+  const date = new Date(`${String(value || '').slice(0, 10)}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return String(value || '');
+  return date.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+}
+
+function setLogFilter(filter) {
+  state.selectedLogFilter = ['朝', '昼', '夜', 'その他'].includes(filter) ? filter : 'all';
+  document.querySelectorAll('[data-log-filter]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.logFilter === state.selectedLogFilter);
+  });
+  renderLogList(state.dashboard ? state.dashboard.recentLogs : []);
 }
 
 function bindFieldInteractions() {
@@ -423,6 +496,8 @@ async function reloadState() {
       idToken: state.idToken,
       meal: document.getElementById('meal-type').value,
       menu: document.getElementById('menu-name').value.trim(),
+      mealDate: document.getElementById('meal-date').value,
+      datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
     });
 
     state.userId = userId;
@@ -460,6 +535,7 @@ function renderDashboard(dashboard) {
     document.getElementById('card-diff-rate').classList.remove('is-warning');
     document.getElementById('card-pending').textContent = '0';
     document.getElementById('nutrition-summary').textContent = '';
+    renderPendingSummary_([]);
     document.getElementById('logs-list').innerHTML = '<div class="empty-state">ログインすると今日の記録を表示します。</div>';
     refreshTargetControls();
     return;
@@ -483,10 +559,36 @@ function renderDashboard(dashboard) {
   document.getElementById('card-pending').textContent = String((dashboard.today.pendingItems || []).length);
   document.getElementById('nutrition-summary').textContent =
     `たんぱく質 ${formatNumber(dashboard.today.nutrition.protein)} g / 脂質 ${formatNumber(dashboard.today.nutrition.fat)} g / 炭水化物 ${formatNumber(dashboard.today.nutrition.carb)} g`;
+  renderPendingSummary_(dashboard.today.pendingItems || []);
+  renderLogList(dashboard.recentLogs || []);
+  refreshTargetControls();
+}
 
-  const logs = dashboard.recentLogs || [];
-  document.getElementById('logs-list').innerHTML = logs.length
-    ? logs.map(log => `
+function renderPendingSummary_(pendingItems) {
+  const section = document.getElementById('pending-summary');
+  const count = document.getElementById('pending-summary-count');
+  const list = document.getElementById('pending-summary-list');
+  const items = Array.isArray(pendingItems) ? pendingItems : [];
+
+  section.hidden = !items.length;
+  count.textContent = `${items.length}件`;
+  list.innerHTML = items.length
+    ? items.map(item => `
+        <div class="pending-summary-item">
+          <div class="pending-summary-name">${escapeHtml(item)}</div>
+          <button type="button" class="secondary compact-button" onclick="applyPendingMenu('${encodeURIComponent(String(item))}')">入力する</button>
+        </div>
+      `).join('')
+    : '';
+}
+
+function renderLogList(logs) {
+  const filteredLogs = (logs || []).filter(log =>
+    state.selectedLogFilter === 'all' || log.meal === state.selectedLogFilter
+  );
+
+  document.getElementById('logs-list').innerHTML = filteredLogs.length
+    ? filteredLogs.map(log => `
         <div class="log-item">
           <div class="log-top">
             <div class="log-menu">${escapeHtml(log.menu)}</div>
@@ -495,8 +597,7 @@ function renderDashboard(dashboard) {
           <div class="log-meta">${escapeHtml(log.meal)} / ${escapeHtml(formatLogKcal(log.kcal, log.kcalStatus))}</div>
         </div>
       `).join('')
-    : '<div class="empty-state">まだ記録がありません。</div>';
-  refreshTargetControls();
+    : '<div class="empty-state">条件に合う記録はまだありません。</div>';
 }
 
 function renderDraft(draft) {
@@ -521,6 +622,9 @@ function renderDraft(draft) {
   }
   if (draft.meal) {
     setMealType(draft.meal);
+  }
+  if (draft.mealDate || draft.datePreset) {
+    setMealDatePreset(draft.datePreset || inferDatePresetFromMealDate_(draft.mealDate), draft.mealDate);
   }
 
   const prefill = draft.prefill || {};
@@ -585,6 +689,16 @@ function applyCandidate(index) {
     note: candidate.note || '',
   });
   pushStatus('info', `「${candidate.name}」の数値を入力欄に反映しました。`);
+}
+
+function applyPendingMenu(menu) {
+  const resolvedMenu = decodeURIComponent(String(menu || ''));
+  document.getElementById('menu-name').value = resolvedMenu;
+  updateFieldState(document.getElementById('menu-name'), false);
+  document.getElementById('master-key').value = '';
+  document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  pushStatus('info', `「${resolvedMenu}」の入力欄を開きました。`);
+  reloadState();
 }
 
 function renderCandidateAccordion_() {
@@ -719,6 +833,8 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
       displayName: document.getElementById('display-name').value.trim(),
       idToken: state.idToken,
       meal: document.getElementById('meal-type').value,
+      mealDate: document.getElementById('meal-date').value,
+      datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
       menu: document.getElementById('menu-name').value.trim(),
       masterKey: document.getElementById('master-key').value.trim(),
       kcal: document.getElementById('field-kcal').value,
@@ -859,4 +975,5 @@ function escapeHtml(value) {
 }
 
 window.applyCandidate = applyCandidate;
+window.applyPendingMenu = applyPendingMenu;
 initializeApp();

@@ -76,7 +76,8 @@ function parseTargetKcal(text) {
 function getDashboardData(userId) {
   const user = ensureUserExists_(userId);
   const today = getTodaySummary(userId);
-  const recentLogs = getRecentMealLogsByUser(userId, 20);
+  const recentLogs = getMealLogsByUserAndDate(userId, new Date())
+    .sort((left, right) => new Date(right.mealDate) - new Date(left.mealDate));
   const totalIntake = today.totalExact + today.totalEstimated;
 
   return {
@@ -114,6 +115,7 @@ function handleMealMessageFlow(userId, text, displayName, source) {
   if (exact) {
     const record = logMealFromMaster(userId, parsed, exact, {
       source: source || SOURCE.TEXT,
+      mealDate: parsed.mealDate,
     });
     return {
       kind: 'logged',
@@ -211,6 +213,8 @@ function submitMealCandidate(userId, payload, source) {
 function getMealDraftState(payload) {
   const menu = String(payload && payload.menu || '').trim();
   const meal = sanitizeMealType_(payload && payload.meal);
+  const mealDate = String(payload && payload.mealDate || '').trim();
+  const datePreset = String(payload && payload.datePreset || inferDatePresetFromMealDate_(mealDate) || 'today').trim();
   const draft = menu ? buildNutritionDraft(menu) : {
     menu: '',
     prefill: {
@@ -229,9 +233,17 @@ function getMealDraftState(payload) {
   return {
     meal: meal,
     menu: menu,
+    mealDate: mealDate,
+    datePreset: datePreset,
     prefill: serializeDraftPrefill_(draft.prefill),
     candidates: draft.candidates.map(serializeNutritionCandidate_),
   };
+}
+
+function inferDatePresetFromMealDate_(mealDate) {
+  if (!mealDate) return 'today';
+  const yesterday = resolveMealDateByPreset_('yesterday');
+  return String(mealDate).slice(0, 10) === yesterday ? 'yesterday' : 'today';
 }
 
 function serializeDraftPrefill_(prefill) {

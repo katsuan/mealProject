@@ -59,6 +59,7 @@
           <input id="display-name" type="hidden">
           <input id="master-key" type="hidden">
           <input id="meal-type" type="hidden" value="朝">
+          <input id="meal-date" type="hidden">
 
           <div class="meal-type-grid" id="meal-type-grid">
             <button type="button" class="meal-type-btn is-active" data-meal-type="朝">朝</button>
@@ -66,6 +67,12 @@
             <button type="button" class="meal-type-btn" data-meal-type="夜">夜</button>
             <button type="button" class="meal-type-btn" data-meal-type="その他">その他</button>
           </div>
+
+          <div class="date-chip-grid" id="meal-date-grid">
+            <button type="button" class="date-chip-btn is-active" data-date-preset="today">今日</button>
+            <button type="button" class="date-chip-btn" data-date-preset="yesterday">昨日</button>
+          </div>
+          <div id="meal-date-label" class="date-chip-label">今日の記録として保存します。</div>
 
           <div class="fields">
             <div id="candidate-sync-scope" class="menu-block">
@@ -177,6 +184,13 @@
           </div>
         </div>
         <div id="nutrition-summary" class="summary-note"></div>
+        <div id="pending-summary" class="pending-summary" hidden>
+          <div class="pending-summary-head">
+            <div class="label">未登録メニュー</div>
+            <div id="pending-summary-count" class="card-meta">0件</div>
+          </div>
+          <div id="pending-summary-list" class="pending-summary-list"></div>
+        </div>
       </section>
 
       <section id="today-log-band" class="band">
@@ -186,6 +200,13 @@
             <div class="section-copy">当日の入力内容だけを時系列で表示します。</div>
           </div>
           <button type="button" id="close-liff" class="secondary">閉じる</button>
+        </div>
+        <div class="meal-type-grid compact-grid" id="log-filter-grid">
+          <button type="button" class="meal-type-btn is-active" data-log-filter="all">すべて</button>
+          <button type="button" class="meal-type-btn" data-log-filter="朝">朝</button>
+          <button type="button" class="meal-type-btn" data-log-filter="昼">昼</button>
+          <button type="button" class="meal-type-btn" data-log-filter="夜">夜</button>
+          <button type="button" class="meal-type-btn" data-log-filter="その他">その他</button>
         </div>
         <div id="logs-list" class="log-list"></div>
       </section>
