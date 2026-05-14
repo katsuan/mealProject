@@ -32,14 +32,16 @@ function handleLineWebhook_(payload) {
 
 function resolveLineProfile_(userId) {
   const existingUser = getUserById(userId);
-  if (existingUser && existingUser.displayName) {
-    return { displayName: String(existingUser.displayName || '') };
-  }
+  const fallbackProfile = { displayName: String(existingUser && existingUser.displayName || '') };
 
   try {
-    return getLineProfile_(userId) || {};
+    const profile = getLineProfile_(userId) || {};
+    return {
+      displayName: String(profile.displayName || fallbackProfile.displayName || ''),
+      pictureUrl: String(profile.pictureUrl || ''),
+    };
   } catch (error) {
-    return {};
+    return fallbackProfile;
   }
 }
 
@@ -100,7 +102,8 @@ function handleLineEvent_(event) {
       buildDailySummaryFlexMessage(userId, {
         dashboard: result.dashboard,
         record: result.record,
-        headline: `${result.parsed.menu} を記録しました`,
+        headline: `${result.parsed.menu} を記録`,
+        senderProfile: profile,
       }),
     ];
     if (isFirstPostToday) {
@@ -114,7 +117,7 @@ function handleLineEvent_(event) {
   }
 
   replyLineMessages_(event.replyToken, [
-    buildMealInputPromptFlexMessage(result.parsed, result.draft),
+    buildMealInputPromptFlexMessage(result.parsed, result.draft, profile),
   ]);
 }
 
@@ -140,7 +143,8 @@ function handleLinePostbackEvent_(event, userId) {
       buildDailySummaryFlexMessage(userId, {
         dashboard: result.dashboard,
         record: result.record,
-        headline: `${result.record.menu} を記録しました`,
+        headline: `${result.record.menu} を記録`,
+        senderProfile: profile,
       }),
     ];
     if (isFirstPostToday) {

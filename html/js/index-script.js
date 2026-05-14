@@ -36,6 +36,7 @@ const state = {
   userPermission: { status: 'active', canUse: true, isAdmin: false, notify: true },
   headerLoaded: false,
   dashboardLoaded: false,
+  masterSearchResults: [],
 };
 
 function buildInitialQuery_(fallback) {
@@ -184,6 +185,76 @@ function bindLoginButton() {
   });
 }
 
+function bindNotifyToggle() {
+  document.getElementById('notify-setting').addEventListener('change', async event => {
+    const userId = document.getElementById('user-id').value.trim();
+    if (!userId) {
+      event.target.checked = !event.target.checked;
+      pushStatus('notice', 'LINEログイン後に通知設定を変更できます。');
+      return;
+    }
+    if (!state.userPermission.canUse) {
+      event.target.checked = !event.target.checked;
+      pushStatus('notice', '現在は通知設定を変更できません。');
+      return;
+    }
+
+    try {
+      pushStatus('info', '通知設定を保存中...');
+      const result = await runServer('updateProfile', {
+        userId: userId,
+        displayName: document.getElementById('display-name').value.trim(),
+        idToken: state.idToken,
+        calorieTarget: document.getElementById('calorie-target').value,
+        goalType: 'keep',
+        notify: event.target.checked,
+      });
+      state.dashboard = result.dashboard || state.dashboard;
+      applyPermissionState_(result.permission);
+      renderDashboard(state.dashboard);
+      pushStatus('info', event.target.checked ? '20時リマインドを ON にしました。' : '20時リマインドを OFF にしました。');
+    } catch (error) {
+      event.target.checked = !event.target.checked;
+      pushStatus('warning', `通知設定の保存に失敗しました: ${error.message}`);
+      pushStatus('debug', buildErrorDetail_(error));
+    }
+  });
+}
+
+function bindMasterSearch() {
+  document.getElementById('search-master').addEventListener('click', async () => {
+    const userId = document.getElementById('user-id').value.trim();
+    const query = document.getElementById('master-search-query').value.trim();
+    if (!userId) {
+      pushStatus('notice', 'LINEログイン後に登録済みDBを検索できます。');
+      return;
+    }
+    if (!query) {
+      renderMasterSearchResults_([]);
+      pushStatus('notice', '検索キーワードを入力してください。');
+      return;
+    }
+
+    pushStatus('info', '登録済みDBを検索中...');
+    try {
+      const result = await runServer('searchNutritionMaster', {
+        userId: userId,
+        displayName: document.getElementById('display-name').value.trim(),
+        idToken: state.idToken,
+        query: query,
+        limit: 12,
+      });
+      state.masterSearchResults = result.results || [];
+      applyPermissionState_(result.permission);
+      renderMasterSearchResults_(state.masterSearchResults);
+      pushStatus('info', `${state.masterSearchResults.length}件の候補を見つけました。`);
+    } catch (error) {
+      pushStatus('warning', `登録済みDB検索に失敗しました: ${error.message}`);
+      pushStatus('debug', buildErrorDetail_(error));
+    }
+  });
+}
+
 function resolveLoginRedirectUrl_() {
   if (window.location.protocol !== 'file:') {
     return window.location.href;
@@ -227,6 +298,8 @@ async function initializeApp() {
     bindStatusToggles();
     bindCandidateAccordion();
     bindLoginButton();
+    bindNotifyToggle();
+    bindMasterSearch();
     hydrateQuery();
     bindViewTabs();
     bindMealTypeButtons();
@@ -440,6 +513,7 @@ function renderProfileHeader() {
   const loginButton = document.getElementById('login-line');
   loginButton.hidden = Boolean(state.userId);
   loginButton.textContent = window.location.protocol === 'file:' ? '公開URLでLINEログイン' : 'LINEでログイン';
+  document.getElementById('notify-setting').disabled = !state.userId || state.userPermission.canUse === false;
 
   const avatar = document.getElementById('avatar');
   if (state.pictureUrl) {
@@ -466,6 +540,10 @@ function applyPermissionState_(permission) {
   }
   refreshTargetControls();
   refreshMealSubmitControls_();
+  const notifyInput = document.getElementById('notify-setting');
+  if (notifyInput) {
+    notifyInput.disabled = permission.canUse === false || !document.getElementById('user-id').value.trim();
+  }
 }
 
 function getLocalStateKey_(userId) {
@@ -513,9 +591,10 @@ function applyCachedAppState_(userId) {
 }
 
 function setSyncVisualState(isLoading) {
+  const menuValue = String(document.getElementById('menu-name').value || '').trim();
   [
     document.getElementById('target-field'),
-    document.getElementById('candidate-sync-scope'),
+    menuValue ? document.getElementById('candidate-sync-scope') : null,
     document.getElementById('today-summary-band'),
     document.getElementById('today-log-band'),
   ].filter(Boolean).forEach(node => {
@@ -533,6 +612,7 @@ function applyHeaderState_(header, permission) {
   const input = document.getElementById('calorie-target');
   input.value = safeHeader.user && safeHeader.user.calorieTarget != null ? safeHeader.user.calorieTarget : '';
   updateFieldState(input, false);
+  document.getElementById('notify-setting').checked = Boolean(safeHeader.user && safeHeader.user.notify === true);
 
   if (safeHeader.user && safeHeader.user.displayName && !state.displayName) {
     state.displayName = safeHeader.user.displayName;
@@ -647,6 +727,7 @@ function renderDashboard(dashboard) {
     document.getElementById('card-pending').textContent = '0';
     document.getElementById('nutrition-summary').textContent = '';
     renderPendingSummary_([]);
+    renderMasterSearchResults_([]);
     document.getElementById('logs-list').innerHTML = '<div class="empty-state">ログインすると今日の記録を表示します。</div>';
     renderWeeklyChart_(null, null);
     renderRankingList_('popular-ranking', []);
@@ -679,7 +760,25 @@ function renderDashboard(dashboard) {
   renderWeeklyChart_(dashboard.weekly || [], dashboard.user && dashboard.user.calorieTarget);
   renderRankingList_('popular-ranking', dashboard.popularMenus || [], buildPopularRankingItem_);
   renderStreakSection_(dashboard.streak || null, dashboard.streakRanking || []);
+  document.getElementById('notify-setting').checked = Boolean(dashboard.user && dashboard.user.notify === true);
   refreshTargetControls();
+}
+
+function renderMasterSearchResults_(results) {
+  const list = Array.isArray(results) ? results : [];
+  const container = document.getElementById('master-search-results');
+  container.innerHTML = list.length
+    ? list.map((item, index) => `
+        <div class="candidate-item">
+          <div class="candidate-top">
+            <div class="candidate-name">${escapeHtml(item.name)}</div>
+            <div class="candidate-score">一致度 ${escapeHtml(String(item.scorePercent || 0))}%</div>
+          </div>
+          <div class="candidate-meta">カロリー ${formatNumber(item.kcal)} kcal / たんぱく質 ${formatNumber(item.protein)} g / 脂質 ${formatNumber(item.fat)} g / 炭水化物 ${formatNumber(item.carb)} g</div>
+          <button type="button" class="secondary compact-button" onclick="applyMasterSearchResult(${index})">入力に使う</button>
+        </div>
+      `).join('')
+    : '<div class="empty-state">メニュー名や補足で検索できます。</div>';
 }
 
 function renderWeeklyChart_(weekly, calorieTarget) {
@@ -895,6 +994,22 @@ function applyCandidate(index) {
   pushStatus('info', `「${candidate.name}」の数値を入力欄に反映しました。`);
 }
 
+function applyMasterSearchResult(index) {
+  const candidate = state.masterSearchResults[index];
+  if (!candidate) return;
+  document.getElementById('menu-name').value = candidate.name || '';
+  document.getElementById('master-key').value = candidate.masterKey || '';
+  applyNutritionFields(candidate, {
+    unit: candidate.unit || '',
+    note: candidate.note || '',
+  });
+  updateFieldState(document.getElementById('menu-name'), false);
+  clearEditMode_();
+  setActiveView('input');
+  document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  pushStatus('info', `「${candidate.name}」を入力欄へ反映しました。`);
+}
+
 function applyPendingMenu(menu) {
   const resolvedMenu = decodeURIComponent(String(menu || ''));
   document.getElementById('menu-name').value = resolvedMenu;
@@ -1078,7 +1193,7 @@ async function saveProfileTarget() {
       idToken: state.idToken,
       calorieTarget: document.getElementById('calorie-target').value,
       goalType: 'keep',
-      notify: true,
+      notify: document.getElementById('notify-setting').checked,
     });
 
     state.dashboard = result.dashboard || null;
@@ -1281,6 +1396,7 @@ function escapeHtml(value) {
 }
 
 window.applyCandidate = applyCandidate;
+window.applyMasterSearchResult = applyMasterSearchResult;
 window.applyPendingMenu = applyPendingMenu;
 window.startEditLog = startEditLog;
 window.deleteLog = deleteLog;

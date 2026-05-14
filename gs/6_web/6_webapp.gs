@@ -10,7 +10,7 @@ function doGet(e) {
     ok: true,
     service: 'meal-project-api',
     version: 1,
-    actions: ['getHeaderState', 'getLiffAppState', 'submitMealDetail', 'updateProfile', 'updateMealLog', 'deleteMealLog'],
+    actions: ['getHeaderState', 'getLiffAppState', 'searchNutritionMaster', 'submitMealDetail', 'updateProfile', 'updateMealLog', 'deleteMealLog'],
     lineWebhookEnabled: true,
     liffConfigured: Boolean(getLiffId_()),
     query: params,
@@ -32,6 +32,8 @@ function doPost(e) {
         return jsonOutput_(getHeaderStateFromLiff(request));
       case 'getLiffAppState':
         return jsonOutput_(getLiffAppState(request));
+      case 'searchNutritionMaster':
+        return jsonOutput_(searchNutritionMasterFromLiff(request));
       case 'submitMealDetail':
         return jsonOutput_(submitMealDetailFromLiff(request));
       case 'updateProfile':
@@ -46,6 +48,22 @@ function doPost(e) {
   } catch (error) {
     return jsonOutput_({ ok: false, error: error.message });
   }
+}
+
+function searchNutritionMasterFromLiff(payload) {
+  ensureProjectSetup_();
+  const identity = verifyLiffIdentity_(payload);
+  if (!identity.userId) {
+    throw new Error('userId is required');
+  }
+  const user = ensureUserExists_(identity.userId, identity.displayName);
+  ensureUserCanUseService_(user);
+  return {
+    ok: true,
+    identity: serializeIdentityState_(identity),
+    permission: serializeUserPermission_(user),
+    results: searchNutritionMasterRecords(payload.query, payload.limit || 12),
+  };
 }
 
 function getHeaderStateFromLiff(payload) {
@@ -130,7 +148,7 @@ function submitMealDetailFromLiff(payload) {
         buildDailySummaryFlexMessage(identity.userId, {
           dashboard: result.dashboard,
           record: result.record,
-          headline: `${result.record.menu} を記録しました`,
+          headline: `${result.record.menu} を記録`,
         }),
       ]);
       summaryPushed = true;

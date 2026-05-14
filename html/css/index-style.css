@@ -154,6 +154,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    justify-content: flex-end;
   }
 
   .target-label {
@@ -208,6 +209,22 @@
   .target-field.is-editable {
     border-color: #ef9f88;
     background: #ffffff;
+  }
+
+  .notify-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .notify-toggle input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    margin: 0;
   }
 
   .target-save {

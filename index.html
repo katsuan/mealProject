@@ -19,8 +19,8 @@
             <div class="target-head">
               <div id="target-label" class="target-label">目標カロリー</div>
               <div class="target-head-actions">
-                <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
                 <button id="save-target" type="button" class="target-save">更新</button>
+                <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
               </div>
             </div>
             <label id="target-field" class="field target-field">
@@ -35,6 +35,10 @@
                 >
                 <span>kcal</span>
               </div>
+            </label>
+            <label class="notify-toggle">
+              <input id="notify-setting" type="checkbox">
+              <span>20時に未記録リマインドを受け取る</span>
             </label>
           </div>
         </div>
@@ -161,6 +165,29 @@
         </form>
 
         <div id="meal-reply" class="reply"></div>
+      </section>
+
+      <section class="band" data-view-section="input">
+        <div class="section-head">
+          <div>
+            <h2>登録済みDB検索</h2>
+            <div class="section-copy">過去に登録した栄養マスタを探して、入力欄へすばやく反映できます。</div>
+          </div>
+        </div>
+        <div class="fields">
+          <div class="menu-block">
+            <label class="field" data-label="検索キーワード">
+              <span class="field-label">検索キーワード</span>
+              <input id="master-search-query" data-field-label="検索キーワード" autocomplete="off">
+            </label>
+            <div class="menu-tools">
+              <button type="button" id="search-master" class="secondary compact-button">検索する</button>
+            </div>
+          </div>
+          <div id="master-search-results" class="candidate-list">
+            <div class="empty-state">メニュー名や補足で検索できます。</div>
+          </div>
+        </div>
       </section>
 
       <section id="today-summary-band" class="band" data-view-section="summary">

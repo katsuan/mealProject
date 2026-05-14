@@ -506,6 +506,12 @@ function getMealDraftState(payload) {
   };
 }
 
+function searchNutritionMasterRecords(query, limit) {
+  const keyword = String(query || '').trim();
+  if (!keyword) return [];
+  return findNutritionCandidates(keyword, limit || 12).map(serializeNutritionCandidate_);
+}
+
 function updateMealLogDetail(userId, payload, source) {
   ensureProjectSetup_();
   const user = ensureUserExists_(userId, payload && payload.displayName);
@@ -602,7 +608,7 @@ function buildFirstPostComment(userId) {
       : diff >= 0
         ? ` 目標まで ${Math.round(diff)} kcal でした。`
         : ` 目標を ${Math.round(Math.abs(diff))} kcal オーバーでした。`;
-    return `昨日は合計 ${Math.round(yesterdayTotal)} kcal 記録しました。${percent != null ? `目標比 ${percent}%。` : ''}${diffText}`.trim();
+    return `昨日は合計 ${Math.round(yesterdayTotal)} kcal 記録。${percent != null ? `目標比 ${percent}%。` : ''}${diffText}`.trim();
   }
   return '今日も1件ずつ記録していきましょう。';
 }

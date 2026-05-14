@@ -10,7 +10,7 @@ function buildLogReply(userId, record) {
     : '';
 
   return [
-    '記録しました',
+    '記録',
     `${record.meal}: ${record.menu}`,
     buildMealKcalLine(record),
     buildKcalDiffLine_(userId, total),
@@ -109,7 +109,7 @@ function buildDailySummaryFlexMessage(userId, options) {
   const logs = (dashboard.recentLogs || []).slice(0, 6);
   const quickReply = buildPopularQuickReply_(userId);
 
-  return {
+  const message = {
     type: 'flex',
     altText: `${headline} 合計 ${total} kcal`,
     quickReply: quickReply,
@@ -142,6 +142,7 @@ function buildDailySummaryFlexMessage(userId, options) {
       ],
     },
   };
+  return applyFlexSender_(message, context.senderProfile);
 }
 
 function buildPopularQuickReply_(userId) {
@@ -471,7 +472,7 @@ function formatFlexLogTime_(value) {
   return Utilities.formatDate(new Date(value), APP_TIMEZONE, 'H:mm');
 }
 
-function buildMealInputPromptFlexMessage(parsed, draft) {
+function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
   const liffUrl = buildLiffUrl_({
     mode: 'detail',
     meal: parsed.meal,
@@ -487,24 +488,7 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
     mealDate: parsed.mealDate,
     datePreset: parsed.datePreset,
   }), meal === parsed.meal));
-  const dateButtons = [
-    buildSelectionButton_('今日', buildLiffUrl_({
-      mode: 'detail',
-      meal: parsed.meal,
-      menu: parsed.menu,
-      mealDate: resolveMealDateByPreset_('today'),
-      datePreset: 'today',
-    }), parsed.datePreset !== 'yesterday'),
-    buildSelectionButton_('昨日', buildLiffUrl_({
-      mode: 'detail',
-      meal: parsed.meal,
-      menu: parsed.menu,
-      mealDate: resolveMealDateByPreset_('yesterday'),
-      datePreset: 'yesterday',
-    }), parsed.datePreset === 'yesterday'),
-  ];
-
-  return {
+  const message = {
     type: 'flex',
     altText: `${parsed.menu} は未登録です。入力してください。`,
     contents: {
@@ -556,14 +540,15 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
                 type: 'box',
                 layout: 'horizontal',
                 spacing: 'sm',
-                contents: dateButtons,
+                contents: mealButtons,
               },
               {
-                type: 'box',
-                layout: 'horizontal',
-                spacing: 'sm',
+                type: 'text',
+                text: '日付を変えたいときは、入力画面で 今日 / 昨日 を切り替えられます。',
+                size: 'xs',
+                color: '#8a6258',
+                wrap: true,
                 margin: 'sm',
-                contents: mealButtons,
               },
               {
                 type: 'text',
@@ -610,6 +595,24 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
       },
     },
   };
+  return applyFlexSender_(message, senderProfile);
+}
+
+function applyFlexSender_(message, profile) {
+  const safeProfile = profile || {};
+  if (!safeProfile.displayName && !safeProfile.pictureUrl) {
+    return message;
+  }
+
+  const sender = {
+    name: String(safeProfile.displayName || '食事ログ'),
+  };
+  if (safeProfile.pictureUrl) {
+    sender.iconUrl = String(safeProfile.pictureUrl);
+  }
+  return Object.assign({}, message, {
+    sender: sender,
+  });
 }
 
 function buildCandidatePostbackRow_(parsed, candidate) {
