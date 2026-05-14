@@ -13,11 +13,15 @@
           <div class="profile-copy">
             <div class="eyebrow">LINEプロフィール</div>
             <div id="profile-name" class="name">ログイン待ちです</div>
+            <button id="login-line" type="button" class="inline-login" hidden>LINEでログイン</button>
           </div>
-          <div class="target-cluster">
+          <div id="target-cluster" class="target-cluster">
             <div class="target-head">
               <div id="target-label" class="target-label">目標カロリー</div>
-              <button id="save-target" type="button" class="target-save">更新</button>
+              <div class="target-head-actions">
+                <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
+                <button id="save-target" type="button" class="target-save">更新</button>
+              </div>
             </div>
             <label id="target-field" class="field target-field">
               <div class="target-field-input">
@@ -34,11 +38,7 @@
             </label>
           </div>
         </div>
-        <div class="status-panel">
-          <div id="status-latest" class="status-latest is-info">
-            <span id="status-text" class="status-text">プロフィールと今日の集計を準備しています。</span>
-            <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
-          </div>
+        <div id="status-panel" class="status-panel" hidden>
           <div id="status-accordion" class="status-accordion" hidden>
             <div id="status-controls" class="status-controls" hidden></div>
             <div id="status-history" class="status-history" hidden></div>
@@ -46,11 +46,11 @@
         </div>
       </section>
 
-      <section class="band">
+      <section id="meal-entry-band" class="band">
         <div class="section-head">
           <div>
-            <h2>食事を補完する</h2>
-            <div class="section-copy">未登録メニューはここで数値を入れて、そのまま今日の集計に反映します。</div>
+            <h2>食事を入力する</h2>
+            <div class="section-copy">見つからないメニューはここで数値を入れて、そのまま記録できます。</div>
           </div>
         </div>
 
@@ -68,10 +68,15 @@
           </div>
 
           <div class="fields">
-            <label class="field" data-label="メニュー名">
-              <span class="field-label">メニュー名</span>
-              <input id="menu-name" data-field-label="メニュー名" autocomplete="off">
-            </label>
+            <div id="candidate-sync-scope" class="menu-block">
+              <label class="field" data-label="メニュー名">
+                <span class="field-label">メニュー名</span>
+                <input id="menu-name" data-field-label="メニュー名" autocomplete="off">
+              </label>
+              <div class="menu-tools">
+                <button type="button" id="refresh-draft" class="secondary compact-button">候補を更新</button>
+              </div>
+            </div>
 
             <div id="candidate-accordion" class="inline-accordion" hidden>
               <button
@@ -137,21 +142,20 @@
 
           <div class="actions">
             <button type="submit" class="primary">保存して記録</button>
-            <button type="button" id="refresh-draft" class="secondary">候補を更新</button>
           </div>
         </form>
 
         <div id="meal-reply" class="reply"></div>
       </section>
 
-      <section class="band">
+      <section id="today-summary-band" class="band">
         <div class="section-head">
           <div>
             <h2>今日の集計</h2>
             <div class="section-copy">LINEに返す内容と同じ集計をここでも確認できます。</div>
           </div>
         </div>
-        <div class="cards">
+        <div id="today-summary-cards" class="cards">
           <div class="card">
             <div class="label">確定カロリー</div>
             <div id="card-exact" class="value">0</div>
@@ -175,7 +179,7 @@
         <div id="nutrition-summary" class="summary-note"></div>
       </section>
 
-      <section class="band">
+      <section id="today-log-band" class="band">
         <div class="section-head">
           <div>
             <h2>今日のログ</h2>

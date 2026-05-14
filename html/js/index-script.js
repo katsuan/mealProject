@@ -1,8 +1,10 @@
 const appConfig = window.__MEAL_APP_CONFIG__ || {};
 const appVersion = String(appConfig.appVersion || '').trim();
+const appCommit = String(appConfig.appCommit || '').trim();
 const initialLiffId = String(appConfig.initialLiffId || '').trim();
 const apiBaseUrl = String(appConfig.apiBaseUrl || '').trim();
 const initialQuery = buildInitialQuery_(appConfig.initialQuery || {});
+const LOCAL_STATE_PREFIX = 'meal-app-state:';
 const STATUS_META = {
   debug: { label: 'DEBUG', className: 'is-debug' },
   info: { label: 'INFO', className: 'is-info' },
@@ -63,8 +65,9 @@ function pushStatus(level, message) {
 }
 
 function pushVersionDebug_() {
-  if (!appVersion) return;
-  pushStatus('debug', `version: ${appVersion}`);
+  const versionParts = [appVersion, appCommit].filter(Boolean);
+  if (!versionParts.length) return;
+  pushStatus('debug', `version: ${versionParts.join(' / ')}`);
 }
 
 function renderStatus() {
@@ -73,8 +76,7 @@ function renderStatus() {
     label: STATUS_META.info.label,
     message: 'プロフィールと今日の集計を準備しています。',
   };
-  const latestNode = document.getElementById('status-latest');
-  const textNode = document.getElementById('status-text');
+  const panelNode = document.getElementById('status-panel');
   const accordionNode = document.getElementById('status-accordion');
   const accordionToggle = document.getElementById('status-accordion-toggle');
   const controlsNode = document.getElementById('status-controls');
@@ -88,9 +90,9 @@ function renderStatus() {
     state.statusFilters[level] && availableLevels.includes(level)
   );
 
-  latestNode.className = `status-latest ${STATUS_META[latest.level].className}`;
-  textNode.textContent = latest.message;
+  panelNode.hidden = !state.statusAccordionOpen;
   accordionNode.hidden = !state.statusAccordionOpen;
+  accordionToggle.className = `status-accordion-toggle ${STATUS_META[latest.level].className}`;
   accordionToggle.setAttribute('aria-expanded', state.statusAccordionOpen ? 'true' : 'false');
   accordionToggle.textContent = state.statusAccordionOpen ? '▾' : '▸';
   accordionToggle.setAttribute('aria-label', state.statusAccordionOpen ? 'ログを閉じる' : 'ログを開く');
@@ -159,6 +161,16 @@ function bindCandidateAccordion() {
   });
 }
 
+function bindLoginButton() {
+  document.getElementById('login-line').addEventListener('click', () => {
+    if (!window.liff || typeof liff.login !== 'function') {
+      pushStatus('warning', 'この環境ではLINEログインを開始できません。');
+      return;
+    }
+    liff.login({ redirectUri: window.location.href });
+  });
+}
+
 async function runServer(action, payload) {
   if (!apiBaseUrl) {
     throw new Error('GAS API URL is not configured');
@@ -190,6 +202,7 @@ async function initializeApp() {
   try {
     bindStatusToggles();
     bindCandidateAccordion();
+    bindLoginButton();
     hydrateQuery();
     bindMealTypeButtons();
     bindFieldInteractions();
@@ -226,7 +239,7 @@ async function initializeLiffProfile_() {
   try {
     await liff.init({ liffId: initialLiffId });
     if (!liff.isLoggedIn()) {
-      pushStatus('notice', 'LINEログインするとプロフィールを取得できます。');
+      pushStatus('notice', 'LINEアプリ内、またはLINEログイン済みブラウザでプロフィールを取得できます。');
       return;
     }
 
@@ -296,6 +309,8 @@ function renderProfileHeader() {
   const profileName = state.displayName ? `${state.displayName}さん` : 'ログイン待ちです';
   document.getElementById('profile-name').textContent = profileName;
   document.getElementById('display-name').value = state.displayName || '';
+  const loginButton = document.getElementById('login-line');
+  loginButton.hidden = Boolean(state.userId);
 
   const avatar = document.getElementById('avatar');
   if (state.pictureUrl) {
@@ -306,6 +321,61 @@ function renderProfileHeader() {
   }
 
   refreshTargetControls();
+}
+
+function getLocalStateKey_(userId) {
+  return `${LOCAL_STATE_PREFIX}${String(userId || '').trim()}`;
+}
+
+function loadCachedAppState_(userId) {
+  if (!userId || !window.localStorage) return null;
+
+  try {
+    const raw = window.localStorage.getItem(getLocalStateKey_(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveCachedAppState_(userId, dashboard, draft) {
+  if (!userId || !window.localStorage || !dashboard) return;
+
+  try {
+    window.localStorage.setItem(getLocalStateKey_(userId), JSON.stringify({
+      savedAt: new Date().toISOString(),
+      dashboard: dashboard,
+      draft: draft || null,
+    }));
+  } catch (error) {
+    // Local cache is best-effort only.
+  }
+}
+
+function applyCachedAppState_(userId) {
+  const cached = loadCachedAppState_(userId);
+  if (!cached || !cached.dashboard) return false;
+
+  state.dashboard = cached.dashboard;
+  state.draft = cached.draft || null;
+  renderDashboard(state.dashboard);
+  renderDraft(state.draft);
+  pushStatus('debug', `cache: ${cached.savedAt || 'local'} の状態を先に表示しました。`);
+  return true;
+}
+
+function setSyncVisualState(isLoading) {
+  [
+    document.getElementById('target-field'),
+    document.getElementById('candidate-sync-scope'),
+    document.getElementById('today-summary-band'),
+    document.getElementById('today-log-band'),
+  ].filter(Boolean).forEach(node => {
+    node.classList.toggle('is-syncing-scope', Boolean(isLoading));
+    node.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+  });
 }
 
 async function reloadState() {
@@ -322,7 +392,9 @@ async function reloadState() {
     return;
   }
 
+  applyCachedAppState_(userId);
   setTargetSyncing(true);
+  setSyncVisualState(true);
   pushStatus('info', '同期中...');
 
   try {
@@ -344,6 +416,7 @@ async function reloadState() {
     renderProfileHeader();
     renderDashboard(state.dashboard);
     renderDraft(state.draft);
+    saveCachedAppState_(userId, state.dashboard, state.draft);
     applyIdentityStatus_(result.identity);
     pushStatus('info', '同期しました。');
   } catch (error) {
@@ -351,6 +424,7 @@ async function reloadState() {
     pushStatus('debug', buildErrorDetail_(error));
   } finally {
     setTargetSyncing(false);
+    setSyncVisualState(false);
   }
 }
 
@@ -572,6 +646,7 @@ async function saveProfileTarget() {
   }
 
   setTargetSyncing(true);
+  setSyncVisualState(true);
   pushStatus('info', '目標カロリーを同期中...');
 
   try {
@@ -586,6 +661,7 @@ async function saveProfileTarget() {
 
     state.dashboard = result.dashboard || null;
     renderDashboard(state.dashboard);
+    saveCachedAppState_(userId, state.dashboard, state.draft);
     applyIdentityStatus_(result.identity);
     pushStatus('info', '目標カロリーを更新しました。');
   } catch (error) {
@@ -593,6 +669,7 @@ async function saveProfileTarget() {
     pushStatus('debug', buildErrorDetail_(error));
   } finally {
     setTargetSyncing(false);
+    setSyncVisualState(false);
   }
 }
 
@@ -614,6 +691,7 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     return;
   }
 
+  setSyncVisualState(true);
   pushStatus('info', '保存して集計を同期中...');
 
   try {
@@ -640,6 +718,7 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     state.draft = result.draft || null;
     renderDashboard(state.dashboard);
     renderDraft(state.draft);
+    saveCachedAppState_(userId, state.dashboard, state.draft);
     applyIdentityStatus_(result.identity);
     pushStatus(
       'info',
@@ -648,6 +727,8 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
   } catch (error) {
     pushStatus('warning', `保存に失敗しました: ${error.message}`);
     pushStatus('debug', buildErrorDetail_(error));
+  } finally {
+    setSyncVisualState(false);
   }
 });
 
@@ -677,8 +758,17 @@ function applyIdentityStatus_(identity) {
     if (state.identityWarningKey === warningKey) return;
     state.identityWarningKey = warningKey;
     pushStatus('notice', 'LINEプロフィールの本人確認は一部スキップしました。入力はそのまま続けられます。');
-    pushStatus('debug', `本人確認の詳細: ${identity.verificationError}`);
+    pushStatus('debug', `本人確認の詳細: ${describeIdentityVerificationError_(identity.verificationError)}`);
   }
+}
+
+function describeIdentityVerificationError_(message) {
+  const text = String(message || '').trim();
+  if (!text) return 'unknown';
+  if (text.includes('Invalid IdToken Audience')) {
+    return `${text} (LIFFで取得したIDトークンの発行先チャンネルと、GAS側の LINE_CHANNEL_ID が一致していません)`;
+  }
+  return text;
 }
 
 function formatDateTime(value) {

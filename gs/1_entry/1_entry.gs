@@ -26,6 +26,19 @@ function handleLineWebhook_(payload) {
   events.forEach(event => handleLineEvent_(event));
 }
 
+function resolveLineProfile_(userId) {
+  const existingUser = getUserById(userId);
+  if (existingUser && existingUser.displayName) {
+    return { displayName: String(existingUser.displayName || '') };
+  }
+
+  try {
+    return getLineProfile_(userId) || {};
+  } catch (error) {
+    return {};
+  }
+}
+
 function handleLineEvent_(event) {
   if (!event) {
     return;
@@ -53,12 +66,7 @@ function handleLineEvent_(event) {
     return;
   }
 
-  let profile = {};
-  try {
-    profile = getLineProfile_(userId) || {};
-  } catch (error) {
-    profile = {};
-  }
+  const profile = resolveLineProfile_(userId);
   const result = handleMealMessageFlow(
     userId,
     String(event.message.text || ''),
@@ -96,12 +104,7 @@ function handleLinePostbackEvent_(event, userId) {
     return;
   }
 
-  let profile = {};
-  try {
-    profile = getLineProfile_(userId) || {};
-  } catch (error) {
-    profile = {};
-  }
+  const profile = resolveLineProfile_(userId);
 
   try {
     const result = submitMealCandidate(userId, {

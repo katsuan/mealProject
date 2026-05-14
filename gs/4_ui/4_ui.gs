@@ -52,6 +52,35 @@ function buildTargetUpdatedReply(userId, kcal) {
   return `目標カロリーを ${kcal} kcal に更新しました`;
 }
 
+function getFlexTone_(kind) {
+  switch (kind) {
+    case 'warning':
+      return {
+        soft: '#FDE2E2',
+        text: '#C84949',
+        bar: '#D75A3C',
+      };
+    case 'notice':
+      return {
+        soft: '#FDE7D6',
+        text: '#B7672B',
+        bar: '#D98C2B',
+      };
+    default:
+      return {
+        soft: '#E3F7EB',
+        text: '#2F8F5B',
+        bar: '#D98C2B',
+      };
+  }
+}
+
+function formatPercentValue_(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return '0.0';
+  return (Math.round(number * 10) / 10).toFixed(1);
+}
+
 function buildDailySummaryFlexMessage(userId, options) {
   const context = options || {};
   const dashboard = context.dashboard || getDashboardData(userId);
@@ -59,7 +88,7 @@ function buildDailySummaryFlexMessage(userId, options) {
   const total = Number(today.totalExact || 0) + Number(today.totalEstimated || 0);
   const targetKcal = Number(dashboard.user && dashboard.user.calorieTarget || 0);
   const hasTarget = targetKcal > 0;
-  const targetPercent = hasTarget ? Math.round((total / targetKcal) * 100) : null;
+  const targetPercent = hasTarget ? (total / targetKcal) * 100 : null;
   const isOverTarget = hasTarget && total > targetKcal;
   const detailUrl = dashboard.detailUrl || buildLiffUrl_({ mode: 'detail' });
   const headline = context.headline || '今日の集計';
@@ -72,8 +101,11 @@ function buildDailySummaryFlexMessage(userId, options) {
     ? `未登録 ${today.pendingItems.length}件`
     : '未登録なし';
   const totalColor = isOverTarget ? '#C84949' : '#231815';
-  const targetRatioLine = hasTarget ? `${targetPercent}% (${total} / ${targetKcal} kcal)` : '目標未設定';
+  const targetPercentText = hasTarget ? formatPercentValue_(targetPercent) : null;
+  const targetRatioLine = hasTarget ? `${total} / ${targetKcal} kcal` : '目標未設定';
   const targetRatioColor = isOverTarget ? '#C84949' : '#231815';
+  const tone = getFlexTone_(isOverTarget ? 'warning' : (today.hasPending ? 'notice' : 'success'));
+  const progressWidth = hasTarget ? `${Math.max(6, Math.min(targetPercent, 100))}%` : '0%';
 
   return {
     type: 'flex',
@@ -87,18 +119,29 @@ function buildDailySummaryFlexMessage(userId, options) {
         spacing: 'md',
         contents: [
           {
-            type: 'text',
-            text: headline,
-            weight: 'bold',
-            size: 'lg',
-            wrap: true,
-          },
-          {
-            type: 'text',
-            text: subline,
-            size: 'sm',
-            color: sublineColor,
-            wrap: true,
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: tone.soft,
+            cornerRadius: '12px',
+            paddingAll: '14px',
+            contents: [
+              {
+                type: 'text',
+                text: headline,
+                weight: 'bold',
+                size: 'lg',
+                color: tone.text,
+                wrap: true,
+              },
+              {
+                type: 'text',
+                text: subline,
+                size: 'sm',
+                color: sublineColor,
+                wrap: true,
+                margin: 'sm',
+              },
+            ],
           },
           recordedLine ? {
             type: 'box',
@@ -112,6 +155,31 @@ function buildDailySummaryFlexMessage(userId, options) {
                 text: recordedLine,
                 size: 'sm',
                 wrap: true,
+              },
+            ],
+          } : null,
+          hasTarget ? {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'box',
+                layout: 'vertical',
+                height: '10px',
+                backgroundColor: '#D1D5DB',
+                cornerRadius: '999px',
+                contents: [
+                  {
+                    type: 'box',
+                    layout: 'vertical',
+                    width: progressWidth,
+                    height: '10px',
+                    backgroundColor: tone.bar,
+                    cornerRadius: '999px',
+                    contents: [],
+                  },
+                ],
               },
             ],
           } : null,
@@ -152,13 +220,22 @@ function buildDailySummaryFlexMessage(userId, options) {
               {
                 type: 'text',
                 text: targetRatioLine,
-                flex: 5,
+                flex: 4,
                 size: 'sm',
                 wrap: true,
                 color: targetRatioColor,
                 weight: isOverTarget ? 'bold' : 'regular',
               },
-            ],
+              hasTarget ? {
+                type: 'text',
+                text: `${targetPercentText}%`,
+                flex: 2,
+                align: 'end',
+                size: 'lg',
+                color: targetRatioColor,
+                weight: 'bold',
+              } : null,
+            ].filter(Boolean),
           },
           {
             type: 'box',
@@ -244,23 +321,35 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
         spacing: 'md',
         contents: [
           {
-            type: 'text',
-            text: '未登録メニュー',
-            weight: 'bold',
-            size: 'lg',
-          },
-          {
-            type: 'text',
-            text: `${parsed.meal} ${parsed.menu}`,
-            wrap: true,
-            size: 'md',
-          },
-          {
-            type: 'text',
-            text: 'DBにないので、数値を入力してください。',
-            wrap: true,
-            size: 'sm',
-            color: '#6b7280',
+            type: 'box',
+            layout: 'vertical',
+            backgroundColor: '#FDE7D6',
+            cornerRadius: '12px',
+            paddingAll: '14px',
+            contents: [
+              {
+                type: 'text',
+                text: '未登録メニュー',
+                weight: 'bold',
+                size: 'lg',
+                color: '#B7672B',
+              },
+              {
+                type: 'text',
+                text: `${parsed.meal} ${parsed.menu}`,
+                wrap: true,
+                size: 'md',
+                margin: 'sm',
+              },
+              {
+                type: 'text',
+                text: '近い候補をタップすると、その数値を採用してすぐ記録します。',
+                wrap: true,
+                size: 'sm',
+                color: '#8a6258',
+                margin: 'sm',
+              },
+            ],
           },
           {
             type: 'box',
@@ -305,7 +394,7 @@ function buildMealInputPromptFlexMessage(parsed, draft) {
             color: '#FDF5F2',
             action: {
               type: 'uri',
-              label: '入力する',
+              label: '数値を入力する',
               uri: liffUrl,
             },
           },
@@ -327,13 +416,14 @@ function buildCandidatePostbackRow_(parsed, candidate) {
     backgroundColor: '#FDF5F2',
     action: {
       type: 'postback',
-      label: `${candidate.name} を記録`,
+      label: `${candidate.name} を採用して記録`,
       data: buildQueryString_({
         action: 'logCandidate',
         meal: parsed.meal,
         masterKey: candidate.masterKey,
         menu: candidate.name,
       }),
+      displayText: `${parsed.meal} ${candidate.name} を記録しています...`,
     },
     contents: [
       {
@@ -360,7 +450,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
       },
       {
         type: 'text',
-        text: '記録',
+        text: '採用',
         size: 'xs',
         weight: 'bold',
         color: '#B8462C',
