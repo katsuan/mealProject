@@ -155,8 +155,8 @@ function notifyAdminsOfPendingUser_(user) {
     '新しい利用申請があります。',
     `表示名: ${displayName}`,
     `userId: ${user.userId}`,
-    `承認コマンド: 承認 ${user.userId}`,
-    `拒否コマンド: 拒否 ${user.userId}`,
+    `承認コマンド: 承認 [userId]`,
+    `拒否コマンド: 拒否 [userId]`,
   ].join('\n');
   const quickReplyMessage = {
     type: 'text',

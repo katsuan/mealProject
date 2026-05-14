@@ -625,6 +625,7 @@ function saveCachedAppState_(userId, dashboard, draft) {
 }
 
 function applyCachedAppState_(userId) {
+  if (initialQuery.menu) return false;
   const cached = loadCachedAppState_(userId);
   if (!cached || !cached.dashboard) return false;
 
