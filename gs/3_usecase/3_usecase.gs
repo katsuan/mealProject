@@ -35,6 +35,19 @@ function getMealLogsByUserAndDate(userId, date) {
   );
 }
 
+function getMealLogsByUser(userId) {
+  return getMealLogs().filter(log => log.userId === userId);
+}
+
+function getMealLogsByUserInRange(userId, startDate, endDate) {
+  const startKey = formatDateKey_(startDate);
+  const endKey = formatDateKey_(endDate);
+  return getMealLogsByUser(userId).filter(log => {
+    const key = formatDateKey_(log.mealDate);
+    return key >= startKey && key <= endKey;
+  });
+}
+
 function isSameDay(left, right) {
   if (!left || !right) return false;
   return formatDateKey_(left) === formatDateKey_(right);
@@ -84,9 +97,148 @@ function getDashboardData(userId) {
     user: user,
     today: today,
     recentLogs: recentLogs.map(log => serializeMealLog_(log)),
+    weekly: getWeeklyChartData_(userId, 7),
+    popularMenus: getPopularMenusByUser_(userId, 5),
+    streak: getUserStreakSummary_(userId),
+    streakRanking: getStreakRanking_(10),
     targetDiff: user.calorieTarget == null ? null : user.calorieTarget - totalIntake,
     detailUrl: buildLiffUrl_({ mode: 'detail' }),
   };
+}
+
+function getWeeklyChartData_(userId, days) {
+  const totalDays = Math.max(1, Number(days || 7));
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - (totalDays - 1));
+
+  const logs = getMealLogsByUserInRange(userId, startDate, endDate);
+  const byDate = {};
+  logs.forEach(log => {
+    const key = formatDateKey_(log.mealDate);
+    if (!byDate[key]) {
+      byDate[key] = { 朝: 0, 昼: 0, 夜: 0, その他: 0 };
+    }
+    byDate[key][sanitizeMealType_(log.meal)] += Number(log.kcal || 0);
+  });
+
+  const items = [];
+  for (let index = 0; index < totalDays; index += 1) {
+    const current = new Date(startDate);
+    current.setDate(startDate.getDate() + index);
+    const key = formatDateKey_(current);
+    const mealTotals = byDate[key] || { 朝: 0, 昼: 0, 夜: 0, その他: 0 };
+    const total = mealTotals.朝 + mealTotals.昼 + mealTotals.夜 + mealTotals.その他;
+    items.push({
+      dateKey: key,
+      label: Utilities.formatDate(current, APP_TIMEZONE, 'M/d'),
+      meals: mealTotals,
+      total: Math.round(total * 10) / 10,
+    });
+  }
+
+  return items;
+}
+
+function getPopularMenusByUser_(userId, limit) {
+  const grouped = {};
+  getMealLogsByUser(userId).forEach(log => {
+    const key = buildMealLogGroupingKey_(log);
+    if (!grouped[key]) {
+      grouped[key] = {
+        menu: log.menu,
+        count: 0,
+        totalKcal: 0,
+        lastMealDate: log.mealDate,
+      };
+    }
+    grouped[key].count += 1;
+    grouped[key].totalKcal += Number(log.kcal || 0);
+    if (new Date(log.mealDate) > new Date(grouped[key].lastMealDate)) {
+      grouped[key].lastMealDate = log.mealDate;
+    }
+  });
+
+  return Object.keys(grouped)
+    .map(key => grouped[key])
+    .sort((left, right) => {
+      if (right.count !== left.count) return right.count - left.count;
+      return new Date(right.lastMealDate) - new Date(left.lastMealDate);
+    })
+    .slice(0, limit || 5)
+    .map(item => ({
+      menu: item.menu,
+      count: item.count,
+      averageKcal: item.count ? Math.round((item.totalKcal / item.count) * 10) / 10 : 0,
+      lastMealDate: toIsoDateTime_(item.lastMealDate),
+    }));
+}
+
+function getUserStreakSummary_(userId) {
+  const dateKeys = [...new Set(getMealLogsByUser(userId).map(log => formatDateKey_(log.mealDate)))].sort();
+  if (!dateKeys.length) {
+    return {
+      current: 0,
+      longest: 0,
+    };
+  }
+
+  let longest = 0;
+  let run = 0;
+  let previousDate = null;
+  dateKeys.forEach(key => {
+    const date = new Date(`${key}T00:00:00`);
+    if (!previousDate) {
+      run = 1;
+    } else {
+      const diffDays = Math.round((date - previousDate) / 86400000);
+      run = diffDays === 1 ? run + 1 : 1;
+    }
+    longest = Math.max(longest, run);
+    previousDate = date;
+  });
+
+  let current = 0;
+  let cursor = new Date();
+  while (dateKeys.includes(formatDateKey_(cursor))) {
+    current += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  if (!current) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    let fallback = 0;
+    let currentCursor = yesterday;
+    while (dateKeys.includes(formatDateKey_(currentCursor))) {
+      fallback += 1;
+      currentCursor.setDate(currentCursor.getDate() - 1);
+    }
+    current = fallback;
+  }
+
+  return {
+    current: current,
+    longest: longest,
+  };
+}
+
+function getStreakRanking_(limit) {
+  return listUsers()
+    .map(user => ({
+      userId: user.userId,
+      displayName: user.displayName || 'ユーザー',
+      streak: getUserStreakSummary_(user.userId).current,
+    }))
+    .filter(item => item.streak > 0)
+    .sort((left, right) => {
+      if (right.streak !== left.streak) return right.streak - left.streak;
+      return String(left.displayName).localeCompare(String(right.displayName), 'ja');
+    })
+    .slice(0, limit || 10);
+}
+
+function buildMealLogGroupingKey_(log) {
+  return normalizeText_(String(log && log.menu || ''));
 }
 
 function handleMealMessageFlow(userId, text, displayName, source) {

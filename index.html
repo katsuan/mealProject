@@ -46,7 +46,13 @@
         </div>
       </section>
 
-      <section id="meal-entry-band" class="band">
+      <div class="view-tabs" id="view-tabs">
+        <button type="button" class="view-tab is-active" data-view-tab="input">入力</button>
+        <button type="button" class="view-tab" data-view-tab="summary">集計</button>
+        <button type="button" class="view-tab" data-view-tab="logs">ログ</button>
+      </div>
+
+      <section id="meal-entry-band" class="band" data-view-section="input">
         <div class="section-head">
           <div>
             <h2>食事を入力する</h2>
@@ -155,7 +161,7 @@
         <div id="meal-reply" class="reply"></div>
       </section>
 
-      <section id="today-summary-band" class="band">
+      <section id="today-summary-band" class="band" data-view-section="summary">
         <div class="section-head">
           <div>
             <h2>今日の集計</h2>
@@ -193,7 +199,47 @@
         </div>
       </section>
 
-      <section id="today-log-band" class="band">
+      <section class="band" data-view-section="summary">
+        <div class="section-head">
+          <div>
+            <h2>週間グラフ</h2>
+            <div class="section-copy">直近7日分の記録を朝昼夜その他で見ます。</div>
+          </div>
+        </div>
+        <div id="weekly-chart" class="weekly-chart"></div>
+      </section>
+
+      <section class="band" data-view-section="summary">
+        <div class="section-head">
+          <div>
+            <h2>人気ランキング</h2>
+            <div class="section-copy">よく記録しているメニューです。</div>
+          </div>
+        </div>
+        <div id="popular-ranking" class="ranking-list"></div>
+      </section>
+
+      <section class="band" data-view-section="summary">
+        <div class="section-head">
+          <div>
+            <h2>連続記録</h2>
+            <div class="section-copy">いまの継続日数と上位ランキングです。</div>
+          </div>
+        </div>
+        <div class="cards streak-cards">
+          <div class="card">
+            <div class="label">現在の連続記録</div>
+            <div id="card-streak-current" class="value">0日</div>
+          </div>
+          <div class="card">
+            <div class="label">最長記録</div>
+            <div id="card-streak-longest" class="value">0日</div>
+          </div>
+        </div>
+        <div id="streak-ranking" class="ranking-list"></div>
+      </section>
+
+      <section id="today-log-band" class="band" data-view-section="logs">
         <div class="section-head">
           <div>
             <h2>今日のログ</h2>

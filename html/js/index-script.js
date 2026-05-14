@@ -32,6 +32,7 @@ const state = {
   statusAccordionOpen: false,
   candidateAccordionOpen: false,
   selectedLogFilter: 'all',
+  activeView: 'input',
 };
 
 function buildInitialQuery_(fallback) {
@@ -220,6 +221,7 @@ async function initializeApp() {
     bindCandidateAccordion();
     bindLoginButton();
     hydrateQuery();
+    bindViewTabs();
     bindMealTypeButtons();
     bindMealDateButtons();
     bindLogFilterButtons();
@@ -301,6 +303,24 @@ function bindMealTypeButtons() {
     if (button.dataset.mealType) {
       button.addEventListener('click', () => setMealType(button.dataset.mealType));
     }
+  });
+}
+
+function bindViewTabs() {
+  document.querySelectorAll('[data-view-tab]').forEach(button => {
+    button.addEventListener('click', () => setActiveView(button.dataset.viewTab || 'input'));
+  });
+  setActiveView(initialQuery.mode === 'detail' ? 'input' : 'input');
+}
+
+function setActiveView(view) {
+  const normalized = ['input', 'summary', 'logs'].includes(view) ? view : 'input';
+  state.activeView = normalized;
+  document.querySelectorAll('[data-view-tab]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.viewTab === normalized);
+  });
+  document.querySelectorAll('[data-view-section]').forEach(section => {
+    section.hidden = section.dataset.viewSection !== normalized;
   });
 }
 
@@ -537,6 +557,9 @@ function renderDashboard(dashboard) {
     document.getElementById('nutrition-summary').textContent = '';
     renderPendingSummary_([]);
     document.getElementById('logs-list').innerHTML = '<div class="empty-state">ログインすると今日の記録を表示します。</div>';
+    renderWeeklyChart_(null, null);
+    renderRankingList_('popular-ranking', []);
+    renderStreakSection_(null, []);
     refreshTargetControls();
     return;
   }
@@ -561,7 +584,92 @@ function renderDashboard(dashboard) {
     `たんぱく質 ${formatNumber(dashboard.today.nutrition.protein)} g / 脂質 ${formatNumber(dashboard.today.nutrition.fat)} g / 炭水化物 ${formatNumber(dashboard.today.nutrition.carb)} g`;
   renderPendingSummary_(dashboard.today.pendingItems || []);
   renderLogList(dashboard.recentLogs || []);
+  renderWeeklyChart_(dashboard.weekly || [], dashboard.user && dashboard.user.calorieTarget);
+  renderRankingList_('popular-ranking', dashboard.popularMenus || [], buildPopularRankingItem_);
+  renderStreakSection_(dashboard.streak || null, dashboard.streakRanking || []);
   refreshTargetControls();
+}
+
+function renderWeeklyChart_(weekly, calorieTarget) {
+  const container = document.getElementById('weekly-chart');
+  const items = Array.isArray(weekly) ? weekly : [];
+  const maxValue = Math.max(
+    Number(calorieTarget || 0),
+    ...items.map(item => Number(item.total || 0)),
+    1
+  );
+
+  container.innerHTML = items.length
+    ? items.map(item => {
+        const breakfast = Number(item.meals && item.meals['朝'] || 0);
+        const lunch = Number(item.meals && item.meals['昼'] || 0);
+        const dinner = Number(item.meals && item.meals['夜'] || 0);
+        const other = Number(item.meals && item.meals['その他'] || 0);
+        const total = Number(item.total || 0);
+        const targetLeft = calorieTarget ? `${Math.min(100, (Number(calorieTarget) / maxValue) * 100)}%` : '';
+        return `
+          <div class="weekly-row">
+            <div class="weekly-label">${escapeHtml(item.label)}</div>
+            <div class="weekly-bar">
+              <div class="weekly-segment breakfast" style="width:${(breakfast / maxValue) * 100}%"></div>
+              <div class="weekly-segment lunch" style="width:${(lunch / maxValue) * 100}%"></div>
+              <div class="weekly-segment dinner" style="width:${(dinner / maxValue) * 100}%"></div>
+              <div class="weekly-segment other" style="width:${(other / maxValue) * 100}%"></div>
+              ${calorieTarget ? `<div class="weekly-target-line" style="left:${targetLeft}"></div>` : ''}
+            </div>
+            <div class="weekly-total">${escapeHtml(formatNumber(total))}</div>
+          </div>
+        `;
+      }).join('')
+    : '<div class="empty-state">週間グラフはまだありません。</div>';
+}
+
+function renderRankingList_(id, items, renderer) {
+  const container = document.getElementById(id);
+  const list = Array.isArray(items) ? items : [];
+  const itemRenderer = renderer || buildDefaultRankingItem_;
+  container.innerHTML = list.length
+    ? list.map((item, index) => itemRenderer(item, index)).join('')
+    : '<div class="empty-state">まだデータがありません。</div>';
+}
+
+function buildPopularRankingItem_(item, index) {
+  return `
+    <div class="ranking-item">
+      <div class="ranking-rank">#${index + 1}</div>
+      <div class="ranking-main">
+        <div class="ranking-name">${escapeHtml(item.menu)}</div>
+        <div class="ranking-meta">平均 ${escapeHtml(formatNumber(item.averageKcal))} kcal</div>
+      </div>
+      <div class="ranking-value">${escapeHtml(String(item.count))}回</div>
+    </div>
+  `;
+}
+
+function buildDefaultRankingItem_(item, index) {
+  return `
+    <div class="ranking-item">
+      <div class="ranking-rank">#${index + 1}</div>
+      <div class="ranking-main">
+        <div class="ranking-name">${escapeHtml(item.displayName || item.menu || '')}</div>
+      </div>
+      <div class="ranking-value">${escapeHtml(String(item.streak || item.count || 0))}</div>
+    </div>
+  `;
+}
+
+function renderStreakSection_(streak, ranking) {
+  document.getElementById('card-streak-current').textContent = `${Number(streak && streak.current || 0)}日`;
+  document.getElementById('card-streak-longest').textContent = `${Number(streak && streak.longest || 0)}日`;
+  renderRankingList_('streak-ranking', ranking || [], (item, index) => `
+    <div class="ranking-item">
+      <div class="ranking-rank">#${index + 1}</div>
+      <div class="ranking-main">
+        <div class="ranking-name">${escapeHtml(item.displayName)}</div>
+      </div>
+      <div class="ranking-value">${escapeHtml(String(item.streak))}日</div>
+    </div>
+  `);
 }
 
 function renderPendingSummary_(pendingItems) {

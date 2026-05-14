@@ -107,10 +107,12 @@ function buildDailySummaryFlexMessage(userId, options) {
   const tone = getFlexTone_(isOverTarget ? 'warning' : (today.hasPending ? 'notice' : 'success'));
   const progressWidth = hasTarget ? `${Math.max(6, Math.min(targetPercent, 100))}%` : '0%';
   const logs = (dashboard.recentLogs || []).slice(0, 6);
+  const quickReply = buildPopularQuickReply_(userId);
 
   return {
     type: 'flex',
     altText: `${headline} 合計 ${total} kcal`,
+    quickReply: quickReply,
     contents: {
       type: 'carousel',
       contents: [
@@ -140,6 +142,25 @@ function buildDailySummaryFlexMessage(userId, options) {
       ],
     },
   };
+}
+
+function buildPopularQuickReply_(userId) {
+  const items = getPopularMenusByUser_(userId, 6)
+    .map(item => ({
+      type: 'action',
+      action: {
+        type: 'message',
+        label: trimQuickReplyLabel_(item.menu),
+        text: `${inferMealType_(new Date())} ${item.menu}`,
+      },
+    }));
+
+  return items.length ? { items: items } : undefined;
+}
+
+function trimQuickReplyLabel_(value) {
+  const text = String(value || '').trim();
+  return text.length > 20 ? `${text.slice(0, 19)}…` : text;
 }
 
 function buildDailySummaryBubble_(context) {

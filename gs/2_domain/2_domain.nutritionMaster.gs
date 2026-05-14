@@ -28,7 +28,7 @@ function findExactNutritionMaster(menu) {
 
   return getNutritionMasterCached().find(master =>
     master.status !== 'disabled' &&
-    normalizeText_(master.name) === normalizedMenu &&
+    getNutritionMasterSearchTexts_(master).includes(normalizedMenu) &&
     hasAnyNutritionValue_(master)
   ) || null;
 }
@@ -42,7 +42,7 @@ function findNutritionCandidates(menu, limit) {
     .filter(master => hasAnyNutritionValue_(master))
     .map(master => ({
       master: master,
-      score: scoreNutritionCandidate_(normalizedMenu, normalizeText_(master.name)),
+      score: scoreNutritionCandidate_(normalizedMenu, getNutritionMasterSearchTexts_(master)),
     }))
     .filter(candidate => candidate.score >= 0.24)
     .sort((left, right) => {
@@ -52,7 +52,7 @@ function findNutritionCandidates(menu, limit) {
     .slice(0, limit || DEFAULT_CANDIDATE_LIMIT)
     .map(candidate => ({
       masterKey: candidate.master.masterKey,
-      name: candidate.master.name,
+      name: buildNutritionDisplayName_(candidate.master),
       kcal: toNullableNumber_(candidate.master.kcal),
       protein: toNullableNumber_(candidate.master.protein),
       fat: toNullableNumber_(candidate.master.fat),
@@ -123,7 +123,7 @@ function saveNutritionMaster(input) {
 
   const now = new Date();
   const normalizedName = normalizeText_(input.name);
-  const matchedByName = normalizedName ? findNutritionMasterByName_(input.name) : null;
+  const matchedByName = normalizedName ? findNutritionMasterByName_(input.name, input.unit, input.note) : null;
   const masterKey = String(input.masterKey || (matchedByName && matchedByName.masterKey) || Utilities.getUuid());
   const current = getNutritionMasterByKey_(masterKey) || matchedByName;
   const values = sheet.getDataRange().getValues();
@@ -159,10 +159,15 @@ function saveNutritionMaster(input) {
   return record;
 }
 
-function findNutritionMasterByName_(name) {
-  const normalized = normalizeText_(name);
-  if (!normalized) return null;
-  return getNutritionMasterCached().find(master => normalizeText_(master.name) === normalized) || null;
+function findNutritionMasterByName_(name, unit, note) {
+  const searchTexts = [
+    normalizeText_(name),
+    normalizeText_(buildNutritionDisplayName_({ name: name, unit: unit, note: note })),
+  ].filter(Boolean);
+  if (!searchTexts.length) return null;
+  return getNutritionMasterCached().find(master =>
+    searchTexts.some(text => getNutritionMasterSearchTexts_(master).includes(text))
+  ) || null;
 }
 
 function normalizeText_(value) {
@@ -195,7 +200,12 @@ function emptyNutrition_() {
   };
 }
 
-function scoreNutritionCandidate_(normalizedMenu, normalizedMaster) {
+function scoreNutritionCandidate_(normalizedMenu, normalizedTargets) {
+  const targets = Array.isArray(normalizedTargets) ? normalizedTargets : [normalizedTargets];
+  return targets.reduce((best, target) => Math.max(best, scoreNutritionCandidateText_(normalizedMenu, target)), 0);
+}
+
+function scoreNutritionCandidateText_(normalizedMenu, normalizedMaster) {
   if (!normalizedMenu || !normalizedMaster) return 0;
   if (normalizedMenu === normalizedMaster) return 1;
 
@@ -263,4 +273,20 @@ function mapNutritionMasterRow_(row) {
     createdAt: row[NUTRITION_COL_INDEX.createdAt - 1] || null,
     updatedAt: row[NUTRITION_COL_INDEX.updatedAt - 1] || null,
   };
+}
+
+function buildNutritionDescriptor_(unit, note) {
+  return [String(unit || '').trim(), String(note || '').trim()].filter(Boolean).join(' ');
+}
+
+function buildNutritionDisplayName_(master) {
+  const descriptor = buildNutritionDescriptor_(master && master.unit, master && master.note);
+  const baseName = String(master && master.name || '').trim();
+  return descriptor ? `${baseName}：${descriptor}` : baseName;
+}
+
+function getNutritionMasterSearchTexts_(master) {
+  const base = normalizeText_(master && master.name);
+  const display = normalizeText_(buildNutritionDisplayName_(master));
+  return [...new Set([base, display].filter(Boolean))];
 }
