@@ -295,7 +295,16 @@ async function runServer(action, payload) {
   });
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
+    let detail = '';
+    try {
+      detail = await response.text();
+    } catch (error) {
+      detail = '';
+    }
+    if (response.status === 404) {
+      throw new Error(`API 404 (${action}) - apiBaseUrl またはデプロイ先が古い可能性があります: ${apiBaseUrl}`);
+    }
+    throw new Error(`API request failed (${action}): ${response.status}${detail ? ` / ${detail}` : ''}`);
   }
 
   const result = await response.json();
