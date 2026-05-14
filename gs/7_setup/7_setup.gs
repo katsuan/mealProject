@@ -28,6 +28,9 @@ function setupLineProject(config) {
   if (input.autoApproveUserIds != null) {
     setAutoApproveUserIds(input.autoApproveUserIds);
   }
+  if (input.driveFolderId != null) {
+    setDriveFolderId(input.driveFolderId);
+  }
 }
 
 function ensureProjectSetup_() {

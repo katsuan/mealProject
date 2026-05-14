@@ -68,7 +68,16 @@ function handleLineEvent_(event) {
     return;
   }
 
-  if (event.type !== 'message' || !event.message || event.message.type !== 'text') {
+  if (event.type !== 'message' || !event.message) {
+    return;
+  }
+
+  if (event.message.type === 'image') {
+    handleLineImageEvent_(event, userId);
+    return;
+  }
+
+  if (event.message.type !== 'text') {
     return;
   }
 
@@ -119,6 +128,32 @@ function handleLineEvent_(event) {
   replyLineMessages_(event.replyToken, [
     buildMealInputPromptFlexMessage(result.parsed, result.draft, profile),
   ]);
+}
+
+function handleLineImageEvent_(event, userId) {
+  const profile = resolveLineProfile_(userId);
+
+  try {
+    const result = attachMealImageToNearestLog(userId, {
+      displayName: String(profile.displayName || ''),
+      messageId: event && event.message && event.message.id,
+      timestamp: event && event.timestamp,
+    });
+
+    const text = result.linkedLog
+      ? `画像を保存して、${result.mealType}の「${result.linkedLog.menu}」に紐づけました。`
+      : `画像を保存しました。${result.mealType}帯の記録がまだ見つからなかったため、ひも付けは保留です。`;
+
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: text,
+    }]);
+  } catch (error) {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: '画像の保存に失敗しました。しばらくしてからもう一度送ってください。',
+    }]);
+  }
 }
 
 function handleLinePostbackEvent_(event, userId) {

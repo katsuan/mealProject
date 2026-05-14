@@ -64,6 +64,8 @@ function appendMealLogRecord_(userId, parsed, nutrition, options) {
     kcalStatus: String(nutrition.kcalStatus || KCAL_STATUS.PENDING),
     masterKey: nutrition.masterKey || null,
     source: config.source || SOURCE.TEXT,
+    imageFileId: String(config.imageFileId || ''),
+    imageUrl: String(config.imageUrl || ''),
     createdAt: now,
     updatedAt: now,
   };
@@ -101,6 +103,20 @@ function updateMealLog(log) {
 
   const row = MEAL_LOG_COLUMNS.map(key => log[key] ?? null);
   sheet.getRange(rowNumber, 1, 1, row.length).setValues([row]);
+}
+
+function attachMealLogImage(rowNumber, imageFileId, imageUrl) {
+  const log = getMealLogByRow(rowNumber);
+  if (!log) {
+    throw new Error('meal log not found');
+  }
+  const updated = Object.assign({}, log, {
+    imageFileId: String(imageFileId || ''),
+    imageUrl: String(imageUrl || ''),
+    updatedAt: new Date(),
+  });
+  updateMealLog(updated);
+  return updated;
 }
 
 function deleteMealLog(rowNumber) {
@@ -162,6 +178,8 @@ function mapMealLogRow_(row, rowNumber) {
     kcalStatus: String(row[MEAL_LOG_COL_INDEX.kcalStatus - 1] || KCAL_STATUS.PENDING),
     masterKey: String(row[MEAL_LOG_COL_INDEX.masterKey - 1] || ''),
     source: String(row[MEAL_LOG_COL_INDEX.source - 1] || SOURCE.TEXT),
+    imageFileId: String(row[MEAL_LOG_COL_INDEX.imageFileId - 1] || ''),
+    imageUrl: String(row[MEAL_LOG_COL_INDEX.imageUrl - 1] || ''),
     createdAt: row[MEAL_LOG_COL_INDEX.createdAt - 1] || null,
     updatedAt: row[MEAL_LOG_COL_INDEX.updatedAt - 1] || null,
   };

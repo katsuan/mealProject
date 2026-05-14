@@ -110,6 +110,8 @@
 
   .profile-copy {
     min-width: 0;
+    display: grid;
+    align-content: center;
   }
 
   .profile-copy .eyebrow {
@@ -123,6 +125,15 @@
     font-weight: 700;
     line-height: 1.2;
     word-break: break-word;
+  }
+
+  .profile-copy .name .name-main {
+    font-weight: 700;
+  }
+
+  .profile-copy .name .name-honorific {
+    font-weight: 500;
+    margin-left: 1px;
   }
 
   .inline-login {
@@ -218,6 +229,12 @@
     margin-top: 8px;
     font-size: 12px;
     color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .notify-toggle span {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .notify-toggle input {
@@ -968,6 +985,11 @@
       min-width: 118px;
     }
 
+    .notify-toggle {
+      font-size: 11px;
+      align-items: flex-start;
+    }
+
     .target-field {
       min-height: 46px;
       padding: 8px 10px;
@@ -993,7 +1015,8 @@
     }
 
     .profile-copy .name {
-      font-size: 16px;
+      font-size: 15px;
+      line-height: 1.15;
     }
 
     .target-cluster {
@@ -1027,6 +1050,11 @@
     .status-accordion-toggle {
       padding-left: 8px;
       padding-right: 8px;
+    }
+
+    .notify-toggle {
+      font-size: 10px;
+      gap: 6px;
     }
   }
 

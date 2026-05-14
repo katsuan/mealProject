@@ -76,6 +76,8 @@ const NUTRITION_COL_INDEX = NUTRITION_MASTER_COLUMNS.reduce((acc, key, index) =>
  * @property {string} kcalStatus
  * @property {string|null} masterKey
  * @property {string} source
+ * @property {string=} imageFileId
+ * @property {string=} imageUrl
  * @property {Date|null} createdAt
  * @property {Date|null} updatedAt
  * @property {number=} row
@@ -94,6 +96,8 @@ const MEAL_LOG_COLUMNS = [
   'kcalStatus',
   'masterKey',
   'source',
+  'imageFileId',
+  'imageUrl',
   'createdAt',
   'updatedAt',
 ];

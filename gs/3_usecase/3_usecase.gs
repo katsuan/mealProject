@@ -653,6 +653,52 @@ function buildFirstPostComment(userId) {
   return '今日も1件ずつ記録していきましょう。';
 }
 
+function attachMealImageToNearestLog(userId, payload) {
+  ensureProjectSetup_();
+  const user = ensureUserExists_(userId, payload && payload.displayName);
+  ensureUserCanUseService_(user);
+
+  const messageId = String(payload && payload.messageId || '').trim();
+  if (!messageId) {
+    throw new Error('messageId is required');
+  }
+
+  const eventDate = payload && payload.timestamp ? new Date(Number(payload.timestamp)) : new Date();
+  const mealType = inferMealType_(eventDate);
+  const imageBlob = fetchLineMessageContentBlob_(messageId);
+  const fileInfo = saveLineImageToDrive_(
+    imageBlob,
+    buildMealImageFileName_(userId, eventDate, messageId, imageBlob.getContentType())
+  );
+
+  const sameDayLogs = getMealLogsByUserAndDate(userId, eventDate)
+    .filter(log => sanitizeMealType_(log.meal) === mealType)
+    .sort((left, right) => new Date(right.updatedAt || right.createdAt || right.mealDate) - new Date(left.updatedAt || left.createdAt || left.mealDate));
+
+  const linkedLog = sameDayLogs[0] ? attachMealLogImage(sameDayLogs[0].row, fileInfo.fileId, fileInfo.url) : null;
+
+  return {
+    file: fileInfo,
+    mealType: mealType,
+    linkedLog: linkedLog,
+    dashboard: getDashboardData(userId),
+  };
+}
+
+function buildMealImageFileName_(userId, date, messageId, contentType) {
+  const extension = guessImageExtension_(contentType);
+  const timestamp = Utilities.formatDate(date, APP_TIMEZONE, 'yyyyMMdd-HHmmss');
+  return `meal-image-${timestamp}-${String(userId || '').slice(-6)}-${String(messageId || '').slice(-8)}.${extension}`;
+}
+
+function guessImageExtension_(contentType) {
+  const mime = String(contentType || '').toLowerCase();
+  if (mime.indexOf('png') !== -1) return 'png';
+  if (mime.indexOf('gif') !== -1) return 'gif';
+  if (mime.indexOf('webp') !== -1) return 'webp';
+  return 'jpg';
+}
+
 function inferDatePresetFromMealDate_(mealDate) {
   if (!mealDate) return 'today';
   const yesterday = resolveMealDateByPreset_('yesterday');
@@ -709,6 +755,8 @@ function serializeMealLog_(log) {
     unit: master ? String(master.unit || '') : '',
     note: master ? String(master.note || '') : '',
     source: log.source,
+    imageFileId: String(log.imageFileId || ''),
+    imageUrl: String(log.imageUrl || ''),
     createdAt: toIsoDateTime_(log.createdAt),
     updatedAt: toIsoDateTime_(log.updatedAt),
   };

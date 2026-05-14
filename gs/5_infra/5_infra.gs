@@ -10,6 +10,7 @@ const SCRIPT_PROPERTY_LINE_CHANNEL_ACCESS_TOKEN = 'LINE_CHANNEL_ACCESS_TOKEN';
 const SCRIPT_PROPERTY_WEBAPP_URL = 'WEBAPP_URL';
 const SCRIPT_PROPERTY_ADMIN_USER_IDS = 'ADMIN_USER_IDS';
 const SCRIPT_PROPERTY_AUTO_APPROVE_USER_IDS = 'AUTO_APPROVE_USER_IDS';
+const SCRIPT_PROPERTY_DRIVE_FOLDER_ID = 'DRIVE_FOLDER_ID';
 
 function refreshNutritionMasterCache_() {
   CacheService.getScriptCache().remove(NUTRITION_MASTER_CACHE_KEY);
@@ -122,6 +123,14 @@ function setCsvScriptPropertyValues_(propertyKey, values) {
     : String(values || '').split(',');
   const deduped = [...new Set(normalized.map(value => String(value || '').trim()).filter(Boolean))];
   PropertiesService.getScriptProperties().setProperty(propertyKey, deduped.join(','));
+}
+
+function getDriveFolderId_() {
+  return PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_DRIVE_FOLDER_ID) || '';
+}
+
+function setDriveFolderId(folderId) {
+  PropertiesService.getScriptProperties().setProperty(SCRIPT_PROPERTY_DRIVE_FOLDER_ID, String(folderId || '').trim());
 }
 
 function configureLiff(liffId, channelId, accessToken, webAppUrl) {
@@ -250,6 +259,37 @@ function pushLineMessages_(userId, messages) {
     to: userId,
     messages: messages,
   });
+}
+
+function fetchLineMessageContentBlob_(messageId) {
+  const accessToken = getLineChannelAccessToken_();
+  if (!accessToken) {
+    throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
+  }
+  const response = UrlFetchApp.fetch(`https://api-data.line.me/v2/bot/message/${encodeURIComponent(messageId)}/content`, {
+    method: 'get',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    muteHttpExceptions: true,
+  });
+  if (response.getResponseCode() < 200 || response.getResponseCode() >= 300) {
+    throw new Error(`LINE content API error ${response.getResponseCode()}: ${response.getContentText()}`);
+  }
+  return response.getBlob();
+}
+
+function saveLineImageToDrive_(blob, fileName) {
+  const folderId = getDriveFolderId_();
+  const targetFileName = String(fileName || '').trim() || `line-image-${Utilities.getUuid()}`;
+  const driveFile = folderId
+    ? DriveApp.getFolderById(folderId).createFile(blob.setName(targetFileName))
+    : DriveApp.createFile(blob.setName(targetFileName));
+  return {
+    fileId: driveFile.getId(),
+    url: driveFile.getUrl(),
+    name: driveFile.getName(),
+  };
 }
 
 function showLineLoadingAnimation_(chatId, loadingSeconds) {

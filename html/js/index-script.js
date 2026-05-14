@@ -507,8 +507,12 @@ function updateFieldState(input, isActive) {
 }
 
 function renderProfileHeader() {
-  const profileName = state.displayName ? `${state.displayName}さん` : 'ログイン待ちです';
-  document.getElementById('profile-name').textContent = profileName;
+  const nameNode = document.getElementById('profile-name');
+  if (state.displayName) {
+    nameNode.innerHTML = `<span class="name-main">${escapeHtml(state.displayName)}</span><span class="name-honorific">さん</span>`;
+  } else {
+    nameNode.textContent = 'ログイン待ちです';
+  }
   document.getElementById('display-name').value = state.displayName || '';
   const loginButton = document.getElementById('login-line');
   loginButton.hidden = Boolean(state.userId);
