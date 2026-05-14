@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <meta charset="utf-8">
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --surface-subtle: #f3f4f6;
+        --line: #d1d5db;
+        --text: #111827;
+        --muted: #6b7280;
+        --accent: #16a34a;
+        --accent-strong: #15803d;
+        --warning: #d97706;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 20px 16px 40px;
+      }
+
+      .band {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+
+      .band + .band {
+        margin-top: 16px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 10px;
+      }
+
+      .hero h1 {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .hero p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .status {
+        font-size: 14px;
+        color: var(--muted);
+        white-space: pre-wrap;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .stack {
+        display: grid;
+        gap: 16px;
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 18px;
+      }
+
+      form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .row.cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input, select, textarea, button {
+        font: inherit;
+      }
+
+      input, select, textarea {
+        width: 100%;
+        padding: 11px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text);
+      }
+
+      textarea {
+        min-height: 84px;
+        resize: vertical;
+      }
+
+      button {
+        border: 1px solid transparent;
+        border-radius: 8px;
+        padding: 11px 14px;
+        cursor: pointer;
+        background: var(--accent);
+        color: #fff;
+        font-weight: 600;
+      }
+
+      button.secondary {
+        background: var(--surface);
+        color: var(--text);
+        border-color: var(--line);
+      }
+
+      button.ghost {
+        background: transparent;
+        color: var(--text);
+        border-color: var(--line);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--surface-subtle);
+      }
+
+      .card .label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .card .value {
+        margin-top: 6px;
+        font-size: 24px;
+        font-weight: 700;
+      }
+
+      .card .sub {
+        margin-top: 4px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .note {
+        font-size: 13px;
+        color: var(--muted);
+        white-space: pre-wrap;
+      }
+
+      .suggestion {
+        border: 1px solid #bbf7d0;
+        background: #f0fdf4;
+        color: var(--accent-strong);
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+      }
+
+      .warning {
+        border: 1px solid #fcd34d;
+        background: #fffbeb;
+        color: var(--warning);
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 13px;
+      }
+
+      .candidate-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .candidate {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 12px;
+        background: var(--surface);
+        display: grid;
+        gap: 8px;
+      }
+
+      .candidate-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .candidate-name {
+        font-weight: 600;
+      }
+
+      .candidate-score {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .candidate-values {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--line);
+        font-size: 13px;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
+      .reply {
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+
+        .cards {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (max-width: 640px) {
+        .row,
+        .row.cols-3,
+        .cards {
+          grid-template-columns: 1fr;
+        }
+
+        .page {
+          padding: 14px 12px 28px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="band hero">
+        <h1>Meal Detail</h1>
+        <p>LINEで届かなかった栄養情報を補完して、そのまま今日の詳細を確認します。</p>
+        <div id="status" class="status">LIFFを初期化しています。</div>
+      </section>
+
+      <div class="layout">
+        <div class="stack">
+          <section class="band">
+            <h2>メニュー補完</h2>
+            <form id="meal-detail-form">
+              <input id="master-key" type="hidden">
+              <div class="row">
+                <label>
+                  userId
+                  <input id="user-id" placeholder="LIFF未連携時のみ手入力">
+                </label>
+                <label>
+                  表示名
+                  <input id="display-name" placeholder="display name">
+                </label>
+              </div>
+              <div class="row">
+                <label>
+                  食事区分
+                  <select id="meal-type">
+                    <option value="朝">朝</option>
+                    <option value="昼">昼</option>
+                    <option value="夜">夜</option>
+                  </select>
+                </label>
+                <label>
+                  メニュー名
+                  <input id="menu-name" placeholder="例: 親子丼">
+                </label>
+              </div>
+              <div id="suggestion-box" class="suggestion" hidden></div>
+              <div id="empty-box" class="warning" hidden>近い候補がまだありません。数値を手入力すると次回からDB参照できます。</div>
+              <div class="row cols-3">
+                <label>kcal<input id="field-kcal" type="number" min="0" step="0.1" required></label>
+                <label>protein<input id="field-protein" type="number" min="0" step="0.1"></label>
+                <label>fat<input id="field-fat" type="number" min="0" step="0.1"></label>
+              </div>
+              <div class="row cols-3">
+                <label>carb<input id="field-carb" type="number" min="0" step="0.1"></label>
+                <label>salt<input id="field-salt" type="number" min="0" step="0.1"></label>
+                <label>fiber<input id="field-fiber" type="number" min="0" step="0.1"></label>
+              </div>
+              <div class="row">
+                <label>
+                  unit
+                  <input id="field-unit" placeholder="1食 / 100g">
+                </label>
+                <label>
+                  目標 kcal
+                  <input id="calorie-target" type="number" min="0" step="1">
+                </label>
+              </div>
+              <label>
+                note
+                <textarea id="field-note" placeholder="メモがあれば入力"></textarea>
+              </label>
+              <div class="actions">
+                <button type="submit">保存して記録</button>
+                <button type="button" id="refresh-draft" class="secondary">候補を更新</button>
+                <button type="button" id="save-profile" class="ghost">目標だけ更新</button>
+                <button type="button" id="close-liff" class="ghost">閉じる</button>
+              </div>
+            </form>
+            <div id="meal-reply" class="reply"></div>
+          </section>
+
+          <section class="band">
+            <h2>近い候補</h2>
+            <div id="candidate-list" class="candidate-list"></div>
+          </section>
+        </div>
+
+        <div class="stack">
+          <section class="band">
+            <h2>今日の集計</h2>
+            <div class="cards">
+              <div class="card">
+                <div class="label">確定 kcal</div>
+                <div id="card-exact" class="value">0</div>
+              </div>
+              <div class="card">
+                <div class="label">推定 kcal</div>
+                <div id="card-estimated" class="value">0</div>
+              </div>
+              <div class="card">
+                <div class="label">目標差分</div>
+                <div id="card-diff" class="value">-</div>
+              </div>
+              <div class="card">
+                <div class="label">未登録</div>
+                <div id="card-pending" class="value">0</div>
+              </div>
+            </div>
+            <div id="nutrition-summary" class="note"></div>
+          </section>
+
+          <section class="band">
+            <h2>今日のログ</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>日時</th>
+                  <th>食事</th>
+                  <th>メニュー</th>
+                  <th>kcal</th>
+                </tr>
+              </thead>
+              <tbody id="logs-body"></tbody>
+            </table>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+      const initialLiffId = '<?= initialLiffId ?>';
+      const initialQuery = <?= initialQuery ?>;
+      const state = {
+        userId: '',
+        displayName: '',
+        idToken: '',
+        dashboard: null,
+        draft: null,
+      };
+
+      function setStatus(message) {
+        document.getElementById('status').textContent = message;
+      }
+
+      function runServer(name, ...args) {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)[name](...args);
+        });
+      }
+
+      async function initializeApp() {
+        try {
+          hydrateQuery();
+
+          if (initialLiffId && window.liff) {
+            await liff.init({ liffId: initialLiffId });
+            if (liff.isLoggedIn()) {
+              const profile = await liff.getProfile();
+              state.userId = profile.userId || '';
+              state.displayName = profile.displayName || '';
+              state.idToken = liff.getIDToken() || '';
+              document.getElementById('user-id').value = state.userId;
+              document.getElementById('display-name').value = state.displayName;
+              setStatus('LIFFログイン済みです。');
+            } else {
+              setStatus('LIFFは初期化済みですが未ログインです。必要なら手入力で使えます。');
+            }
+          } else {
+            setStatus('LIFF ID 未設定です。手入力モードで使えます。');
+          }
+
+          await reloadState();
+        } catch (error) {
+          setStatus(`初期化失敗: ${error.message}`);
+        }
+      }
+
+      function hydrateQuery() {
+        if (initialQuery.meal) {
+          document.getElementById('meal-type').value = initialQuery.meal;
+        }
+        if (initialQuery.menu) {
+          document.getElementById('menu-name').value = initialQuery.menu;
+        }
+      }
+
+      async function reloadState() {
+        const userId = document.getElementById('user-id').value.trim();
+        const displayName = document.getElementById('display-name').value.trim();
+        if (!userId) {
+          state.dashboard = null;
+          state.draft = null;
+          renderDashboard(null);
+          renderDraft(null);
+          return;
+        }
+
+        const result = await runServer('getLiffAppState', {
+          userId: userId,
+          displayName: displayName,
+          idToken: state.idToken,
+          meal: document.getElementById('meal-type').value,
+          menu: document.getElementById('menu-name').value.trim(),
+        });
+
+        state.userId = userId;
+        state.displayName = displayName;
+        state.dashboard = result.dashboard || null;
+        state.draft = result.draft || null;
+
+        renderDashboard(state.dashboard);
+        renderDraft(state.draft);
+      }
+
+      function renderDashboard(dashboard) {
+        if (!dashboard) {
+          document.getElementById('card-exact').textContent = '0';
+          document.getElementById('card-estimated').textContent = '0';
+          document.getElementById('card-diff').textContent = '-';
+          document.getElementById('card-pending').textContent = '0';
+          document.getElementById('nutrition-summary').textContent = '';
+          document.getElementById('logs-body').innerHTML = '';
+          return;
+        }
+
+        document.getElementById('display-name').value = dashboard.user.displayName || state.displayName || '';
+        document.getElementById('calorie-target').value = dashboard.user.calorieTarget ?? '';
+        document.getElementById('card-exact').textContent = dashboard.today.totalExact || 0;
+        document.getElementById('card-estimated').textContent = dashboard.today.totalEstimated || 0;
+        document.getElementById('card-diff').textContent = dashboard.targetDiff == null ? '-' : dashboard.targetDiff;
+        document.getElementById('card-pending').textContent = (dashboard.today.pendingItems || []).length;
+        document.getElementById('nutrition-summary').textContent =
+          `protein ${formatNumber(dashboard.today.nutrition.protein)} g / fat ${formatNumber(dashboard.today.nutrition.fat)} g / carb ${formatNumber(dashboard.today.nutrition.carb)} g`;
+
+        document.getElementById('logs-body').innerHTML = (dashboard.recentLogs || [])
+          .map(log => `
+            <tr>
+              <td>${escapeHtml(formatDateTime(log.mealDate))}</td>
+              <td>${escapeHtml(log.meal)}</td>
+              <td>${escapeHtml(log.menu)}</td>
+              <td>${log.kcal == null ? '' : escapeHtml(formatNumber(log.kcal))}</td>
+            </tr>
+          `).join('');
+      }
+
+      function renderDraft(draft) {
+        const suggestionBox = document.getElementById('suggestion-box');
+        const emptyBox = document.getElementById('empty-box');
+        const candidateList = document.getElementById('candidate-list');
+
+        if (!draft) {
+          suggestionBox.hidden = true;
+          emptyBox.hidden = true;
+          candidateList.innerHTML = '<div class="note">userId が入ると候補を表示します。</div>';
+          return;
+        }
+
+        if (draft.menu) {
+          document.getElementById('menu-name').value = draft.menu;
+        }
+        if (draft.meal) {
+          document.getElementById('meal-type').value = draft.meal;
+        }
+
+        const prefill = draft.prefill || {};
+        document.getElementById('master-key').value = prefill.masterKey || '';
+        applyNutritionFields(prefill.nutrition || {}, {
+          unit: prefill.unit || '',
+          note: prefill.note || '',
+        });
+
+        if (prefill.hasSuggestion) {
+          suggestionBox.hidden = false;
+          suggestionBox.textContent = `「${prefill.masterName}」を近い候補として下書きに入れました（${prefill.scorePercent}%）。必要なら数値を直して保存してください。`;
+        } else {
+          suggestionBox.hidden = true;
+        }
+
+        emptyBox.hidden = Boolean((draft.candidates || []).length);
+
+        candidateList.innerHTML = (draft.candidates || []).length
+          ? draft.candidates.map((candidate, index) => `
+              <div class="candidate">
+                <div class="candidate-head">
+                  <div class="candidate-name">${escapeHtml(candidate.name)}</div>
+                  <div class="candidate-score">${candidate.scorePercent}%</div>
+                </div>
+                <div class="candidate-values">
+                  kcal ${formatNumber(candidate.kcal)} / P ${formatNumber(candidate.protein)} / F ${formatNumber(candidate.fat)} / C ${formatNumber(candidate.carb)}
+                </div>
+                <div class="actions">
+                  <button type="button" class="secondary" onclick="applyCandidate(${index})">この数値を入れる</button>
+                </div>
+              </div>
+            `).join('')
+          : '<div class="note">候補があればここに並びます。</div>';
+      }
+
+      function applyNutritionFields(nutrition, extras) {
+        document.getElementById('field-kcal').value = nutrition.kcal ?? '';
+        document.getElementById('field-protein').value = nutrition.protein ?? '';
+        document.getElementById('field-fat').value = nutrition.fat ?? '';
+        document.getElementById('field-carb').value = nutrition.carb ?? '';
+        document.getElementById('field-salt').value = nutrition.salt ?? '';
+        document.getElementById('field-fiber').value = nutrition.fiber ?? '';
+        document.getElementById('field-unit').value = extras.unit || '';
+        document.getElementById('field-note').value = extras.note || '';
+      }
+
+      function applyCandidate(index) {
+        const candidate = state.draft && state.draft.candidates ? state.draft.candidates[index] : null;
+        if (!candidate) return;
+        document.getElementById('master-key').value = candidate.masterKey || '';
+        applyNutritionFields(candidate, {
+          unit: candidate.unit || '',
+          note: candidate.note || '',
+        });
+      }
+
+      async function saveProfile() {
+        const userId = document.getElementById('user-id').value.trim();
+        if (!userId) {
+          setStatus('userId が必要です。');
+          return;
+        }
+
+        const result = await runServer('updateLiffUserProfile', {
+          userId: userId,
+          displayName: document.getElementById('display-name').value.trim(),
+          idToken: state.idToken,
+          calorieTarget: document.getElementById('calorie-target').value,
+          goalType: 'keep',
+          notify: true,
+        });
+
+        state.dashboard = result.dashboard || null;
+        renderDashboard(state.dashboard);
+        setStatus('目標を更新しました。');
+      }
+
+      document.getElementById('meal-detail-form').addEventListener('submit', async event => {
+        event.preventDefault();
+
+        const userId = document.getElementById('user-id').value.trim();
+        if (!userId) {
+          setStatus('userId が必要です。');
+          return;
+        }
+
+        const result = await runServer('submitMealDetailFromLiff', {
+          userId: userId,
+          displayName: document.getElementById('display-name').value.trim(),
+          idToken: state.idToken,
+          meal: document.getElementById('meal-type').value,
+          menu: document.getElementById('menu-name').value.trim(),
+          masterKey: document.getElementById('master-key').value.trim(),
+          kcal: document.getElementById('field-kcal').value,
+          protein: document.getElementById('field-protein').value,
+          fat: document.getElementById('field-fat').value,
+          carb: document.getElementById('field-carb').value,
+          salt: document.getElementById('field-salt').value,
+          fiber: document.getElementById('field-fiber').value,
+          unit: document.getElementById('field-unit').value.trim(),
+          note: document.getElementById('field-note').value.trim(),
+          sendLineSummary: true,
+        });
+
+        document.getElementById('meal-reply').textContent = result.reply || '';
+        state.dashboard = result.dashboard || null;
+        state.draft = result.draft || null;
+        renderDashboard(state.dashboard);
+        renderDraft(state.draft);
+        setStatus(result.summaryPushed ? '保存してLINEに集計を返しました。' : '保存しました。LINE送信は未実行です。');
+      });
+
+      document.getElementById('refresh-draft').addEventListener('click', reloadState);
+      document.getElementById('save-profile').addEventListener('click', saveProfile);
+      document.getElementById('close-liff').addEventListener('click', () => {
+        if (window.liff && typeof liff.closeWindow === 'function') {
+          liff.closeWindow();
+          return;
+        }
+        setStatus('この環境では LIFF closeWindow を使えません。');
+      });
+
+      function formatDateTime(value) {
+        if (!value) return '';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
+        return date.toLocaleString('ja-JP');
+      }
+
+      function formatNumber(value) {
+        if (value == null || value === '') return '-';
+        const number = Number(value);
+        if (Number.isNaN(number)) return String(value);
+        return Number.isInteger(number) ? String(number) : String(Math.round(number * 10) / 10);
+      }
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      window.applyCandidate = applyCandidate;
+      initializeApp();
+    </script>
+  </body>
+</html>

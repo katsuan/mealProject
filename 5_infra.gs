@@ -1,0 +1,198 @@
+/**
+ * External integrations and shared infra helpers.
+ */
+
+const NUTRITION_MASTER_CACHE_KEY = 'NUTRITION_MASTER_CACHE';
+const SCRIPT_PROPERTY_LIFF_ID = 'LIFF_ID';
+const SCRIPT_PROPERTY_LINE_CHANNEL_ID = 'LINE_CHANNEL_ID';
+const SCRIPT_PROPERTY_LINE_CHANNEL_ACCESS_TOKEN = 'LINE_CHANNEL_ACCESS_TOKEN';
+const SCRIPT_PROPERTY_WEBAPP_URL = 'WEBAPP_URL';
+
+function refreshNutritionMasterCache_() {
+  CacheService.getScriptCache().remove(NUTRITION_MASTER_CACHE_KEY);
+}
+
+function getNutritionMasterCached() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(NUTRITION_MASTER_CACHE_KEY);
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  const masters = getNutritionMasters();
+  cache.put(NUTRITION_MASTER_CACHE_KEY, JSON.stringify(masters), 600);
+  return masters;
+}
+
+function getNutritionMasterByKey_(masterKey) {
+  if (!masterKey) return null;
+  return getNutritionMasterCached().find(master => master.masterKey === masterKey) || null;
+}
+
+function getLiffId_() {
+  return PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_LIFF_ID) || '';
+}
+
+function setLiffId(liffId) {
+  PropertiesService.getScriptProperties().setProperty(SCRIPT_PROPERTY_LIFF_ID, String(liffId || '').trim());
+}
+
+function getLineChannelId_() {
+  return PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_LINE_CHANNEL_ID) || '';
+}
+
+function setLineChannelId(channelId) {
+  PropertiesService.getScriptProperties().setProperty(SCRIPT_PROPERTY_LINE_CHANNEL_ID, String(channelId || '').trim());
+}
+
+function getLineChannelAccessToken_() {
+  return PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_LINE_CHANNEL_ACCESS_TOKEN) || '';
+}
+
+function setLineChannelAccessToken(accessToken) {
+  PropertiesService.getScriptProperties()
+    .setProperty(SCRIPT_PROPERTY_LINE_CHANNEL_ACCESS_TOKEN, String(accessToken || '').trim());
+}
+
+function getWebAppUrl_() {
+  return (
+    PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_WEBAPP_URL) ||
+    ScriptApp.getService().getUrl() ||
+    ''
+  );
+}
+
+function setWebAppUrl(webAppUrl) {
+  PropertiesService.getScriptProperties().setProperty(SCRIPT_PROPERTY_WEBAPP_URL, String(webAppUrl || '').trim());
+}
+
+function configureLiff(liffId, channelId, accessToken, webAppUrl) {
+  if (liffId != null) {
+    setLiffId(liffId);
+  }
+
+  if (channelId != null) {
+    setLineChannelId(channelId);
+  }
+
+  if (accessToken != null) {
+    setLineChannelAccessToken(accessToken);
+  }
+
+  if (webAppUrl != null) {
+    setWebAppUrl(webAppUrl);
+  }
+}
+
+function jsonOutput_(payload) {
+  return ContentService
+    .createTextOutput(JSON.stringify(payload))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function textOutput_(text) {
+  return ContentService
+    .createTextOutput(String(text || 'ok'))
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
+function verifyLiffIdentity_(payload) {
+  const idToken = String(payload && payload.idToken || '').trim();
+  const channelId = getLineChannelId_();
+
+  if (!idToken || !channelId) {
+    return {
+      userId: String(payload && payload.userId || '').trim(),
+      displayName: String(payload && payload.displayName || '').trim(),
+      verified: false,
+    };
+  }
+
+  const response = UrlFetchApp.fetch('https://api.line.me/oauth2/v2.1/verify', {
+    method: 'post',
+    payload: {
+      id_token: idToken,
+      client_id: channelId,
+    },
+    muteHttpExceptions: true,
+  });
+
+  if (response.getResponseCode() !== 200) {
+    throw new Error('LIFF identity verification failed');
+  }
+
+  const verified = JSON.parse(response.getContentText());
+  return {
+    userId: String(verified.sub || ''),
+    displayName: String(verified.name || payload.displayName || ''),
+    verified: true,
+  };
+}
+
+function callLineApi_(path, method, payload) {
+  const accessToken = getLineChannelAccessToken_();
+  if (!accessToken) {
+    throw new Error('LINE_CHANNEL_ACCESS_TOKEN is not configured');
+  }
+
+  const options = {
+    method: method || 'get',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    muteHttpExceptions: true,
+  };
+
+  if (payload != null) {
+    options.contentType = 'application/json';
+    options.payload = JSON.stringify(payload);
+  }
+
+  const response = UrlFetchApp.fetch(`https://api.line.me${path}`, options);
+  const statusCode = response.getResponseCode();
+  if (statusCode < 200 || statusCode >= 300) {
+    throw new Error(`LINE API error ${statusCode}: ${response.getContentText()}`);
+  }
+
+  const body = response.getContentText();
+  return body ? JSON.parse(body) : {};
+}
+
+function replyLineMessages_(replyToken, messages) {
+  if (!replyToken || !messages || !messages.length) return;
+  callLineApi_('/v2/bot/message/reply', 'post', {
+    replyToken: replyToken,
+    messages: messages,
+  });
+}
+
+function pushLineMessages_(userId, messages) {
+  if (!userId || !messages || !messages.length) return;
+  callLineApi_('/v2/bot/message/push', 'post', {
+    to: userId,
+    messages: messages,
+  });
+}
+
+function getLineProfile_(userId) {
+  if (!userId || !getLineChannelAccessToken_()) return null;
+  return callLineApi_(`/v2/bot/profile/${encodeURIComponent(userId)}`, 'get');
+}
+
+function buildLiffUrl_(params) {
+  const query = buildQueryString_(params || {});
+  const liffId = getLiffId_();
+  if (liffId) {
+    return `https://liff.line.me/${encodeURIComponent(liffId)}${query ? `?${query}` : ''}`;
+  }
+
+  const webAppUrl = getWebAppUrl_();
+  return webAppUrl ? `${webAppUrl}${query ? `?${query}` : ''}` : '';
+}
+
+function buildQueryString_(params) {
+  return Object.keys(params)
+    .filter(key => params[key] != null && String(params[key]).trim() !== '')
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(String(params[key]))}`)
+    .join('&');
+}

@@ -1,0 +1,74 @@
+/**
+ * LINE and text entry points.
+ */
+
+function handleTextEvent(param) {
+  const result = handleMealMessageFlow(
+    String(param.userId || '').trim(),
+    String(param.text || '').trim(),
+    String(param.displayName || '').trim(),
+    param.source || SOURCE.TEXT
+  );
+
+  if (result.kind === 'target_updated') {
+    return result.text;
+  }
+
+  if (result.kind === 'logged') {
+    return buildLogReply(param.userId, result.record);
+  }
+
+  return 'LIFFで詳細を入力してください。';
+}
+
+function handleLineWebhook_(payload) {
+  const events = payload && payload.events ? payload.events : [];
+  events.forEach(event => handleLineEvent_(event));
+}
+
+function handleLineEvent_(event) {
+  if (!event || event.type !== 'message' || !event.message || event.message.type !== 'text') {
+    return;
+  }
+
+  const userId = String(event.source && event.source.userId || '').trim();
+  if (!userId) {
+    return;
+  }
+
+  let profile = {};
+  try {
+    profile = getLineProfile_(userId) || {};
+  } catch (error) {
+    profile = {};
+  }
+  const result = handleMealMessageFlow(
+    userId,
+    String(event.message.text || ''),
+    String(profile.displayName || ''),
+    SOURCE.LINE
+  );
+
+  if (result.kind === 'target_updated') {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: result.text,
+    }]);
+    return;
+  }
+
+  if (result.kind === 'logged') {
+    replyLineMessages_(event.replyToken, [
+      buildDailySummaryFlexMessage(userId, {
+        dashboard: result.dashboard,
+        record: result.record,
+        headline: `${result.parsed.menu} を記録しました`,
+      }),
+    ]);
+    return;
+  }
+
+  replyLineMessages_(event.replyToken, [
+    buildMealInputPromptFlexMessage(result.parsed, result.draft),
+  ]);
+}
