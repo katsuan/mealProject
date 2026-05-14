@@ -30,6 +30,10 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   }
 
+  body.has-modal {
+    overflow: hidden;
+  }
+
   .page {
     width: 100%;
     max-width: 540px;
@@ -81,9 +85,16 @@
     gap: 12px;
   }
 
+  .hero-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+  }
+
   .profile-row {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 12px;
     align-items: center;
   }
@@ -147,35 +158,115 @@
     font-weight: 700;
   }
 
-  .target-cluster {
-    min-width: 140px;
-    display: grid;
-    gap: 6px;
-    justify-items: stretch;
-  }
-
-  .target-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-
-  .target-head-actions {
+  .hero-actions {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    justify-content: flex-end;
+    align-self: start;
   }
 
-  .target-label {
+  .hero-icon-button {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(184, 70, 44, 0.16);
+    border-radius: 999px;
+    background: var(--surface-subtle);
+    color: var(--accent-strong);
+    padding: 0;
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .header-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .header-stat {
+    min-width: 0;
+    border: 1px solid rgba(184, 70, 44, 0.12);
+    border-radius: 8px;
+    background: var(--surface-subtle);
+    padding: 10px 12px;
+  }
+
+  .header-stat-label {
     font-size: 11px;
     color: var(--muted);
   }
 
+  .header-stat-value {
+    margin-top: 6px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .header-stat-meta {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  .header-stat-meta.is-warning,
+  .header-stat-value.is-warning {
+    color: var(--alert);
+  }
+
+  .modal-shell[hidden] {
+    display: none !important;
+  }
+
+  .modal-shell {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: grid;
+    place-items: center;
+    padding: 20px 12px;
+  }
+
+  .modal-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgba(35, 24, 21, 0.32);
+    padding: 0;
+  }
+
+  .modal-card {
+    position: relative;
+    width: 100%;
+    max-width: 420px;
+    display: grid;
+    gap: 14px;
+    border: 1px solid rgba(184, 70, 44, 0.16);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 0 20px 44px rgba(35, 24, 21, 0.22);
+    padding: 14px;
+  }
+
+  .modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .modal-close-button {
+    margin-top: 2px;
+  }
+
   .target-field {
-    min-height: 52px;
-    padding: 10px 12px;
+    min-height: 58px;
+    padding: 22px 12px 10px;
   }
 
   .target-field-input {
@@ -187,33 +278,19 @@
   }
 
   .target-field input {
-    width: 72px;
+    width: 100%;
+    max-width: 120px;
     border: 0;
     background: transparent;
     padding: 0;
-    font-size: 16px;
+    font-size: 20px;
     font-weight: 700;
     text-align: right;
     color: var(--text);
   }
 
   .target-field-input span {
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .target-field .field-label {
-    display: none;
-  }
-
-  .target-field:not(.is-editable) {
-    background: var(--surface-subtle);
-    border-color: var(--line);
-  }
-
-  .target-field:not(.is-editable) .field-label,
-  .target-field:not(.is-editable) .target-field-input span,
-  .target-field:not(.is-editable) input {
+    font-size: 13px;
     color: var(--muted);
   }
 
@@ -244,18 +321,8 @@
     margin: 0;
   }
 
-  .target-save {
-    border: 0;
-    background: transparent;
-    color: var(--accent-strong);
-    font-size: 12px;
-    font-weight: 700;
-    padding: 0;
-    cursor: pointer;
-  }
-
   .target-field input:disabled,
-  .target-save:disabled,
+  .hero-icon-button:disabled,
   button:disabled {
     cursor: default;
     opacity: 0.56;
@@ -950,6 +1017,46 @@
     flex-wrap: wrap;
   }
 
+  .log-media {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .log-thumb {
+    flex: 0 0 auto;
+    width: 52px;
+    height: 52px;
+    border: 1px solid rgba(184, 70, 44, 0.16);
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f2ebe8;
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+  }
+
+  .log-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .log-thumb-fallback {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
+  .log-media-link {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-strong);
+    text-decoration: none;
+  }
+
   @keyframes syncBorder {
     0% {
       background-position: 200% 0;
@@ -971,18 +1078,12 @@
       padding-right: 10px;
     }
 
-    .profile-row {
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 10px;
-    }
-
     .profile-copy .name {
       font-size: 18px;
     }
 
-    .target-cluster {
-      min-width: 118px;
+    .header-stat-value {
+      font-size: 16px;
     }
 
     .notify-toggle {
@@ -1006,6 +1107,7 @@
       height: 48px;
     }
 
+    .hero-top,
     .profile-row {
       gap: 10px;
     }
@@ -1019,17 +1121,16 @@
       line-height: 1.15;
     }
 
-    .target-cluster {
-      min-width: 104px;
-      gap: 4px;
+    .header-stat {
+      padding: 9px 10px;
     }
 
-    .target-head {
-      gap: 6px;
+    .header-stat-value {
+      font-size: 14px;
     }
 
-    .target-label,
-    .target-save {
+    .header-stat-meta,
+    .header-stat-label {
       font-size: 10px;
     }
 
@@ -1039,7 +1140,6 @@
     }
 
     .target-field input {
-      width: 52px;
       font-size: 15px;
     }
 
@@ -1059,18 +1159,12 @@
   }
 
   @media (max-width: 360px) {
-    .profile-row {
-      grid-template-columns: auto minmax(0, 1fr);
+    .hero-top {
+      grid-template-columns: 1fr;
       align-items: start;
     }
 
-    .target-cluster {
-      grid-column: 1 / -1;
-      min-width: 0;
-      justify-items: stretch;
-    }
-
-    .target-field {
-      width: 100%;
+    .hero-actions {
+      justify-self: end;
     }
   }

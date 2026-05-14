@@ -285,6 +285,7 @@ function saveLineImageToDrive_(blob, fileName) {
   const driveFile = folderId
     ? DriveApp.getFolderById(folderId).createFile(blob.setName(targetFileName))
     : DriveApp.createFile(blob.setName(targetFileName));
+  driveFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   return {
     fileId: driveFile.getId(),
     url: driveFile.getUrl(),

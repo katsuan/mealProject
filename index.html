@@ -8,38 +8,33 @@
   <body>
     <div class="page">
       <section class="band hero">
-        <div class="profile-row">
-          <div id="avatar" class="avatar">L</div>
-          <div class="profile-copy">
-            <div class="eyebrow">LINEプロフィール</div>
-            <div id="profile-name" class="name">ログイン待ちです</div>
-            <button id="login-line" type="button" class="inline-login" hidden>LINEでログイン</button>
-          </div>
-          <div id="target-cluster" class="target-cluster">
-            <div class="target-head">
-              <div id="target-label" class="target-label">目標カロリー</div>
-              <div class="target-head-actions">
-                <button id="save-target" type="button" class="target-save">更新</button>
-                <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
-              </div>
+        <div class="hero-top">
+          <div class="profile-row">
+            <div id="avatar" class="avatar">L</div>
+            <div class="profile-copy">
+              <div class="eyebrow">LINEプロフィール</div>
+              <div id="profile-name" class="name">ログイン待ちです</div>
+              <button id="login-line" type="button" class="inline-login" hidden>LINEでログイン</button>
             </div>
-            <label id="target-field" class="field target-field">
-              <div class="target-field-input">
-                <input
-                  id="calorie-target"
-                  aria-labelledby="target-label"
-                  type="number"
-                  min="0"
-                  step="1"
-                  inputmode="numeric"
-                >
-                <span>kcal</span>
-              </div>
-            </label>
-            <label class="notify-toggle">
-              <input id="notify-setting" type="checkbox">
-              <span>20時に未記録リマインドを受け取る</span>
-            </label>
+          </div>
+          <div class="hero-actions">
+            <button id="open-settings" type="button" class="hero-icon-button" aria-label="設定を開く" title="設定を開く">⚙</button>
+            <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
+          </div>
+        </div>
+        <div id="header-summary-scope" class="header-summary-grid">
+          <div class="header-stat">
+            <div class="header-stat-label">目標カロリー</div>
+            <div id="header-target-kcal" class="header-stat-value">-</div>
+          </div>
+          <div class="header-stat">
+            <div class="header-stat-label">確定カロリー</div>
+            <div id="header-exact-kcal" class="header-stat-value">0</div>
+            <div id="header-exact-rate" class="header-stat-meta">目標比 -</div>
+          </div>
+          <div class="header-stat">
+            <div class="header-stat-label">未登録件数</div>
+            <div id="header-pending-count" class="header-stat-value">0件</div>
           </div>
         </div>
         <div id="status-panel" class="status-panel" hidden>
@@ -287,6 +282,44 @@
         </div>
         <div id="logs-list" class="log-list"></div>
       </section>
+    </div>
+
+    <div id="settings-modal" class="modal-shell" hidden>
+      <button id="settings-modal-backdrop" type="button" class="modal-backdrop" aria-label="設定を閉じる"></button>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+        <div class="modal-head">
+          <div>
+            <h2 id="settings-modal-title">設定</h2>
+            <div class="section-copy">目標カロリーとリマインドをまとめて変更できます。</div>
+          </div>
+          <button id="close-settings-modal" type="button" class="hero-icon-button modal-close-button" aria-label="設定を閉じる" title="設定を閉じる">✕</button>
+        </div>
+        <div class="fields">
+          <label id="target-field" class="field target-field" data-label="目標カロリー">
+            <span class="field-label">目標カロリー</span>
+            <div class="target-field-input">
+              <input
+                id="calorie-target"
+                aria-labelledby="settings-modal-title"
+                type="number"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                data-field-label="目標カロリー"
+              >
+              <span>kcal</span>
+            </div>
+          </label>
+          <label class="notify-toggle">
+            <input id="notify-setting" type="checkbox">
+            <span>20時に未記録リマインドを受け取る</span>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="save-target" type="button" class="primary">保存</button>
+          <button id="close-settings-secondary" type="button" class="secondary">閉じる</button>
+        </div>
+      </div>
     </div>
 
     <script src="./html/js/site-config.js"></script>
