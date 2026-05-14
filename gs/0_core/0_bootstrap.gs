@@ -19,7 +19,7 @@ const NUTRITION_KEYS = [
   'fiber',
 ];
 
-const MEAL_TYPES = ['朝', '昼', '夜'];
+const MEAL_TYPES = ['朝', '昼', '夜', 'その他'];
 const DEFAULT_CANDIDATE_LIMIT = 5;
 
 /**

@@ -4,8 +4,8 @@
 
 function parseMealText(text) {
   const raw = String(text || '').trim();
-  const meal = raw.match(/朝|昼|夜/)?.[0] || inferMealType_(new Date());
-  const menu = raw.replace(/朝|昼|夜/, '').trim() || raw;
+  const meal = raw.match(/朝|昼|夜|その他/)?.[0] || inferMealType_(new Date());
+  const menu = raw.replace(/朝|昼|夜|その他/, '').trim() || raw;
 
   return {
     meal: meal,

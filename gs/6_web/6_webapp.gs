@@ -4,7 +4,7 @@
 
 function doGet(e) {
   ensureProjectSetup_();
-  const template = HtmlService.createTemplateFromFile('liff');
+  const template = HtmlService.createTemplateFromFile('html/index');
   template.initialLiffId = getLiffId_();
   template.initialQuery = JSON.stringify((e && e.parameter) || {});
   return template
