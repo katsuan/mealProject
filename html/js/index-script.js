@@ -56,6 +56,7 @@ function buildInitialQuery_(fallback) {
   const params = new URLSearchParams(window.location.search || '');
   return {
     mode: params.get('mode') || String(fallback.mode || '').trim(),
+    logId: params.get('logId') || String(fallback.logId || '').trim(),
     row: params.get('row') || String(fallback.row || '').trim(),
     meal: params.get('meal') || String(fallback.meal || '').trim(),
     menu: params.get('menu') || String(fallback.menu || '').trim(),
@@ -357,7 +358,7 @@ function setSettingsModalTab_(tab) {
 }
 
 function shouldLoadFullStateOnBoot_() {
-  return Boolean(initialQuery.menu || initialQuery.row || initialQuery.mode === 'detail');
+  return Boolean(initialQuery.menu || initialQuery.logId || initialQuery.row || initialQuery.mode === 'detail');
 }
 
 async function runServer(action, payload) {
@@ -476,8 +477,8 @@ async function initializeLiffProfile_() {
 }
 
 function hydrateQuery() {
-  if (initialQuery.row) {
-    document.getElementById('editing-log-row').value = initialQuery.row;
+  if (initialQuery.logId || initialQuery.row) {
+    document.getElementById('editing-log-id').value = initialQuery.logId || initialQuery.row;
   }
   if (initialQuery.meal) {
     setMealType(initialQuery.meal);
@@ -904,8 +905,8 @@ async function reloadState() {
     applyHeaderState_(result.header, result.permission);
     renderDashboard(state.dashboard);
     renderDraft(state.draft);
-    if (initialQuery.row && !document.getElementById('editing-log-row').value.trim()) {
-      document.getElementById('editing-log-row').value = initialQuery.row;
+    if ((initialQuery.logId || initialQuery.row) && !document.getElementById('editing-log-id').value.trim()) {
+      document.getElementById('editing-log-id').value = initialQuery.logId || initialQuery.row;
       refreshMealSubmitControls_();
     }
     saveCachedAppState_(userId, state.dashboard, state.draft);
@@ -1128,12 +1129,12 @@ function renderPendingSummary_(pendingItems) {
   section.hidden = !items.length;
   count.textContent = `${items.length}件`;
   list.innerHTML = items.length
-    ? items.map(item => `
+      ? items.map(item => `
         <div class="pending-summary-item">
           <div class="pending-summary-name">${escapeHtml(item.menu || item)}</div>
           <div class="pending-summary-actions">
-            <button type="button" class="secondary compact-button" onclick="applyPendingMenu('${encodeURIComponent(String(item.menu || item))}', ${Number(item.row || 0)})">入力する</button>
-            <button type="button" class="secondary compact-button" onclick="deletePendingItem(${Number(item.row || 0)}, '${encodeURIComponent(String(item.menu || item))}')">削除</button>
+            <button type="button" class="secondary compact-button" onclick="applyPendingMenu('${encodeURIComponent(String(item.menu || item))}', '${escapeHtml(String(item.logId || item.row || ''))}')">入力する</button>
+            <button type="button" class="secondary compact-button" onclick="deletePendingItem('${escapeHtml(String(item.logId || item.row || ''))}', '${encodeURIComponent(String(item.menu || item))}')">削除</button>
           </div>
         </div>
       `).join('')
@@ -1155,8 +1156,8 @@ function renderLogList(logs) {
           <div class="log-meta">${escapeHtml(log.meal)} / ${escapeHtml(formatLogKcal(log.kcal, log.kcalStatus))}</div>
           ${buildLogMediaMarkup_(log)}
           <div class="log-actions">
-            <button type="button" class="secondary compact-button" onclick="startEditLog(${Number(log.row || 0)})">編集</button>
-            <button type="button" class="secondary compact-button" onclick="deleteLog(${Number(log.row || 0)}, '${encodeURIComponent(String(log.menu || ''))}')">削除</button>
+            <button type="button" class="secondary compact-button" onclick="startEditLog('${escapeHtml(String(log.logId || log.row || ''))}')">編集</button>
+            <button type="button" class="secondary compact-button" onclick="deleteLog('${escapeHtml(String(log.logId || log.row || ''))}', '${encodeURIComponent(String(log.menu || ''))}')">削除</button>
           </div>
         </div>
       `).join('')
@@ -1220,7 +1221,8 @@ function ensureUserCanProceed_(loginMessage, deniedMessage) {
 
 function buildMealDetailRequestPayload_(overrides) {
   return Object.assign(getCurrentUserRequestBase_(), {
-    row: document.getElementById('editing-log-row').value.trim(),
+    logId: document.getElementById('editing-log-id').value.trim(),
+    row: document.getElementById('editing-log-id').value.trim(),
     meal: document.getElementById('meal-type').value,
     mealDate: document.getElementById('meal-date').value,
     datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
@@ -1400,7 +1402,7 @@ function startMasterEdit(index) {
   const currentMealDate = document.getElementById('meal-date').value;
 
   document.getElementById('editing-master-key').value = candidate.masterKey || '';
-  document.getElementById('editing-log-row').value = '';
+  document.getElementById('editing-log-id').value = '';
   document.getElementById('master-key').value = candidate.masterKey || '';
   setMenuValue_(candidate.menu || candidate.name || '');
   applyNutritionFields(candidate, {
@@ -1425,7 +1427,7 @@ async function applyPendingMenu(menu, row) {
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
   pushStatus('info', `「${resolvedMenu}」の入力欄を開きました。`);
   await reloadState();
-  document.getElementById('editing-log-row').value = rowValue;
+  document.getElementById('editing-log-id').value = rowValue;
   refreshMealSubmitControls_();
 }
 
@@ -1493,11 +1495,11 @@ function refreshTargetControls() {
 }
 
 function isEditingLog_() {
-  return Boolean(document.getElementById('editing-log-row').value.trim());
+  return Boolean(document.getElementById('editing-log-id').value.trim());
 }
 
 function clearEditMode_() {
-  document.getElementById('editing-log-row').value = '';
+  document.getElementById('editing-log-id').value = '';
   document.getElementById('editing-master-key').value = '';
   refreshMealSubmitControls_();
 }
@@ -1519,13 +1521,13 @@ function refreshMealSubmitControls_() {
   cancelButton.hidden = !editing && !editingMaster;
 }
 
-function startEditLog(rowNumber) {
+function startEditLog(logRef) {
   const log = state.dashboard && state.dashboard.recentLogs
-    ? state.dashboard.recentLogs.find(item => Number(item.row) === Number(rowNumber))
+    ? state.dashboard.recentLogs.find(item => String(item.logId || item.row || '') === String(logRef || ''))
     : null;
   if (!log) return;
 
-  document.getElementById('editing-log-row').value = String(log.row || '');
+  document.getElementById('editing-log-id').value = String(log.logId || log.row || '');
   setMenuValue_(log.menu || '');
   document.getElementById('master-key').value = log.masterKey || '';
   setMealType(log.meal || '朝');
@@ -1541,7 +1543,7 @@ function startEditLog(rowNumber) {
   pushStatus('info', `「${log.menu}」を編集しています。`);
 }
 
-async function deleteLog(rowNumber, menuName) {
+async function deleteLog(logRef, menuName) {
   const resolvedName = decodeURIComponent(String(menuName || ''));
   if (!window.confirm(`「${resolvedName || 'この記録'}」を削除しますか？`)) {
     return;
@@ -1558,7 +1560,8 @@ async function deleteLog(rowNumber, menuName) {
       userId: auth.userId,
       displayName: auth.displayName,
       idToken: auth.idToken,
-      row: rowNumber,
+      logId: logRef,
+      row: logRef,
     });
     applyDashboardDraftResponse_(auth.userId, result, { renderDraft: false });
     pushStatus('info', 'ログを削除しました。');
@@ -1611,13 +1614,13 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     return;
   }
 
-  const editingRow = document.getElementById('editing-log-row').value.trim();
-  const action = editingRow ? 'updateMealLog' : 'submitMealDetail';
+  const editingLogId = document.getElementById('editing-log-id').value.trim();
+  const action = editingLogId ? 'updateMealLog' : 'submitMealDetail';
 
   setSyncVisualState(true);
   state.isMealSubmitting = true;
   refreshMealSubmitControls_();
-  pushStatus('info', editingRow ? '更新して集計を同期中...' : '保存して集計を同期中...');
+  pushStatus('info', editingLogId ? '更新して集計を同期中...' : '保存して集計を同期中...');
 
   try {
     const result = await runServer(action, buildMealDetailRequestPayload_({
@@ -1628,7 +1631,7 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     applyDashboardDraftResponse_(auth.userId, result);
     pushStatus(
       'info',
-      editingRow
+      editingLogId
         ? (result.summaryPushed ? '更新してLINEに今日の集計を返しました。' : 'ログを更新しました。LINE送信は未実行です。')
         : (result.summaryPushed ? '保存してLINEに今日の集計を返しました。' : '保存しました。LINE送信は未実行です。')
     );

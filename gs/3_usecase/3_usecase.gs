@@ -21,6 +21,7 @@ function summarizeMealLogs(logs) {
     totalEstimated: estimatedLogs.reduce((sum, log) => sum + Number(log.kcal || 0), 0),
     hasPending: pendingLogs.length > 0,
     pendingItems: pendingLogs.map(log => ({
+      logId: String(log.logId || ''),
       row: Number(log.row || 0),
       meal: String(log.meal || ''),
       menu: String(log.menu || ''),
@@ -419,7 +420,10 @@ function handleMealMessageFlow(userId, text, displayName, source, pictureUrl) {
 
   return {
     kind: 'needs_liff',
-    parsed: Object.assign({}, parsed, { row: Number(pendingRecord.row || 0) }),
+    parsed: Object.assign({}, parsed, {
+      logId: String(pendingRecord.logId || ''),
+      row: Number(pendingRecord.row || 0),
+    }),
     record: pendingRecord,
     draft: buildNutritionDraft(parsed.menu),
     dashboard: getDashboardData(userId),
@@ -498,10 +502,11 @@ function submitMealCandidate(userId, payload, source) {
     throw new Error('menu is required');
   }
 
+  const logId = String(payload && payload.logId || '').trim();
   const row = Number(payload && payload.row || 0);
   let record;
-  if (Number.isFinite(row) && row >= 2) {
-    const currentLog = getMealLogByRow(row);
+  if (logId || (Number.isFinite(row) && row >= 2)) {
+    const currentLog = resolveMealLogReference_(logId || row);
     if (!currentLog || currentLog.userId !== userId) {
       throw new Error('candidate target log is not available');
     }
@@ -621,8 +626,9 @@ function updateMealLogDetail(userId, payload, source) {
   const user = ensureUserExists_(userId, payload && payload.displayName);
   ensureUserCanUseService_(user);
 
+  const logId = String(payload && payload.logId || '').trim();
   const row = Number(payload && payload.row || 0);
-  const currentLog = getMealLogByRow(row);
+  const currentLog = resolveMealLogReference_(logId || row);
   if (!currentLog || currentLog.userId !== userId) {
     throw new Error('編集対象のログが見つかりません。');
   }
@@ -690,17 +696,17 @@ function updateMealLogDetail(userId, payload, source) {
   };
 }
 
-function deleteMealLogDetail(userId, row) {
+function deleteMealLogDetail(userId, ref) {
   ensureProjectSetup_();
   const user = ensureUserExists_(userId);
   ensureUserCanUseService_(user);
 
-  const currentLog = getMealLogByRow(row);
+  const currentLog = resolveMealLogReference_(ref);
   if (!currentLog || currentLog.userId !== userId) {
     throw new Error('削除対象のログが見つかりません。');
   }
 
-  deleteMealLog(row);
+  deleteMealLog(currentLog.logId || currentLog.row);
   return {
     ok: true,
     dashboard: getDashboardData(userId),
@@ -753,6 +759,7 @@ function attachMealImageToNearestLog(userId, payload) {
       mealType: mealType,
       fileId: fileInfo.fileId,
       imageUrl: fileInfo.url,
+      candidateLogIds: sameDayLogs.map(log => String(log.logId || '')),
       candidateRows: sameDayLogs.map(log => Number(log.row || 0)),
     });
     return {
@@ -765,7 +772,9 @@ function attachMealImageToNearestLog(userId, payload) {
     };
   }
 
-  const linkedLog = sameDayLogs[0] ? attachMealLogImage(sameDayLogs[0].row, fileInfo.fileId, fileInfo.url) : null;
+  const linkedLog = sameDayLogs[0]
+    ? attachMealLogImage(sameDayLogs[0].logId || sameDayLogs[0].row, fileInfo.fileId, fileInfo.url)
+    : null;
 
   return {
     file: fileInfo,
@@ -781,8 +790,9 @@ function attachMealImageBySelection(userId, payload) {
   ensureUserCanUseService_(user);
 
   const token = String(payload && payload.selectionToken || '').trim();
+  const logId = String(payload && payload.logId || '').trim();
   const row = Number(payload && payload.row || 0);
-  if (!token || row < 2) {
+  if (!token || (!logId && row < 2)) {
     throw new Error('image selection is invalid');
   }
 
@@ -791,17 +801,18 @@ function attachMealImageBySelection(userId, payload) {
     throw new Error('image selection is expired');
   }
 
+  const candidateLogIds = Array.isArray(pending.candidateLogIds) ? pending.candidateLogIds.map(String) : [];
   const candidateRows = Array.isArray(pending.candidateRows) ? pending.candidateRows.map(Number) : [];
-  if (!candidateRows.includes(row)) {
+  if (logId ? !candidateLogIds.includes(logId) : !candidateRows.includes(row)) {
     throw new Error('selected log is not available');
   }
 
-  const targetLog = getMealLogByRow(row);
+  const targetLog = resolveMealLogReference_(logId || row);
   if (!targetLog || targetLog.userId !== userId) {
     throw new Error('selected log is not found');
   }
 
-  const linkedLog = attachMealLogImage(row, pending.fileId, pending.imageUrl);
+  const linkedLog = attachMealLogImage(targetLog.logId || row, pending.fileId, pending.imageUrl);
   return {
     mealType: String(pending.mealType || ''),
     linkedLog: linkedLog,
@@ -869,6 +880,7 @@ function serializeNutritionCandidate_(candidate) {
 function serializeMealLog_(log) {
   const master = log.masterKey ? getNutritionMaster(log.masterKey) : null;
   return {
+    logId: String(log.logId || ''),
     row: Number(log.row || 0),
     mealDate: toIsoDateTime_(log.mealDate),
     userId: log.userId,

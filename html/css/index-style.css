@@ -1083,19 +1083,19 @@
   }
 
   .weekly-segment.breakfast {
-    background: #f4b183;
+    background: #F5A623;
   }
 
   .weekly-segment.lunch {
-    background: #f7d36b;
+    background: #4A90E2;
   }
 
   .weekly-segment.dinner {
-    background: #d75a3c;
+    background: #7B61FF;
   }
 
   .weekly-segment.other {
-    background: #8a6258;
+    background: #6FCF97;
   }
 
   .weekly-target-line {

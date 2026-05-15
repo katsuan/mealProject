@@ -244,6 +244,7 @@ function updateMealLogFromLiff(payload) {
   }
 
   const result = updateMealLogDetail(identity.userId, {
+    logId: payload.logId,
     row: payload.row,
     displayName: identity.displayName,
     meal: payload.meal,
@@ -300,7 +301,7 @@ function deleteMealLogFromLiff(payload) {
     throw new Error('userId is required');
   }
 
-  const result = deleteMealLogDetail(identity.userId, payload.row);
+  const result = deleteMealLogDetail(identity.userId, payload.logId || payload.row);
   return {
     ok: true,
     identity: serializeIdentityState_(identity),

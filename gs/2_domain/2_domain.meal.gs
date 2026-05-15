@@ -86,6 +86,7 @@ function appendMealLogRecord_(userId, parsed, nutrition, options) {
     imageUrl: String(config.imageUrl || ''),
     createdAt: now,
     updatedAt: now,
+    logId: String(config.logId || Utilities.getUuid()),
   };
 
   record.row = appendMealLog(record);
@@ -103,10 +104,22 @@ function appendMealLog(log) {
   return sheet.getLastRow();
 }
 
+function getMealLogById(logId) {
+  const normalized = String(logId || '').trim();
+  if (!normalized) return null;
+  return getMealLogs().find(log => String(log.logId || '').trim() === normalized) || null;
+}
+
 function getMealLogByRow(rowNumber) {
   const row = Number(rowNumber || 0);
   if (!Number.isFinite(row) || row < 2) return null;
   return getMealLogs().find(log => log.row === row) || null;
+}
+
+function resolveMealLogReference_(ref) {
+  const normalized = String(ref || '').trim();
+  if (!normalized) return null;
+  return getMealLogById(normalized) || getMealLogByRow(normalized);
 }
 
 function updateMealLog(log) {
@@ -125,7 +138,7 @@ function updateMealLog(log) {
 }
 
 function attachMealLogImage(rowNumber, imageFileId, imageUrl) {
-  const log = getMealLogByRow(rowNumber);
+  const log = resolveMealLogReference_(rowNumber);
   if (!log) {
     throw new Error('meal log not found');
   }
@@ -139,7 +152,8 @@ function attachMealLogImage(rowNumber, imageFileId, imageUrl) {
 }
 
 function deleteMealLog(rowNumber) {
-  const row = Number(rowNumber || 0);
+  const log = resolveMealLogReference_(rowNumber);
+  const row = Number(log && log.row || rowNumber || 0);
   if (!Number.isFinite(row) || row < 2) {
     throw new Error('meal log row is invalid');
   }
@@ -157,7 +171,9 @@ function getMealLogs() {
   if (!sheet) return [];
 
   const values = sheet.getDataRange().getValues();
-  return values.slice(1).map((row, index) => mapMealLogRow_(row, index + 2));
+  const rows = values.slice(1).map((row, index) => mapMealLogRow_(row, index + 2));
+  backfillMealLogIds_(sheet, rows);
+  return rows;
 }
 
 function getRecentMealLogsByUser(userId, limit) {
@@ -204,7 +220,22 @@ function mapMealLogRow_(row, rowNumber) {
     imageUrl: String(row[MEAL_LOG_COL_INDEX.imageUrl - 1] || ''),
     createdAt: row[MEAL_LOG_COL_INDEX.createdAt - 1] || null,
     updatedAt: row[MEAL_LOG_COL_INDEX.updatedAt - 1] || null,
+    logId: String(row[MEAL_LOG_COL_INDEX.logId - 1] || ''),
   };
+}
+
+function backfillMealLogIds_(sheet, logs) {
+  const targetSheet = sheet || getSpreadsheet_().getSheetByName(SHEET.MEAL_LOGS);
+  if (!targetSheet || !Array.isArray(logs)) return;
+
+  logs.forEach(log => {
+    if (String(log && log.logId || '').trim()) return;
+    const generatedId = Utilities.getUuid();
+    log.logId = generatedId;
+    if (Number(log.row || 0) >= 2) {
+      targetSheet.getRange(Number(log.row), MEAL_LOG_COL_INDEX.logId).setValue(generatedId);
+    }
+  });
 }
 
 function inferMealType_(date) {

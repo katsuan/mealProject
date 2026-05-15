@@ -187,6 +187,7 @@ function handleLinePostbackEvent_(event, userId) {
   try {
     const result = submitMealCandidate(userId, {
       displayName: String(profile.displayName || ''),
+      logId: data.logId,
       masterKey: data.masterKey,
       meal: data.meal,
       menu: data.menu,
@@ -222,6 +223,7 @@ function handleLineImageAttachPostback_(event, userId, data) {
     const result = attachMealImageBySelection(userId, {
       displayName: String(profile.displayName || ''),
       selectionToken: data.token,
+      logId: data.logId,
       row: data.row,
     });
     replyLineMessages_(event.replyToken, [{

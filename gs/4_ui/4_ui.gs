@@ -551,6 +551,7 @@ function formatFlexLogTime_(value) {
 function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
   const liffUrl = buildLiffUrl_({
     mode: 'input',
+    logId: parsed.logId,
     row: parsed.row,
     meal: parsed.meal,
     menu: parsed.menu,
@@ -677,6 +678,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
       label: `${candidate.name} を採用して記録`,
       data: buildQueryString_({
         action: 'logCandidate',
+        logId: parsed.logId,
         row: parsed.row,
         meal: parsed.meal,
         masterKey: candidate.masterKey,
@@ -782,6 +784,7 @@ function buildImageAttachChoiceFlexMessage(mealType, candidateLogs, selectionTok
                 label: `${log.meal} ${log.menu} に画像を付ける`,
                 data: buildQueryString_({
                   action: 'attachMealImage',
+                  logId: log.logId,
                   row: log.row,
                   token: selectionToken,
                 }),

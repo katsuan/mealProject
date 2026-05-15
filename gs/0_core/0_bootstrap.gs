@@ -86,6 +86,7 @@ const NUTRITION_COL_INDEX = NUTRITION_MASTER_COLUMNS.reduce((acc, key, index) =>
  * @property {Date|null} createdAt
  * @property {Date|null} updatedAt
  * @property {number=} row
+ * @property {string=} logId
  */
 const MEAL_LOG_COLUMNS = [
   'mealDate',
@@ -108,6 +109,7 @@ const MEAL_LOG_COLUMNS = [
   'flavor',
   'unit',
   'note',
+  'logId',
 ];
 
 const MEAL_LOG_COL_INDEX = MEAL_LOG_COLUMNS.reduce((acc, key, index) => {
