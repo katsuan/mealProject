@@ -8,10 +8,11 @@ function buildLogReply(userId, record) {
   const estimatedNote = summary.totalEstimated > 0
     ? `推定 ${summary.totalEstimated} kcal を含みます`
     : '';
+  const displayName = buildRecordDisplayName_(record);
 
   return [
     '記録',
-    `${record.meal}: ${record.menu}`,
+    `${record.meal}: ${displayName}`,
     buildMealKcalLine(record),
     buildKcalDiffLine_(userId, total),
     `今日の合計: ${total} kcal`,
@@ -92,11 +93,12 @@ function buildDailySummaryFlexMessage(userId, options) {
   const isOverTarget = hasTarget && total > targetKcal;
   const inputUrl = buildLiffUrl_({ mode: 'input' });
   const logsUrl = buildLiffUrl_({ mode: 'logs' });
-  const headline = context.headline || '今日の集計';
+  const recordDisplayName = context.record ? buildRecordDisplayName_(context.record) : '';
+  const headline = context.headline || (recordDisplayName ? `${recordDisplayName} を記録` : '今日の集計');
   const subline = context.subline || buildKcalDiffLine_(userId, total);
   const sublineColor = isOverTarget ? '#C84949' : '#6b7280';
   const recordedLine = context.record
-    ? `${context.record.meal} ${context.record.menu} / ${buildMealKcalLine(context.record)}`
+    ? `${context.record.meal} ${recordDisplayName} / ${buildMealKcalLine(context.record)}`
     : '';
   const pendingLine = today.hasPending
     ? `未登録 ${today.pendingItems.length}件`
@@ -160,6 +162,21 @@ function buildPopularQuickReply_(userId) {
     }));
 
   return items.length ? { items: items } : undefined;
+}
+
+function buildRecordDisplayName_(record) {
+  if (!record) return '';
+  if (record.masterKey) {
+    const master = getNutritionMaster(record.masterKey);
+    if (master) {
+      return buildNutritionDisplayName_(master);
+    }
+  }
+  const flavor = String(record.flavor || '').trim();
+  const unit = String(record.unit || '').trim();
+  const descriptor = buildNutritionDescriptor_(flavor, unit);
+  const menu = String(record.menu || '').trim();
+  return descriptor ? `${menu}：${descriptor}` : menu;
 }
 
 function trimQuickReplyLabel_(value) {

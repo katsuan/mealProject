@@ -113,7 +113,7 @@ function handleLineEvent_(event) {
       buildDailySummaryFlexMessage(userId, {
         dashboard: result.dashboard,
         record: result.record,
-        headline: `${result.parsed.menu} を記録`,
+        headline: `${buildRecordDisplayName_(result.record)} を記録`,
         senderProfile: profile,
       }),
     ];
@@ -197,7 +197,7 @@ function handleLinePostbackEvent_(event, userId) {
       buildDailySummaryFlexMessage(userId, {
         dashboard: result.dashboard,
         record: result.record,
-        headline: `${result.record.menu} を記録`,
+        headline: `${buildRecordDisplayName_(result.record)} を記録`,
         senderProfile: profile,
       }),
     ];

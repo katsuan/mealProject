@@ -26,11 +26,26 @@ function findExactNutritionMaster(menu) {
   const normalizedMenu = normalizeText_(menu);
   if (!normalizedMenu) return null;
 
-  return getNutritionMasterCached().find(master =>
+  const exactCandidates = getNutritionMasterCached().filter(master =>
     master.status !== 'disabled' &&
-    getNutritionMasterSearchTexts_(master).includes(normalizedMenu) &&
     hasAnyNutritionValue_(master)
-  ) || null;
+  );
+
+  const displayMatches = exactCandidates.filter(master =>
+    normalizeText_(buildNutritionDisplayName_(master)) === normalizedMenu
+  );
+  if (displayMatches.length === 1) {
+    return displayMatches[0];
+  }
+
+  const baseNameMatches = exactCandidates.filter(master =>
+    normalizeText_(master.name) === normalizedMenu
+  );
+  if (baseNameMatches.length === 1) {
+    return baseNameMatches[0];
+  }
+
+  return null;
 }
 
 function findNutritionCandidates(menu, limit) {

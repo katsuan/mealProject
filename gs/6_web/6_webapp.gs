@@ -186,7 +186,7 @@ function submitMealDetailFromLiff(payload) {
         buildDailySummaryFlexMessage(identity.userId, {
           dashboard: result.dashboard,
           record: result.record,
-          headline: `${result.record.menu} を記録`,
+          headline: `${buildRecordDisplayName_(result.record)} を記録`,
         }),
       ]);
       summaryPushed = true;
