@@ -52,7 +52,7 @@
         <div class="section-head">
           <div>
             <h2>食事を入力する</h2>
-            <div class="section-copy">見つからないメニューはここで数値を入れて、そのまま記録できます。</div>
+            <div class="section-copy">新しい記録の追加も、未記入で残っているログの補完もここでできます。</div>
           </div>
         </div>
 
@@ -79,9 +79,9 @@
 
           <div class="fields">
             <div id="candidate-sync-scope" class="menu-block">
-              <label class="field" data-label="メニュー名">
+              <label class="field field-required" data-label="メニュー名">
                 <span class="field-label">メニュー名</span>
-                <input id="menu-name" data-field-label="メニュー名" autocomplete="off">
+                <input id="menu-name" data-field-label="メニュー名" data-required="true" autocomplete="off">
               </label>
               <div class="menu-tools">
                 <button type="button" id="refresh-draft" class="secondary compact-button">候補を更新</button>
@@ -107,24 +107,26 @@
             <div id="empty-box" class="notice warning" hidden>近い候補がまだありません。数値を入れて保存すると、次回から候補として使えます。</div>
 
             <div class="field-row">
-              <label class="field" data-label="フレーバー">
-                <span class="field-label">フレーバー</span>
-                <input id="field-flavor" data-field-label="フレーバー" autocomplete="off">
-              </label>
-              <label class="field" data-label="単位">
-                <span class="field-label">単位</span>
-                <input id="field-unit" data-field-label="単位" autocomplete="off">
-              </label>
-            </div>
-            <div class="field-row-help">
-              <div class="field-help">例: 鮭 / 塩 / いちご</div>
-              <div class="field-help">例: 1個 / 吉野家並 / 100g</div>
+              <div class="field-with-help">
+                <label class="field" data-label="フレーバー">
+                  <span class="field-label">フレーバー</span>
+                  <input id="field-flavor" data-field-label="フレーバー" autocomplete="off">
+                </label>
+                <div class="field-help">例: 鮭 / 塩 / いちご</div>
+              </div>
+              <div class="field-with-help">
+                <label class="field" data-label="単位">
+                  <span class="field-label">単位</span>
+                  <input id="field-unit" data-field-label="単位" autocomplete="off">
+                </label>
+                <div class="field-help">例: 1個 / 吉野家並 / 100g</div>
+              </div>
             </div>
 
             <div class="field-row">
-              <label class="field" data-label="カロリー(kcal)">
+              <label class="field field-required" data-label="カロリー(kcal)">
                 <span class="field-label">カロリー(kcal)</span>
-                <input id="field-kcal" data-field-label="カロリー(kcal)" type="number" min="0" step="0.1" inputmode="decimal" required>
+                <input id="field-kcal" data-field-label="カロリー(kcal)" data-required="true" type="number" min="0" step="0.1" inputmode="decimal" required>
               </label>
               <label class="field" data-label="たんぱく質(g)">
                 <span class="field-label">たんぱく質(g)</span>

@@ -559,12 +559,14 @@ function updateFieldState(input, isActive) {
   if (!field) return;
   const label = field.querySelector('.field-label');
   const value = String(input.value || '').trim();
+  const isRequired = input.dataset.required === 'true';
 
   field.classList.toggle('is-active', Boolean(isActive));
   field.classList.toggle('has-value', Boolean(value));
+  field.classList.toggle('is-required-empty', Boolean(isRequired && !value));
   if (label) {
     const baseLabel = input.dataset.fieldLabel || field.dataset.label || '';
-    label.textContent = baseLabel;
+    label.textContent = isRequired && !value ? `必須: ${baseLabel}` : baseLabel;
   }
 }
 
