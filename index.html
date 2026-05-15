@@ -123,7 +123,10 @@
                 <span class="field-label">カロリー(kcal)</span>
                 <input id="field-kcal" data-field-label="カロリー(kcal)" data-required="true" type="number" min="0" step="0.1" inputmode="decimal" required>
               </label>
-              <button type="button" id="advanced-nutrition-toggle" class="secondary compact-button advanced-toggle" aria-expanded="false">栄養項目を開く</button>
+              <div class="advanced-toggle-wrap">
+                <button type="button" id="advanced-nutrition-toggle" class="secondary compact-button advanced-toggle" aria-expanded="false">栄養項目を開く</button>
+                <div id="advanced-nutrition-note" class="advanced-nutrition-note" hidden>入力値があるため、表示したままになります。</div>
+              </div>
             </div>
 
             <div id="advanced-nutrition-section" class="advanced-nutrition-section" hidden>
@@ -189,6 +192,7 @@
             <div class="menu-tools">
               <button type="button" id="search-master" class="secondary compact-button">検索する</button>
             </div>
+            <div id="master-search-status" class="master-search-status">メニュー名に合わせて検索します。</div>
           </div>
           <div id="master-search-results" class="candidate-list">
             <div class="empty-state">メニュー名や補足で検索できます。</div>

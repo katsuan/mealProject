@@ -818,6 +818,17 @@
     justify-content: flex-start;
   }
 
+  .master-search-status {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+    padding: 0 4px;
+  }
+
+  .master-search-status.is-loading {
+    color: var(--accent-strong);
+  }
+
   .menu-tools {
     display: flex;
     justify-content: flex-end;
@@ -832,6 +843,19 @@
   .advanced-toggle {
     min-height: 58px;
     justify-self: stretch;
+  }
+
+  .advanced-toggle-wrap {
+    display: grid;
+    gap: 4px;
+    align-content: start;
+  }
+
+  .advanced-nutrition-note {
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
   }
 
   .advanced-nutrition-section {

@@ -241,6 +241,13 @@ function bindMasterSearch() {
   });
 }
 
+function renderMasterSearchStatus_(message, isLoading) {
+  const node = document.getElementById('master-search-status');
+  if (!node) return;
+  node.textContent = message || 'メニュー名に合わせて検索します。';
+  node.classList.toggle('is-loading', Boolean(isLoading));
+}
+
 async function runMasterSearch_(query, options) {
   const config = options || {};
   const normalizedQuery = String(query || '').trim();
@@ -256,6 +263,7 @@ async function runMasterSearch_(query, options) {
     state.masterSearchResults = [];
     state.lastMasterSearchQuery = '';
     renderMasterSearchResults_([]);
+    renderMasterSearchStatus_('メニュー名に合わせて検索します。', false);
     return;
   }
 
@@ -264,6 +272,12 @@ async function runMasterSearch_(query, options) {
   const previous = searchButton.textContent;
   searchButton.disabled = true;
   searchButton.textContent = '検索中...';
+  renderMasterSearchStatus_(
+    config.source === 'menu-blur'
+      ? 'メニュー名の入力をもとに検索しています...'
+      : '登録済みDBを検索しています...',
+    true
+  );
   if (config.announce) {
     pushStatus('info', '登録済みDBを検索中...');
   }
@@ -279,10 +293,17 @@ async function runMasterSearch_(query, options) {
     state.lastMasterSearchQuery = normalizedQuery;
     applyPermissionState_(result.permission);
     renderMasterSearchResults_(state.masterSearchResults);
+    renderMasterSearchStatus_(
+      state.masterSearchResults.length
+        ? `${state.masterSearchResults.length}件見つかりました。`
+        : '一致する登録済みDBはまだありません。',
+      false
+    );
     if (config.announce) {
       pushStatus('info', `${state.masterSearchResults.length}件の候補を見つけました。`);
     }
   } catch (error) {
+    renderMasterSearchStatus_('検索に失敗しました。少し待ってからもう一度お試しください。', false);
     if (config.announce) {
       pushStatus('warning', `登録済みDB検索に失敗しました: ${error.message}`);
       pushStatus('debug', buildErrorDetail_(error));
@@ -628,6 +649,7 @@ function bindFieldInteractions() {
     if (!menuValue) {
       state.lastMasterSearchQuery = '';
       renderMasterSearchResults_([]);
+      renderMasterSearchStatus_('メニュー名に合わせて検索します。', false);
       return;
     }
     state.masterSearchTimer = window.setTimeout(() => {
@@ -635,6 +657,16 @@ function bindFieldInteractions() {
       if (menuValue === state.lastMasterSearchQuery) return;
       runMasterSearch_(menuValue, { announce: false, source: 'menu-input' });
     }, 350);
+  });
+  document.getElementById('menu-name').addEventListener('blur', () => {
+    const menuValue = String(document.getElementById('menu-name').value || '').trim();
+    if (state.masterSearchTimer) {
+      window.clearTimeout(state.masterSearchTimer);
+      state.masterSearchTimer = null;
+    }
+    if (!menuValue || !document.getElementById('user-id').value.trim()) return;
+    if (menuValue === state.lastMasterSearchQuery || state.isMasterSearching) return;
+    runMasterSearch_(menuValue, { announce: false, source: 'menu-blur' });
   });
 }
 
@@ -647,10 +679,12 @@ function renderAdvancedNutritionSection_() {
   const hasValues = hasAdvancedNutritionValues_();
   const section = document.getElementById('advanced-nutrition-section');
   const toggle = document.getElementById('advanced-nutrition-toggle');
+  const note = document.getElementById('advanced-nutrition-note');
   const shouldOpen = state.advancedNutritionOpen || hasValues;
   section.hidden = !shouldOpen;
   toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
   toggle.textContent = shouldOpen ? '栄養項目を閉じる' : '栄養項目を開く';
+  note.hidden = !hasValues;
 }
 
 function updateFieldState(input, isActive) {
