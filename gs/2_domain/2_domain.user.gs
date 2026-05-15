@@ -217,15 +217,54 @@ function trimAdminQuickReplyLabel_(value) {
 }
 
 function mapUserRow_(row) {
-  return {
+  const currentMapped = {
     userId: String(row[USER_COL_INDEX.userId - 1] || ''),
     displayName: String(row[USER_COL_INDEX.displayName - 1] || ''),
     pictureUrl: String(row[USER_COL_INDEX.pictureUrl - 1] || ''),
     calorieTarget: toNullableNumber_(row[USER_COL_INDEX.calorieTarget - 1]),
-    goalType: String(row[USER_COL_INDEX.goalType - 1] || GOAL_TYPE.KEEP),
-    notify: row[USER_COL_INDEX.notify - 1] === true,
-    status: String(row[USER_COL_INDEX.status - 1] || 'active'),
+    goalType: normalizeGoalType_(row[USER_COL_INDEX.goalType - 1]),
+    notify: toBoolean_(row[USER_COL_INDEX.notify - 1]),
+    status: normalizeUserStatus_(row[USER_COL_INDEX.status - 1]),
     createdAt: row[USER_COL_INDEX.createdAt - 1] || null,
     updatedAt: row[USER_COL_INDEX.updatedAt - 1] || null,
   };
+
+  const shiftedMapped = {
+    userId: String(row[0] || ''),
+    displayName: String(row[1] || ''),
+    pictureUrl: String(row[2] || ''),
+    calorieTarget: toNullableNumber_(row[3]),
+    goalType: normalizeGoalType_(row[4]),
+    notify: toBoolean_(row[5]),
+    status: normalizeUserStatus_(row[6]),
+    createdAt: row[7] || null,
+    updatedAt: row[8] || null,
+  };
+
+  if (isPlausibleLegacyShiftedUserRow_(currentMapped, shiftedMapped)) {
+    return shiftedMapped;
+  }
+
+  return currentMapped;
+}
+
+function isPlausibleLegacyShiftedUserRow_(currentMapped, shiftedMapped) {
+  return !isKnownUserStatus_(currentMapped.status) &&
+    isKnownUserStatus_(shiftedMapped.status) &&
+    currentMapped.calorieTarget == null &&
+    shiftedMapped.calorieTarget != null;
+}
+
+function normalizeGoalType_(value) {
+  const text = String(value || '').trim();
+  return Object.values(GOAL_TYPE).includes(text) ? text : GOAL_TYPE.KEEP;
+}
+
+function normalizeUserStatus_(value) {
+  const text = String(value || '').trim();
+  return isKnownUserStatus_(text) ? text : text;
+}
+
+function isKnownUserStatus_(value) {
+  return ['active', 'inactive', 'pending'].includes(String(value || '').trim());
 }
