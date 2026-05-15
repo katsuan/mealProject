@@ -38,7 +38,6 @@ const state = {
   dashboardLoaded: false,
   masterSearchResults: [],
   isSettingsModalOpen: false,
-  isHeroMenuOpen: false,
   menuDirty: false,
   mealDirty: false,
   mealDateDirty: false,
@@ -176,22 +175,6 @@ function bindStatusToggles() {
   });
 }
 
-function bindHeroMenu() {
-  const toggle = document.getElementById('hero-menu-toggle');
-  const menu = document.getElementById('hero-menu');
-  toggle.addEventListener('click', event => {
-    event.stopPropagation();
-    state.isHeroMenuOpen = !state.isHeroMenuOpen;
-    menu.hidden = !state.isHeroMenuOpen;
-  });
-  document.addEventListener('click', event => {
-    if (!state.isHeroMenuOpen) return;
-    if (event.target.closest('#hero-menu') || event.target.closest('#hero-menu-toggle')) return;
-    state.isHeroMenuOpen = false;
-    menu.hidden = true;
-  });
-}
-
 function bindCandidateAccordion() {
   document.getElementById('candidate-accordion-toggle').addEventListener('click', () => {
     state.candidateAccordionOpen = !state.candidateAccordionOpen;
@@ -235,8 +218,6 @@ function bindLoginButton() {
 
 function bindSettingsModal() {
   document.getElementById('open-settings').addEventListener('click', () => {
-    state.isHeroMenuOpen = false;
-    document.getElementById('hero-menu').hidden = true;
     const userId = document.getElementById('user-id').value.trim();
     if (!userId) {
       pushStatus('notice', 'LINEログイン後に設定を変更できます。');
@@ -371,7 +352,6 @@ async function runServer(action, payload) {
 
 async function initializeApp() {
   try {
-    bindHeroMenu();
     bindStatusToggles();
     bindCandidateAccordion();
     bindAdvancedNutritionToggle();
@@ -1147,11 +1127,12 @@ function renderDraft(draft) {
   const emptyBox = document.getElementById('empty-box');
   const candidateList = document.getElementById('candidate-list');
   const candidateAccordion = document.getElementById('candidate-accordion');
+  const menuValue = String(document.getElementById('menu-name').value || '').trim();
 
   if (!draft) {
     suggestionBox.hidden = true;
     emptyBox.hidden = true;
-    candidateAccordion.hidden = true;
+    candidateAccordion.hidden = !menuValue;
     candidateList.innerHTML = '<div class="empty-state">候補はここに表示されます。</div>';
     state.candidateAccordionOpen = false;
     renderCandidateAccordion_();
@@ -1188,31 +1169,40 @@ function renderDraft(draft) {
 
   if (prefill.hasSuggestion) {
     suggestionBox.hidden = false;
-    suggestionBox.textContent = `「${prefill.masterName}」を近い候補として下書きに入れました。一致度は ${prefill.scorePercent}% です。`;
+    suggestionBox.textContent = `「${prefill.masterName}」を候補から選びました。一致度は ${prefill.scorePercent}% です。`;
   } else {
     suggestionBox.hidden = true;
   }
 
   const candidates = draft.candidates || [];
   emptyBox.hidden = Boolean(candidates.length);
-  candidateAccordion.hidden = !candidates.length;
-  if (!candidates.length) {
+  candidateAccordion.hidden = !String(draft.menu || menuValue).trim();
+  if (!candidates.length && !state.candidateAccordionOpen) {
     state.candidateAccordionOpen = false;
   }
 
   candidateList.innerHTML = candidates.length
     ? candidates.map((candidate, index) => `
-        <div class="candidate-item">
+        <button type="button" class="candidate-item-button" onclick="applyCandidate(${index})">
           <div class="candidate-top">
             <div class="candidate-name">${escapeHtml(candidate.name)}</div>
             <div class="candidate-score">一致度 ${candidate.scorePercent}%</div>
           </div>
+          ${buildCandidateDetailLine_(candidate)}
           <div class="candidate-meta">カロリー ${formatNumber(candidate.kcal)} kcal / たんぱく質 ${formatNumber(candidate.protein)} g / 脂質 ${formatNumber(candidate.fat)} g / 炭水化物 ${formatNumber(candidate.carb)} g</div>
-          <button type="button" class="secondary" onclick="applyCandidate(${index})">この候補を使う</button>
-        </div>
+          <div class="candidate-cta">タップで入力欄に反映</div>
+        </button>
       `).join('')
     : '<div class="empty-state">近い候補はまだありません。</div>';
   renderCandidateAccordion_();
+}
+
+function buildCandidateDetailLine_(candidate) {
+  const detailParts = [candidate.unit, candidate.flavor]
+    .map(value => String(value || '').trim())
+    .filter(Boolean);
+  if (!detailParts.length) return '';
+  return `<div class="candidate-detail">${escapeHtml(detailParts.join(' / '))}</div>`;
 }
 
 function applyNutritionFields(nutrition, extras) {
@@ -1244,7 +1234,7 @@ function applyCandidate(index) {
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
-  pushStatus('info', `「${candidate.name}」の数値を入力欄に反映しました。`);
+  pushStatus('info', `「${candidate.name}」を入力欄に反映しました。内容を確認して保存してください。`);
 }
 
 function applyMasterSearchResult(index) {
@@ -1317,13 +1307,14 @@ function renderCandidateAccordion_() {
   const icon = document.getElementById('candidate-accordion-icon');
   const label = document.getElementById('candidate-accordion-label');
   const toggle = document.getElementById('candidate-accordion-toggle');
+  const menuValue = String(document.getElementById('menu-name').value || '').trim();
+  const shouldShow = Boolean(menuValue || (draft && draft.menu));
 
-  if (!candidates.length) {
+  if (!shouldShow) {
     accordion.hidden = true;
     body.hidden = true;
     icon.textContent = '▸';
     label.textContent = '近い候補';
-    document.getElementById('candidate-count-label').textContent = '候補 0件';
     toggle.setAttribute('aria-expanded', 'false');
     return;
   }
@@ -1332,13 +1323,12 @@ function renderCandidateAccordion_() {
   body.hidden = !state.candidateAccordionOpen;
   icon.textContent = state.candidateAccordionOpen ? '▾' : '▸';
   toggle.setAttribute('aria-expanded', state.candidateAccordionOpen ? 'true' : 'false');
-  label.textContent = buildCandidateAccordionLabel_(candidates);
-  document.getElementById('candidate-count-label').textContent = `候補 ${candidates.length}件`;
+  label.textContent = buildCandidateAccordionLabel_(candidates, menuValue || (draft && draft.menu) || '');
 }
 
-function buildCandidateAccordionLabel_(candidates) {
+function buildCandidateAccordionLabel_(candidates, menuName) {
   if (!candidates.length) {
-    return '近い候補';
+    return menuName ? `近い候補 (0件)` : '近い候補';
   }
 
   if (candidates.length === 1) {

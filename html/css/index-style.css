@@ -87,7 +87,7 @@
 
   .hero-top {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
     gap: 12px;
     align-items: center;
   }
@@ -97,6 +97,17 @@
     grid-template-columns: auto minmax(0, 1fr);
     gap: 12px;
     align-items: center;
+    min-width: 0;
+  }
+
+  .profile-avatar-button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
   }
 
   .avatar {
@@ -162,20 +173,8 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    align-self: start;
-  }
-
-  .hero-menu {
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 8px;
-    justify-content: flex-end;
-    align-items: center;
-  }
-
-  .hero-menu[hidden] {
-    display: none !important;
+    align-self: center;
+    justify-self: end;
   }
 
   .hero-menu-button {
@@ -216,6 +215,7 @@
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
     align-items: stretch;
+    min-width: 0;
   }
 
   .header-stat {
@@ -229,6 +229,7 @@
   .header-stat-wide {
     display: grid;
     gap: 4px;
+    min-height: 100%;
   }
 
   .header-stat-head {
@@ -793,6 +794,13 @@
     gap: 10px;
   }
 
+  .candidate-helper {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+    padding: 0 4px;
+  }
+
   .menu-block {
     display: grid;
     gap: 8px;
@@ -809,6 +817,10 @@
     font-size: 12px;
     font-weight: 700;
     color: var(--muted);
+  }
+
+  .candidate-tools {
+    justify-content: flex-start;
   }
 
   .menu-tools {
@@ -1186,6 +1198,15 @@
     padding: 12px;
   }
 
+  .candidate-item-button {
+    width: 100%;
+    text-align: left;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface-subtle);
+    padding: 12px;
+  }
+
   .candidate-top,
   .log-top {
     display: flex;
@@ -1213,6 +1234,20 @@
     color: var(--muted);
     line-height: 1.5;
     white-space: pre-wrap;
+  }
+
+  .candidate-detail {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text);
+  }
+
+  .candidate-cta {
+    margin-top: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-strong);
   }
 
   .candidate-item button {
@@ -1294,6 +1329,15 @@
     .page {
       padding-left: 10px;
       padding-right: 10px;
+    }
+
+    .hero-top {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+    }
+
+    .header-summary-row {
+      grid-column: 1 / -1;
     }
 
     .profile-copy .name {
@@ -1423,6 +1467,10 @@
     .hero-top {
       grid-template-columns: 1fr;
       align-items: start;
+    }
+
+    .header-summary-row {
+      grid-column: auto;
     }
 
     .hero-actions {

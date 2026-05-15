@@ -10,33 +10,31 @@
       <section class="band hero">
         <div class="hero-top">
           <div class="profile-row">
-            <div id="avatar" class="avatar">L</div>
+            <button id="open-settings" type="button" class="profile-avatar-button" aria-label="設定を開く" title="設定を開く">
+              <div id="avatar" class="avatar">L</div>
+            </button>
             <div class="profile-copy">
               <div class="eyebrow">LINEプロフィール</div>
               <div id="profile-name" class="name">ログイン待ちです</div>
               <button id="login-line" type="button" class="inline-login" hidden>LINEでログイン</button>
             </div>
           </div>
-          <div class="hero-actions">
-            <button id="hero-menu-toggle" type="button" class="hero-icon-button" aria-label="メニューを開く" title="メニューを開く">☰</button>
+          <div id="header-summary-scope" class="header-summary-row">
+            <div class="header-stat header-stat-wide">
+              <div class="header-stat-head">
+                <div class="header-stat-label">今日の確定カロリー</div>
+                <button id="header-pending-count" type="button" class="header-badge">0件未登録</button>
+              </div>
+              <div class="header-stat-pair">
+                <div id="header-exact-kcal" class="header-stat-value">0</div>
+                <div class="header-stat-divider">/</div>
+                <div id="header-target-kcal" class="header-stat-subvalue">-</div>
+              </div>
+              <div id="header-exact-rate" class="header-stat-meta">目標比 -</div>
+            </div>
           </div>
-        </div>
-        <div id="hero-menu" class="hero-menu" hidden>
-          <button id="open-settings" type="button" class="hero-menu-button">設定</button>
-          <button id="status-accordion-toggle" type="button" class="hero-menu-button" aria-expanded="false">デバッグ ▸</button>
-        </div>
-        <div id="header-summary-scope" class="header-summary-row">
-          <div class="header-stat header-stat-wide">
-            <div class="header-stat-head">
-              <div class="header-stat-label">今日の確定カロリー</div>
-              <button id="header-pending-count" type="button" class="header-badge">0件未登録</button>
-            </div>
-            <div class="header-stat-pair">
-              <div id="header-exact-kcal" class="header-stat-value">0</div>
-              <div class="header-stat-divider">/</div>
-              <div id="header-target-kcal" class="header-stat-subvalue">-</div>
-            </div>
-            <div id="header-exact-rate" class="header-stat-meta">目標比 -</div>
+          <div class="hero-actions">
+            <button id="status-accordion-toggle" type="button" class="hero-menu-button" aria-expanded="false">デバッグ ▸</button>
           </div>
         </div>
         <div id="status-panel" class="status-panel" hidden>
@@ -101,13 +99,12 @@
                 <span id="candidate-accordion-label" class="inline-accordion-label">近い候補</span>
               </button>
               <div id="candidate-accordion-body" class="inline-accordion-body" hidden>
+                <div class="candidate-helper">候補をタップして入力欄へ反映し、下の保存で記録します。</div>
                 <div id="candidate-list" class="candidate-list"></div>
+                <div class="menu-tools candidate-tools">
+                  <button type="button" id="refresh-draft" class="secondary compact-button">この名前で候補を見る</button>
+                </div>
               </div>
-            </div>
-
-            <div class="candidate-head">
-              <div id="candidate-count-label" class="candidate-count-label">候補 0件</div>
-              <button type="button" id="refresh-draft" class="secondary compact-button">候補を更新</button>
             </div>
 
             <div id="suggestion-box" class="notice suggestion" hidden></div>

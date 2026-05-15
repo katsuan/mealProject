@@ -224,41 +224,54 @@ function trimQuickReplyLabel_(value) {
   return text.length > 20 ? `${text.slice(0, 19)}…` : text;
 }
 
+function buildFlexHeaderBox_(title, subtitle, options) {
+  const config = options || {};
+  return {
+    type: 'box',
+    layout: 'vertical',
+    backgroundColor: config.backgroundColor || '#FDF5F2',
+    cornerRadius: '12px',
+    paddingAll: '14px',
+    contents: [
+      {
+        type: 'text',
+        text: title,
+        weight: 'bold',
+        size: config.titleSize || 'lg',
+        color: config.titleColor || '#231815',
+        wrap: true,
+      },
+      subtitle ? {
+        type: 'text',
+        text: subtitle,
+        size: config.subtitleSize || 'sm',
+        color: config.subtitleColor || '#6b7280',
+        wrap: true,
+        margin: 'sm',
+      } : null,
+    ].filter(Boolean),
+  };
+}
+
 function buildDailySummaryBubble_(context) {
   const mealSegments = buildFlexMealSegments_(context.today, context.hasTarget ? context.targetKcal : 0, context.total);
   return {
     type: 'bubble',
     size: 'mega',
+    header: buildFlexHeaderBox_(
+      context.record ? `✅ ${context.headline}` : context.headline,
+      context.subline,
+      {
+        backgroundColor: context.tone.soft,
+        titleColor: context.tone.text,
+        subtitleColor: context.sublineColor,
+      }
+    ),
     body: {
       type: 'box',
       layout: 'vertical',
       spacing: 'md',
       contents: [
-        {
-          type: 'box',
-          layout: 'vertical',
-          backgroundColor: context.tone.soft,
-          cornerRadius: '12px',
-          paddingAll: '14px',
-          contents: [
-            {
-              type: 'text',
-              text: context.headline,
-              weight: 'bold',
-              size: 'lg',
-              color: context.tone.text,
-              wrap: true,
-            },
-            {
-              type: 'text',
-              text: context.subline,
-              size: 'sm',
-              color: context.sublineColor,
-              wrap: true,
-              margin: 'sm',
-            },
-          ],
-        },
         context.record ? {
           type: 'box',
           layout: 'vertical',
@@ -492,35 +505,16 @@ function buildTodayLogBubble_(context) {
   return {
     type: 'bubble',
     size: 'mega',
+    header: buildFlexHeaderBox_('今日のログ', context.pendingLine, {
+      backgroundColor: '#FDF5F2',
+      titleColor: '#B8462C',
+      subtitleColor: '#8a6258',
+    }),
     body: {
       type: 'box',
       layout: 'vertical',
       spacing: 'md',
       contents: [
-        {
-          type: 'box',
-          layout: 'vertical',
-          backgroundColor: '#FDF5F2',
-          cornerRadius: '12px',
-          paddingAll: '14px',
-          contents: [
-            {
-              type: 'text',
-              text: '今日のログ',
-              weight: 'bold',
-              size: 'lg',
-              color: '#B8462C',
-            },
-            {
-              type: 'text',
-              text: context.pendingLine,
-              size: 'sm',
-              color: '#8a6258',
-              margin: 'sm',
-              wrap: false,
-            },
-          ],
-        },
         {
           type: 'box',
           layout: 'vertical',
@@ -569,6 +563,11 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
     altText: `${parsed.menu} は未登録のため未記入ログとして保存しました。候補を採用するか画面で入力してください。`,
     contents: {
       type: 'bubble',
+      header: buildFlexHeaderBox_('未記入で保存しました', `${parsed.meal} ${parsed.menu}`, {
+        backgroundColor: '#FDE7D6',
+        titleColor: '#B7672B',
+        subtitleColor: '#231815',
+      }),
       body: {
         type: 'box',
         layout: 'vertical',
@@ -577,31 +576,16 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
           {
             type: 'box',
             layout: 'vertical',
-            backgroundColor: '#FDE7D6',
+            backgroundColor: '#FFF7F2',
             cornerRadius: '12px',
-            paddingAll: '14px',
+            paddingAll: '12px',
             contents: [
               {
                 type: 'text',
-                text: '未登録メニュー',
-                weight: 'bold',
-                size: 'lg',
-                color: '#B7672B',
-              },
-              {
-                type: 'text',
-                text: `${parsed.meal} ${parsed.menu}`,
-                wrap: true,
-                size: 'md',
-                margin: 'sm',
-              },
-              {
-                type: 'text',
-                text: 'いったん未記入のログとして保存しました。近い候補をタップするとこのログに採用して記録します。候補と違う場合は画面で内容を入力できます。',
+                text: '近い候補はそのまま採用できます。違う場合だけ画面で内容を入力してください。',
                 wrap: true,
                 size: 'sm',
                 color: '#8a6258',
-                margin: 'sm',
               },
             ],
           },
@@ -699,7 +683,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
         menu: candidate.name,
         mealDate: parsed.mealDate,
       }),
-      displayText: `> ${parsed.meal} ${candidate.name} \nを記録しています...`,
+      displayText: `> ${parsed.meal} ${candidate.name}\nを採用しています...`,
     },
     contents: [
       {
