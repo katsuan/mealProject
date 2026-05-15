@@ -151,7 +151,17 @@ function buildDailySummaryFlexMessage(userId, options) {
 }
 
 function buildPopularQuickReply_(userId) {
-  const items = getPopularMenusByUser_(userId, 6)
+  const seenMenus = {};
+  const items = getPopularMenusByUser_(userId, 20)
+    .filter(item => {
+      const menu = String(item.menu || '').trim();
+      if (!menu) return false;
+      const normalized = normalizeText_(menu);
+      if (seenMenus[normalized]) return false;
+      seenMenus[normalized] = true;
+      return true;
+    })
+    .slice(0, 6)
     .map(item => ({
       type: 'action',
       action: {
