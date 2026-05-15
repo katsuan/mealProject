@@ -87,7 +87,7 @@
 
   .hero-top {
     display: grid;
-    grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 12px;
     align-items: center;
   }
@@ -1399,12 +1399,8 @@
     }
 
     .hero-top {
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: start;
-    }
-
-    .header-summary-row {
-      grid-column: 1 / -1;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: center;
     }
 
     .profile-copy .name {
@@ -1463,6 +1459,11 @@
     .profile-copy .name {
       font-size: 15px;
       line-height: 1.15;
+    }
+
+    .hero-top {
+      grid-template-columns: 1fr;
+      align-items: start;
     }
 
     .header-stat {
@@ -1529,15 +1530,6 @@
 
     .meal-type-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .hero-top {
-      grid-template-columns: 1fr;
-      align-items: start;
-    }
-
-    .header-summary-row {
-      grid-column: auto;
     }
 
     .hero-actions {
