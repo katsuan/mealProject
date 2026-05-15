@@ -23,7 +23,7 @@ function handleTextEvent(param) {
     return buildLogReply(param.userId, result.record);
   }
 
-  return '詳細を入力してください。';
+  return '未記入ログとして保存しました。詳細を入力してください。';
 }
 
 function handleLineWebhook_(payload) {

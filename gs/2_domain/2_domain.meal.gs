@@ -70,7 +70,7 @@ function appendMealLogRecord_(userId, parsed, nutrition, options) {
     updatedAt: now,
   };
 
-  appendMealLog(record);
+  record.row = appendMealLog(record);
   return record;
 }
 
@@ -82,6 +82,7 @@ function appendMealLog(log) {
 
   const row = MEAL_LOG_COLUMNS.map(key => log[key] ?? null);
   sheet.appendRow(row);
+  return sheet.getLastRow();
 }
 
 function getMealLogByRow(rowNumber) {

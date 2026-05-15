@@ -400,9 +400,16 @@ function handleMealMessageFlow(userId, text, displayName, source, pictureUrl) {
     };
   }
 
+  const pendingRecord = logMealWithNutrition(userId, parsed, emptyNutrition_(), {
+    source: source || SOURCE.TEXT,
+    mealDate: parsed.mealDate,
+    kcalStatus: KCAL_STATUS.PENDING,
+  });
+
   return {
     kind: 'needs_liff',
-    parsed: parsed,
+    parsed: Object.assign({}, parsed, { row: Number(pendingRecord.row || 0) }),
+    record: pendingRecord,
     draft: buildNutritionDraft(parsed.menu),
     dashboard: getDashboardData(userId),
   };
@@ -480,10 +487,35 @@ function submitMealCandidate(userId, payload, source) {
     throw new Error('menu is required');
   }
 
-  const record = logMealFromMaster(userId, parsed, master, {
-    source: source || SOURCE.LINE,
-    mealDate: payload && payload.mealDate,
-  });
+  const row = Number(payload && payload.row || 0);
+  let record;
+  if (Number.isFinite(row) && row >= 2) {
+    const currentLog = getMealLogByRow(row);
+    if (!currentLog || currentLog.userId !== userId) {
+      throw new Error('candidate target log is not available');
+    }
+    record = Object.assign({}, currentLog, {
+      mealDate: payload && payload.mealDate ? new Date(payload.mealDate) : currentLog.mealDate,
+      meal: sanitizeMealType_(payload && payload.meal),
+      menu: String(master.name || payload && payload.menu || '').trim(),
+      kcal: toNullableNumber_(master.kcal),
+      protein: toNullableNumber_(master.protein),
+      fat: toNullableNumber_(master.fat),
+      carb: toNullableNumber_(master.carb),
+      salt: toNullableNumber_(master.salt),
+      fiber: toNullableNumber_(master.fiber),
+      kcalStatus: KCAL_STATUS.EXACT,
+      masterKey: master.masterKey,
+      source: source || SOURCE.LINE,
+      updatedAt: new Date(),
+    });
+    updateMealLog(record);
+  } else {
+    record = logMealFromMaster(userId, parsed, master, {
+      source: source || SOURCE.LINE,
+      mealDate: payload && payload.mealDate,
+    });
+  }
 
   return {
     parsed: parsed,

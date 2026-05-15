@@ -49,6 +49,7 @@ function buildInitialQuery_(fallback) {
   const params = new URLSearchParams(window.location.search || '');
   return {
     mode: params.get('mode') || String(fallback.mode || '').trim(),
+    row: params.get('row') || String(fallback.row || '').trim(),
     meal: params.get('meal') || String(fallback.meal || '').trim(),
     menu: params.get('menu') || String(fallback.menu || '').trim(),
     datePreset: params.get('datePreset') || String(fallback.datePreset || '').trim(),
@@ -278,7 +279,7 @@ function closeSettingsModal_() {
 }
 
 function shouldLoadFullStateOnBoot_() {
-  return Boolean(initialQuery.menu || initialQuery.mode === 'detail');
+  return Boolean(initialQuery.menu || initialQuery.row || initialQuery.mode === 'detail');
 }
 
 async function runServer(action, payload) {
@@ -393,6 +394,9 @@ async function initializeLiffProfile_() {
 }
 
 function hydrateQuery() {
+  if (initialQuery.row) {
+    document.getElementById('editing-log-row').value = initialQuery.row;
+  }
   if (initialQuery.meal) {
     setMealType(initialQuery.meal);
   }
@@ -765,6 +769,10 @@ async function reloadState() {
     applyHeaderState_(result.header, result.permission);
     renderDashboard(state.dashboard);
     renderDraft(state.draft);
+    if (initialQuery.row && !document.getElementById('editing-log-row').value.trim()) {
+      document.getElementById('editing-log-row').value = initialQuery.row;
+      refreshMealSubmitControls_();
+    }
     saveCachedAppState_(userId, state.dashboard, state.draft);
     applyIdentityStatus_(result.identity);
     applyPermissionState_(result.permission);

@@ -94,12 +94,10 @@ function buildDailySummaryFlexMessage(userId, options) {
   const inputUrl = buildLiffUrl_({ mode: 'input' });
   const logsUrl = buildLiffUrl_({ mode: 'logs' });
   const recordDisplayName = context.record ? buildRecordDisplayName_(context.record) : '';
+  const recordDetailLine = context.record ? buildRecordDetailLine_(context.record) : '';
   const headline = context.headline || (recordDisplayName ? `${recordDisplayName} を記録` : '今日の集計');
   const subline = context.subline || buildKcalDiffLine_(userId, total);
   const sublineColor = isOverTarget ? '#C84949' : '#6b7280';
-  const recordedLine = context.record
-    ? `${context.record.meal} ${recordDisplayName} / ${buildMealKcalLine(context.record)}`
-    : '';
   const pendingLine = today.hasPending
     ? `未登録 ${today.pendingItems.length}件`
     : '未登録なし';
@@ -124,7 +122,9 @@ function buildDailySummaryFlexMessage(userId, options) {
           headline: headline,
           subline: subline,
           sublineColor: sublineColor,
-          recordedLine: recordedLine,
+          record: context.record,
+          recordDisplayName: recordDisplayName,
+          recordDetailLine: recordDetailLine,
           hasTarget: hasTarget,
           progressWidth: progressWidth,
           tone: tone,
@@ -169,14 +169,21 @@ function buildRecordDisplayName_(record) {
   if (record.masterKey) {
     const master = getNutritionMaster(record.masterKey);
     if (master) {
-      return buildNutritionDisplayName_(master);
+      return String(master.name || '').trim();
     }
   }
-  const flavor = String(record.flavor || '').trim();
-  const unit = String(record.unit || '').trim();
-  const descriptor = buildNutritionDescriptor_(flavor, unit);
-  const menu = String(record.menu || '').trim();
-  return descriptor ? `${menu}：${descriptor}` : menu;
+  return String(record.menu || '').trim();
+}
+
+function buildRecordDetailLine_(record) {
+  if (!record) return '';
+  if (record.masterKey) {
+    const master = getNutritionMaster(record.masterKey);
+    if (master) {
+      return buildNutritionDescriptor_(master.flavor, master.unit);
+    }
+  }
+  return buildNutritionDescriptor_(record.flavor, record.unit);
 }
 
 function trimQuickReplyLabel_(value) {
@@ -218,20 +225,36 @@ function buildDailySummaryBubble_(context) {
             },
           ],
         },
-        context.recordedLine ? {
+        context.record ? {
           type: 'box',
           layout: 'vertical',
+          spacing: 'xs',
           cornerRadius: '12px',
           backgroundColor: '#F3F4F6',
           paddingAll: '12px',
           contents: [
             {
               type: 'text',
-              text: context.recordedLine,
+              text: `${context.record.meal} ${context.recordDisplayName}`,
               size: 'sm',
+              weight: 'bold',
               wrap: true,
             },
-          ],
+            context.recordDetailLine ? {
+              type: 'text',
+              text: context.recordDetailLine,
+              size: 'xs',
+              color: '#8a6258',
+              wrap: true,
+            } : null,
+            {
+              type: 'text',
+              text: buildMealKcalLine(context.record),
+              size: 'xs',
+              color: '#6b7280',
+              wrap: true,
+            },
+          ].filter(Boolean),
         } : null,
         context.hasTarget ? {
           type: 'box',
@@ -475,6 +498,7 @@ function formatFlexLogTime_(value) {
 function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
   const liffUrl = buildLiffUrl_({
     mode: 'input',
+    row: parsed.row,
     meal: parsed.meal,
     menu: parsed.menu,
     mealDate: parsed.mealDate,
@@ -483,7 +507,7 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
   const topCandidates = (draft && draft.candidates || []).slice(0, 3);
   const message = {
     type: 'flex',
-    altText: `${parsed.menu} は未登録です。候補を採用するか画面で入力してください。`,
+    altText: `${parsed.menu} は未登録のため未記入ログとして保存しました。候補を採用するか画面で入力してください。`,
     contents: {
       type: 'bubble',
       body: {
@@ -514,7 +538,7 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
               },
               {
                 type: 'text',
-                text: '近い候補をタップすると、その候補を採用してすぐ記録します。候補と違う場合は画面で内容を入力できます。',
+                text: 'いったん未記入のログとして保存しました。近い候補をタップするとこのログに採用して記録します。候補と違う場合は画面で内容を入力できます。',
                 wrap: true,
                 size: 'sm',
                 color: '#8a6258',
@@ -609,6 +633,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
       label: `${candidate.name} を採用して記録`,
       data: buildQueryString_({
         action: 'logCandidate',
+        row: parsed.row,
         meal: parsed.meal,
         masterKey: candidate.masterKey,
         menu: candidate.name,
