@@ -1612,7 +1612,7 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     pushStatus(
       'info',
       editingRow
-        ? 'ログを更新しました。'
+        ? (result.summaryPushed ? '更新してLINEに今日の集計を返しました。' : 'ログを更新しました。LINE送信は未実行です。')
         : (result.summaryPushed ? '保存してLINEに今日の集計を返しました。' : '保存しました。LINE送信は未実行です。')
     );
   } catch (error) {

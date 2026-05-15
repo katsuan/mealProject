@@ -261,10 +261,27 @@ function updateMealLogFromLiff(payload) {
     mealDate: payload.mealDate,
   }, SOURCE.LIFF);
 
+  let summaryPushed = false;
+  if (payload.sendLineSummary == null || toBoolean_(payload.sendLineSummary)) {
+    try {
+      pushLineMessages_(identity.userId, [
+        buildDailySummaryFlexMessage(identity.userId, {
+          dashboard: result.dashboard,
+          record: result.record,
+          headline: `${buildRecordDisplayName_(result.record)} を記録`,
+        }),
+      ]);
+      summaryPushed = true;
+    } catch (error) {
+      summaryPushed = false;
+    }
+  }
+
   return {
     ok: true,
     identity: serializeIdentityState_(identity),
     permission: serializeUserPermission_(getUserById(identity.userId)),
+    reply: buildLogReply(identity.userId, result.record),
     dashboard: result.dashboard,
     draft: getMealDraftState({
       meal: result.record.meal,
@@ -272,6 +289,7 @@ function updateMealLogFromLiff(payload) {
       mealDate: payload && payload.mealDate,
       datePreset: payload && payload.datePreset,
     }),
+    summaryPushed: summaryPushed,
   };
 }
 

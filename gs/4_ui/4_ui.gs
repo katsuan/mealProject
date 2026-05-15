@@ -425,7 +425,7 @@ function buildDailySummaryBubble_(context) {
         },
         {
           type: 'text',
-          text: `P ${roundNutrition_(context.today.nutrition.protein)} / F ${roundNutrition_(context.today.nutrition.fat)} / C ${roundNutrition_(context.today.nutrition.carb)}`,
+          text: `たんぱく質 ${roundNutrition_(context.today.nutrition.protein)}g - 脂質 ${roundNutrition_(context.today.nutrition.fat)}g - 炭水化物 ${roundNutrition_(context.today.nutrition.carb)}g`,
           size: 'xs',
           wrap: true,
           color: '#8a6258',
