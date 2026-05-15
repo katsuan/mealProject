@@ -10,6 +10,11 @@ function summarizeMealLogs(logs) {
   const exactLogs = logs.filter(log => log.kcalStatus === KCAL_STATUS.EXACT);
   const estimatedLogs = logs.filter(log => log.kcalStatus === KCAL_STATUS.ESTIMATED);
   const pendingLogs = logs.filter(log => log.kcalStatus === KCAL_STATUS.PENDING);
+  const meals = { 朝: 0, 昼: 0, 夜: 0, その他: 0 };
+  logs.forEach(log => {
+    const meal = sanitizeMealType_(log.meal);
+    meals[meal] = (meals[meal] || 0) + Number(log.kcal || 0);
+  });
 
   return {
     totalExact: exactLogs.reduce((sum, log) => sum + Number(log.kcal || 0), 0),
@@ -21,6 +26,7 @@ function summarizeMealLogs(logs) {
       menu: String(log.menu || ''),
       mealDate: toIsoDateTime_(log.mealDate),
     })),
+    meals: meals,
     nutrition: summarizeNutrition(logs),
   };
 }

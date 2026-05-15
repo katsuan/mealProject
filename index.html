@@ -135,32 +135,38 @@
                 <span class="field-label">カロリー(kcal)</span>
                 <input id="field-kcal" data-field-label="カロリー(kcal)" data-required="true" type="number" min="0" step="0.1" inputmode="decimal" required>
               </label>
+              <button type="button" id="advanced-nutrition-toggle" class="secondary compact-button advanced-toggle" aria-expanded="false">栄養項目を開く</button>
+            </div>
+
+            <div id="advanced-nutrition-section" class="advanced-nutrition-section" hidden>
+              <div class="field-row">
               <label class="field" data-label="たんぱく質(g)">
                 <span class="field-label">たんぱく質(g)</span>
                 <input id="field-protein" data-field-label="たんぱく質(g)" type="number" min="0" step="0.1" inputmode="decimal">
               </label>
-            </div>
-
-            <div class="field-row">
               <label class="field" data-label="脂質(g)">
                 <span class="field-label">脂質(g)</span>
                 <input id="field-fat" data-field-label="脂質(g)" type="number" min="0" step="0.1" inputmode="decimal">
               </label>
-              <label class="field" data-label="炭水化物(g)">
+              </div>
+
+              <div class="field-row">
+                <label class="field" data-label="炭水化物(g)">
                 <span class="field-label">炭水化物(g)</span>
                 <input id="field-carb" data-field-label="炭水化物(g)" type="number" min="0" step="0.1" inputmode="decimal">
               </label>
-            </div>
-
-            <div class="field-row">
-              <label class="field" data-label="塩分(g)">
-                <span class="field-label">塩分(g)</span>
-                <input id="field-salt" data-field-label="塩分(g)" type="number" min="0" step="0.1" inputmode="decimal">
+              <label class="field" data-label="食塩相当量(g)">
+                <span class="field-label">食塩相当量(g)</span>
+                <input id="field-salt" data-field-label="食塩相当量(g)" type="number" min="0" step="0.1" inputmode="decimal">
               </label>
+              </div>
+
+              <div class="field-row">
               <label class="field" data-label="食物繊維(g)">
                 <span class="field-label">食物繊維(g)</span>
                 <input id="field-fiber" data-field-label="食物繊維(g)" type="number" min="0" step="0.1" inputmode="decimal">
               </label>
+              </div>
             </div>
 
             <label class="field" data-label="メモ">

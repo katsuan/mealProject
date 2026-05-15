@@ -166,9 +166,12 @@
   }
 
   .hero-menu {
-    display: grid;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     gap: 8px;
-    justify-items: end;
+    justify-content: flex-end;
+    align-items: center;
   }
 
   .hero-menu[hidden] {
@@ -177,7 +180,7 @@
 
   .hero-menu-button {
     min-height: 34px;
-    min-width: 104px;
+    min-width: 88px;
     border: 1px solid var(--line);
     border-radius: 999px;
     background: var(--surface-subtle);
@@ -185,6 +188,7 @@
     padding: 7px 12px;
     font-size: 12px;
     text-align: center;
+    white-space: nowrap;
   }
 
   .hero-menu .status-accordion-toggle {
@@ -192,7 +196,6 @@
     height: 34px;
     padding: 0 12px;
     border-radius: 999px;
-    justify-self: stretch;
   }
 
   .hero-icon-button {
@@ -817,6 +820,20 @@
     min-height: 36px;
     padding: 8px 12px;
     font-size: 12px;
+  }
+
+  .advanced-toggle {
+    min-height: 58px;
+    justify-self: stretch;
+  }
+
+  .advanced-nutrition-section {
+    display: grid;
+    gap: 10px;
+  }
+
+  .advanced-nutrition-section[hidden] {
+    display: none !important;
   }
 
   .actions {

@@ -48,6 +48,7 @@ const state = {
   isMasterSearching: false,
   isMealSubmitting: false,
   isMasterSaving: false,
+  advancedNutritionOpen: false,
 };
 
 function buildInitialQuery_(fallback) {
@@ -195,6 +196,13 @@ function bindCandidateAccordion() {
   document.getElementById('candidate-accordion-toggle').addEventListener('click', () => {
     state.candidateAccordionOpen = !state.candidateAccordionOpen;
     renderCandidateAccordion_();
+  });
+}
+
+function bindAdvancedNutritionToggle() {
+  document.getElementById('advanced-nutrition-toggle').addEventListener('click', () => {
+    state.advancedNutritionOpen = !state.advancedNutritionOpen;
+    renderAdvancedNutritionSection_();
   });
 }
 
@@ -366,6 +374,7 @@ async function initializeApp() {
     bindHeroMenu();
     bindStatusToggles();
     bindCandidateAccordion();
+    bindAdvancedNutritionToggle();
     bindPendingSummaryJump();
     bindLoginButton();
     bindSettingsModal();
@@ -376,6 +385,7 @@ async function initializeApp() {
     bindMealDateButtons();
     bindLogFilterButtons();
     bindFieldInteractions();
+    renderAdvancedNutritionSection_();
     refreshTargetControls();
     renderStatus();
     pushStatus('info', 'プロフィールと今日の集計を準備しています。');
@@ -589,7 +599,15 @@ function bindFieldInteractions() {
   document.querySelectorAll('.field input, .field textarea').forEach(input => {
     input.addEventListener('focus', () => updateFieldState(input, true));
     input.addEventListener('blur', () => updateFieldState(input, false));
-    input.addEventListener('input', () => updateFieldState(input, input === document.activeElement));
+    input.addEventListener('input', () => {
+      updateFieldState(input, input === document.activeElement);
+      if (['field-protein', 'field-fat', 'field-carb', 'field-salt', 'field-fiber'].includes(input.id)) {
+        if (String(input.value || '').trim()) {
+          state.advancedNutritionOpen = true;
+        }
+        renderAdvancedNutritionSection_();
+      }
+    });
     updateFieldState(input, false);
   });
   document.getElementById('menu-name').addEventListener('input', () => {
@@ -597,6 +615,21 @@ function bindFieldInteractions() {
       state.menuDirty = true;
     }
   });
+}
+
+function hasAdvancedNutritionValues_() {
+  return ['field-protein', 'field-fat', 'field-carb', 'field-salt', 'field-fiber']
+    .some(id => String(document.getElementById(id).value || '').trim());
+}
+
+function renderAdvancedNutritionSection_() {
+  const hasValues = hasAdvancedNutritionValues_();
+  const section = document.getElementById('advanced-nutrition-section');
+  const toggle = document.getElementById('advanced-nutrition-toggle');
+  const shouldOpen = state.advancedNutritionOpen || hasValues;
+  section.hidden = !shouldOpen;
+  toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+  toggle.textContent = shouldOpen ? '栄養項目を閉じる' : '栄養項目を開く';
 }
 
 function updateFieldState(input, isActive) {
@@ -1192,6 +1225,8 @@ function applyNutritionFields(nutrition, extras) {
   setFieldValue('field-flavor', extras.flavor || '');
   setFieldValue('field-unit', extras.unit || '');
   setFieldValue('field-note', extras.note || '');
+  state.advancedNutritionOpen = hasAdvancedNutritionValues_();
+  renderAdvancedNutritionSection_();
 }
 
 function setFieldValue(id, value) {

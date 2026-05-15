@@ -79,6 +79,19 @@ function getFlexTone_(kind) {
   }
 }
 
+function getMealFlexColor_(meal) {
+  switch (String(meal || '')) {
+    case '朝':
+      return '#F5A623';
+    case '昼':
+      return '#4A90E2';
+    case '夜':
+      return '#7B61FF';
+    default:
+      return '#6FCF97';
+  }
+}
+
 function formatPercentValue_(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return '0.0';
@@ -139,6 +152,7 @@ function buildDailySummaryFlexMessage(userId, options) {
           tone: tone,
           total: total,
           totalColor: totalColor,
+          targetKcal: targetKcal,
           targetValueLine: targetValueLine,
           targetValueColor: targetValueColor,
           targetRatioColor: targetRatioColor,
@@ -211,6 +225,7 @@ function trimQuickReplyLabel_(value) {
 }
 
 function buildDailySummaryBubble_(context) {
+  const mealSegments = buildFlexMealSegments_(context.today, context.hasTarget ? context.targetKcal : 0, context.total);
   return {
     type: 'bubble',
     size: 'mega',
@@ -282,21 +297,23 @@ function buildDailySummaryBubble_(context) {
           contents: [
             {
               type: 'box',
-              layout: 'vertical',
+              layout: 'horizontal',
               height: '10px',
               backgroundColor: '#D1D5DB',
               cornerRadius: '999px',
-              contents: [
-                {
-                  type: 'box',
-                  layout: 'vertical',
-                  width: context.progressWidth,
-                  height: '10px',
-                  backgroundColor: context.tone.bar,
-                  cornerRadius: '999px',
-                  contents: [],
-                },
-              ],
+              contents: mealSegments.length
+                ? mealSegments
+                : [
+                    {
+                      type: 'box',
+                      layout: 'vertical',
+                      width: context.progressWidth,
+                      height: '10px',
+                      backgroundColor: context.tone.bar,
+                      cornerRadius: '999px',
+                      contents: [],
+                    },
+                  ],
             },
           ],
         } : null,
@@ -423,21 +440,44 @@ function buildDailySummaryBubble_(context) {
 }
 
 function buildTodayLogBubble_(context) {
-  const logs = context.logs || [];
+  const logs = summarizeFlexLogs_(context.logs || [], 6);
   const logContents = logs.length
     ? logs.map(log => ({
         type: 'box',
         layout: 'horizontal',
+        alignItems: 'center',
+        spacing: 'sm',
         paddingAll: '10px',
         backgroundColor: '#FDF5F2',
         cornerRadius: '10px',
         contents: [
           {
+            type: 'box',
+            layout: 'vertical',
+            width: '26px',
+            height: '26px',
+            cornerRadius: '999px',
+            backgroundColor: getMealFlexColor_(log.meal),
+            justifyContent: 'center',
+            alignItems: 'center',
+            contents: [
+              {
+                type: 'text',
+                text: String(log.meal || '他').slice(0, 1),
+                size: 'xxs',
+                color: '#FFFFFF',
+                weight: 'bold',
+                align: 'center',
+              },
+            ],
+          },
+          {
             type: 'text',
-            text: `${log.meal} ${formatFlexLogKcal_(log)} ${log.menu}`,
+            text: `${formatFlexLogKcal_(log)} ${log.menu}`,
             size: 'sm',
             wrap: true,
             color: '#231815',
+            flex: 1,
           },
         ],
       }))
@@ -477,7 +517,7 @@ function buildTodayLogBubble_(context) {
               size: 'sm',
               color: '#8a6258',
               margin: 'sm',
-              wrap: true,
+              wrap: false,
             },
           ],
         },
@@ -798,4 +838,66 @@ function roundNutrition_(value) {
 function formatFlexLogKcal_(log) {
   const line = buildMealKcalLine(log);
   return line.replace(/^約\s*/, '').replace(/\s+/g, '');
+}
+
+function buildFlexMealSegments_(today, targetKcal, total) {
+  const meals = today && today.meals ? today.meals : {};
+  const base = Number(targetKcal || total || 0) > 0 ? Number(targetKcal || total || 0) : 1;
+  return ['朝', '昼', '夜', 'その他']
+    .map(meal => {
+      const value = Number(meals[meal] || 0);
+      if (!value) return null;
+      return {
+        type: 'box',
+        layout: 'vertical',
+        width: `${Math.max(2, Math.min((value / base) * 100, 100))}%`,
+        height: '10px',
+        backgroundColor: getMealFlexColor_(meal),
+        contents: [],
+      };
+    })
+    .filter(Boolean);
+}
+
+function summarizeFlexLogs_(logs, maxLines) {
+  const items = Array.isArray(logs) ? logs.slice() : [];
+  const grouped = {
+    '朝': items.filter(log => log.meal === '朝'),
+    '昼': items.filter(log => log.meal === '昼'),
+    '夜': items.filter(log => log.meal === '夜'),
+    'その他': items.filter(log => log.meal === 'その他'),
+  };
+  const order = ['朝', '昼', '夜', 'その他'].filter(meal => grouped[meal].length);
+  const lines = [];
+  order.forEach((meal, index) => {
+    const group = grouped[meal];
+    const remainingGroups = order.length - index - 1;
+    const remainingSlots = Math.max(0, (maxLines || 6) - lines.length);
+    if (!remainingSlots) return;
+    const desiredLines = Math.min(2, group.length);
+    const allowedLines = Math.max(1, Math.min(desiredLines, remainingSlots - remainingGroups));
+    if (allowedLines === 1) {
+      lines.push(buildCollapsedFlexLogLine_(meal, group));
+      return;
+    }
+    lines.push(group[0]);
+    if (group.length === 2) {
+      lines.push(group[1]);
+      return;
+    }
+    lines.push(buildCollapsedFlexLogLine_(meal, group.slice(1)));
+  });
+  return lines.slice(0, maxLines || 6);
+}
+
+function buildCollapsedFlexLogLine_(meal, logs) {
+  const items = Array.isArray(logs) ? logs : [];
+  const totalKcal = items.reduce((sum, item) => sum + Number(item.kcal || 0), 0);
+  const first = items[0] || {};
+  return {
+    meal: meal,
+    kcalStatus: items.some(item => item.kcalStatus === KCAL_STATUS.ESTIMATED) ? KCAL_STATUS.ESTIMATED : KCAL_STATUS.EXACT,
+    kcal: totalKcal,
+    menu: items.length > 1 ? `${first.menu || '記録'} 他${items.length - 1}件` : String(first.menu || ''),
+  };
 }
