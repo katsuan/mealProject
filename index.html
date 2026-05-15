@@ -124,8 +124,10 @@
                 <input id="field-kcal" data-field-label="カロリー(kcal)" data-required="true" type="number" min="0" step="0.1" inputmode="decimal" required>
               </label>
               <div class="advanced-toggle-wrap">
-                <button type="button" id="advanced-nutrition-toggle" class="secondary compact-button advanced-toggle" aria-expanded="false">栄養項目を開く</button>
-                <div id="advanced-nutrition-note" class="advanced-nutrition-note" hidden>入力値があるため、表示したままになります。</div>
+                <button type="button" id="advanced-nutrition-toggle" class="secondary compact-button advanced-toggle" aria-expanded="false">
+                  <span id="advanced-nutrition-toggle-label">栄養項目を開く</span>
+                  <span id="advanced-nutrition-note" class="advanced-nutrition-note" hidden>入力値あり</span>
+                </button>
               </div>
             </div>
 

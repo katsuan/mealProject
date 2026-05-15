@@ -101,6 +101,7 @@
   }
 
   .profile-avatar-button {
+    position: relative;
     border: 0;
     background: transparent;
     padding: 0;
@@ -108,6 +109,29 @@
     display: inline-grid;
     place-items: center;
     border-radius: 999px;
+  }
+
+  .profile-avatar-button.is-syncing::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 999px;
+    padding: 4px;
+    background: conic-gradient(
+      from 0deg,
+      rgba(215, 90, 60, 0.12) 0deg,
+      rgba(215, 90, 60, 0.92) 80deg,
+      rgba(215, 90, 60, 0.18) 180deg,
+      rgba(215, 90, 60, 0.92) 280deg,
+      rgba(215, 90, 60, 0.12) 360deg
+    );
+    animation: avatarSyncRing 1.2s linear infinite;
+    pointer-events: none;
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
   }
 
   .avatar {
@@ -843,19 +867,34 @@
   .advanced-toggle {
     min-height: 58px;
     justify-self: stretch;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
   .advanced-toggle-wrap {
     display: grid;
-    gap: 4px;
     align-content: start;
   }
 
   .advanced-nutrition-note {
-    padding: 0 4px;
-    font-size: 11px;
-    line-height: 1.5;
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    font-size: 10px;
+    line-height: 1;
     color: var(--muted);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .advanced-toggle.has-note {
+    justify-content: flex-start;
+    padding-left: 14px;
+    padding-right: 64px;
+    text-align: left;
   }
 
   .advanced-nutrition-section {
@@ -1335,6 +1374,15 @@
     }
     100% {
       background-position: -20% 0;
+    }
+  }
+
+  @keyframes avatarSyncRing {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
     }
   }
 

@@ -47,6 +47,7 @@ const state = {
   isMasterSearching: false,
   isMealSubmitting: false,
   isMasterSaving: false,
+  isVisualSyncing: false,
   advancedNutritionOpen: false,
   masterSearchTimer: null,
   lastMasterSearchQuery: '',
@@ -717,12 +718,16 @@ function renderAdvancedNutritionSection_() {
   const hasValues = hasAdvancedNutritionValues_();
   const section = document.getElementById('advanced-nutrition-section');
   const toggle = document.getElementById('advanced-nutrition-toggle');
+  const label = document.getElementById('advanced-nutrition-toggle-label');
   const note = document.getElementById('advanced-nutrition-note');
   const shouldOpen = state.advancedNutritionOpen || hasValues;
   section.hidden = !shouldOpen;
   toggle.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
-  toggle.textContent = shouldOpen ? '栄養項目を閉じる' : '栄養項目を開く';
+  label.textContent = hasValues
+    ? '栄養項目を表示中'
+    : (shouldOpen ? '栄養項目を閉じる' : '栄養項目を開く');
   note.hidden = !hasValues;
+  toggle.classList.toggle('has-note', hasValues);
 }
 
 function updateFieldState(input, isActive) {
@@ -755,12 +760,14 @@ function renderProfileHeader() {
   document.getElementById('open-settings').disabled = !state.userId || state.userPermission.canUse === false;
 
   const avatar = document.getElementById('avatar');
+  const avatarButton = document.getElementById('open-settings');
   if (state.pictureUrl) {
     avatar.innerHTML = `<img src="${escapeHtml(state.pictureUrl)}" alt="LINE profile">`;
   } else {
     const fallback = (state.displayName || 'L').slice(0, 1);
     avatar.textContent = fallback;
   }
+  avatarButton.classList.toggle('is-syncing', Boolean(state.isVisualSyncing || state.isTargetSyncing));
 
   refreshTargetControls();
   refreshMealSubmitControls_();
@@ -831,6 +838,7 @@ function applyCachedAppState_(userId) {
 }
 
 function setSyncVisualState(isLoading) {
+  state.isVisualSyncing = Boolean(isLoading);
   const menuValue = String(document.getElementById('menu-name').value || '').trim();
   [
     document.getElementById('header-summary-scope'),
@@ -842,6 +850,10 @@ function setSyncVisualState(isLoading) {
     node.classList.toggle('is-syncing-scope', Boolean(isLoading));
     node.setAttribute('aria-busy', isLoading ? 'true' : 'false');
   });
+  const avatarButton = document.getElementById('open-settings');
+  if (avatarButton) {
+    avatarButton.classList.toggle('is-syncing', Boolean(state.isVisualSyncing || state.isTargetSyncing));
+  }
 }
 
 function applyHeaderState_(header, permission) {
@@ -1513,6 +1525,10 @@ function buildCandidateAccordionLabel_(candidates, menuName) {
 
 function setTargetSyncing(isLoading) {
   state.isTargetSyncing = Boolean(isLoading);
+  const avatarButton = document.getElementById('open-settings');
+  if (avatarButton) {
+    avatarButton.classList.toggle('is-syncing', Boolean(state.isVisualSyncing || state.isTargetSyncing));
+  }
   refreshTargetControls();
 }
 
