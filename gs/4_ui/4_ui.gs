@@ -619,6 +619,7 @@ function applyFlexSender_(message, profile) {
 }
 
 function buildCandidatePostbackRow_(parsed, candidate) {
+  const detailLine = buildNutritionDescriptor_(candidate.flavor, candidate.unit);
   return {
     type: 'box',
     layout: 'horizontal',
@@ -650,11 +651,18 @@ function buildCandidatePostbackRow_(parsed, candidate) {
         contents: [
           {
             type: 'text',
-            text: candidate.name,
+            text: buildRecordDisplayName_(candidate),
             size: 'sm',
             weight: 'bold',
             wrap: true,
           },
+          detailLine ? {
+            type: 'text',
+            text: detailLine,
+            size: 'xs',
+            color: '#8a6258',
+            wrap: true,
+          } : null,
           {
             type: 'text',
             text: `${candidate.kcal || '-'} kcal / 一致度 ${candidate.scorePercent}%`,
@@ -662,7 +670,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
             color: '#8a6258',
             wrap: true,
           },
-        ],
+        ].filter(Boolean),
       },
       {
         type: 'text',
