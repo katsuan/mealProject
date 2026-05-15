@@ -1197,6 +1197,65 @@ function buildLogImageThumbnailUrl_(log) {
   return log && log.imageUrl ? String(log.imageUrl) : '';
 }
 
+function getCurrentUserRequestBase_() {
+  return {
+    userId: document.getElementById('user-id').value.trim(),
+    displayName: document.getElementById('display-name').value.trim(),
+    idToken: state.idToken,
+  };
+}
+
+function ensureUserCanProceed_(loginMessage, deniedMessage) {
+  const auth = getCurrentUserRequestBase_();
+  if (!auth.userId) {
+    pushStatus('notice', loginMessage);
+    return null;
+  }
+  if (!state.userPermission.canUse) {
+    pushStatus('notice', deniedMessage);
+    return null;
+  }
+  return auth;
+}
+
+function buildMealDetailRequestPayload_(overrides) {
+  return Object.assign(getCurrentUserRequestBase_(), {
+    row: document.getElementById('editing-log-row').value.trim(),
+    meal: document.getElementById('meal-type').value,
+    mealDate: document.getElementById('meal-date').value,
+    datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
+    menu: document.getElementById('menu-name').value.trim(),
+    masterKey: document.getElementById('master-key').value.trim(),
+    flavor: document.getElementById('field-flavor').value.trim(),
+    kcal: document.getElementById('field-kcal').value,
+    protein: document.getElementById('field-protein').value,
+    fat: document.getElementById('field-fat').value,
+    carb: document.getElementById('field-carb').value,
+    salt: document.getElementById('field-salt').value,
+    fiber: document.getElementById('field-fiber').value,
+    unit: document.getElementById('field-unit').value.trim(),
+    note: document.getElementById('field-note').value.trim(),
+  }, overrides || {});
+}
+
+function applyDashboardDraftResponse_(userId, result, options) {
+  const config = options || {};
+  state.dashboard = result.dashboard || state.dashboard;
+  state.draft = result.draft || (config.keepDraft ? state.draft : null);
+  state.dashboardLoaded = Boolean(state.dashboard);
+  if (state.dashboard) {
+    renderDashboard(state.dashboard);
+  }
+  if (config.renderDraft !== false) {
+    renderDraft(state.draft);
+  }
+  if (userId && state.dashboard) {
+    saveCachedAppState_(userId, state.dashboard, state.draft);
+  }
+  applyIdentityStatus_(result.identity);
+  applyPermissionState_(result.permission);
+}
+
 function renderDraft(draft) {
   const suggestionBox = document.getElementById('suggestion-box');
   const emptyBox = document.getElementById('empty-box');
@@ -1487,8 +1546,8 @@ async function deleteLog(rowNumber, menuName) {
   if (!window.confirm(`「${resolvedName || 'この記録'}」を削除しますか？`)) {
     return;
   }
-  if (!state.userPermission.canUse) {
-    pushStatus('notice', '現在はログを編集できません。');
+  const auth = ensureUserCanProceed_('LINEログイン後にログを削除できます。', '現在はログを編集できません。');
+  if (!auth) {
     return;
   }
 
@@ -1496,15 +1555,12 @@ async function deleteLog(rowNumber, menuName) {
   pushStatus('info', 'ログを削除中...');
   try {
     const result = await runServer('deleteMealLog', {
-      userId: document.getElementById('user-id').value.trim(),
-      displayName: document.getElementById('display-name').value.trim(),
-      idToken: state.idToken,
+      userId: auth.userId,
+      displayName: auth.displayName,
+      idToken: auth.idToken,
       row: rowNumber,
     });
-    state.dashboard = result.dashboard || null;
-    state.dashboardLoaded = true;
-    renderDashboard(state.dashboard);
-    applyPermissionState_(result.permission);
+    applyDashboardDraftResponse_(auth.userId, result, { renderDraft: false });
     pushStatus('info', 'ログを削除しました。');
   } catch (error) {
     pushStatus('warning', `ログ削除に失敗しました: ${error.message}`);
@@ -1515,13 +1571,8 @@ async function deleteLog(rowNumber, menuName) {
 }
 
 async function saveProfileTarget() {
-  const userId = document.getElementById('user-id').value.trim();
-  if (!userId) {
-    pushStatus('notice', 'LINEログイン後に目標を更新できます。');
-    return;
-  }
-  if (!state.userPermission.canUse) {
-    pushStatus('notice', '現在は目標カロリーを更新できません。');
+  const auth = ensureUserCanProceed_('LINEログイン後に目標を更新できます。', '現在は目標カロリーを更新できません。');
+  if (!auth) {
     return;
   }
 
@@ -1531,20 +1582,16 @@ async function saveProfileTarget() {
 
   try {
     const result = await runServer('updateProfile', {
-      userId: userId,
-      displayName: document.getElementById('display-name').value.trim(),
-      idToken: state.idToken,
+      userId: auth.userId,
+      displayName: auth.displayName,
+      idToken: auth.idToken,
       calorieTarget: document.getElementById('calorie-target').value,
       goalType: 'keep',
       notify: document.getElementById('notify-setting').checked,
     });
 
-    state.dashboard = result.dashboard || null;
+    applyDashboardDraftResponse_(auth.userId, result, { keepDraft: true });
     state.header = buildHeaderSummaryFromDashboard_(state.dashboard);
-    renderDashboard(state.dashboard);
-    saveCachedAppState_(userId, state.dashboard, state.draft);
-    applyIdentityStatus_(result.identity);
-    applyPermissionState_(result.permission);
     closeSettingsModal_();
     pushStatus('info', '目標カロリーを更新しました。');
   } catch (error) {
@@ -1559,13 +1606,8 @@ async function saveProfileTarget() {
 document.getElementById('meal-detail-form').addEventListener('submit', async event => {
   event.preventDefault();
 
-  const userId = document.getElementById('user-id').value.trim();
-  if (!userId) {
-    pushStatus('notice', 'LINEログイン後に保存できます。');
-    return;
-  }
-  if (!state.userPermission.canUse) {
-    pushStatus('notice', '現在は管理者の許可待ちのため保存できません。');
+  const auth = ensureUserCanProceed_('LINEログイン後に保存できます。', '現在は管理者の許可待ちのため保存できません。');
+  if (!auth) {
     return;
   }
 
@@ -1578,37 +1620,12 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
   pushStatus('info', editingRow ? '更新して集計を同期中...' : '保存して集計を同期中...');
 
   try {
-    const result = await runServer(action, {
-      userId: userId,
-      displayName: document.getElementById('display-name').value.trim(),
-      idToken: state.idToken,
-      row: editingRow,
-      meal: document.getElementById('meal-type').value,
-      mealDate: document.getElementById('meal-date').value,
-      datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
-      menu: document.getElementById('menu-name').value.trim(),
-      masterKey: document.getElementById('master-key').value.trim(),
-      flavor: document.getElementById('field-flavor').value.trim(),
-      kcal: document.getElementById('field-kcal').value,
-      protein: document.getElementById('field-protein').value,
-      fat: document.getElementById('field-fat').value,
-      carb: document.getElementById('field-carb').value,
-      salt: document.getElementById('field-salt').value,
-      fiber: document.getElementById('field-fiber').value,
-      unit: document.getElementById('field-unit').value.trim(),
-      note: document.getElementById('field-note').value.trim(),
+    const result = await runServer(action, buildMealDetailRequestPayload_({
       sendLineSummary: true,
-    });
+    }));
 
     document.getElementById('meal-reply').textContent = result.reply || '';
-    state.dashboard = result.dashboard || null;
-    state.draft = result.draft || null;
-    state.dashboardLoaded = true;
-    renderDashboard(state.dashboard);
-    renderDraft(state.draft);
-    saveCachedAppState_(userId, state.dashboard, state.draft);
-    applyIdentityStatus_(result.identity);
-    applyPermissionState_(result.permission);
+    applyDashboardDraftResponse_(auth.userId, result);
     pushStatus(
       'info',
       editingRow
@@ -1643,13 +1660,8 @@ document.getElementById('refresh-draft').addEventListener('click', async () => {
 
 document.getElementById('save-target').addEventListener('click', saveProfileTarget);
 document.getElementById('save-master-only-button').addEventListener('click', async () => {
-  const userId = document.getElementById('user-id').value.trim();
-  if (!userId) {
-    pushStatus('notice', 'LINEログイン後にマスタを保存できます。');
-    return;
-  }
-  if (!state.userPermission.canUse) {
-    pushStatus('notice', '現在はマスタを保存できません。');
+  const auth = ensureUserCanProceed_('LINEログイン後にマスタを保存できます。', '現在はマスタを保存できません。');
+  if (!auth) {
     return;
   }
 
@@ -1658,37 +1670,12 @@ document.getElementById('save-master-only-button').addEventListener('click', asy
   refreshMealSubmitControls_();
   pushStatus('info', 'マスタを保存中...');
   try {
-    const result = await runServer('saveNutritionMasterOnly', {
-      userId: userId,
-      displayName: document.getElementById('display-name').value.trim(),
-      idToken: state.idToken,
-      meal: document.getElementById('meal-type').value,
-      mealDate: document.getElementById('meal-date').value,
-      datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
+    const result = await runServer('saveNutritionMasterOnly', buildMealDetailRequestPayload_({
       masterKey: document.getElementById('editing-master-key').value.trim() || document.getElementById('master-key').value.trim(),
-      menu: document.getElementById('menu-name').value.trim(),
-      flavor: document.getElementById('field-flavor').value.trim(),
-      kcal: document.getElementById('field-kcal').value,
-      protein: document.getElementById('field-protein').value,
-      fat: document.getElementById('field-fat').value,
-      carb: document.getElementById('field-carb').value,
-      salt: document.getElementById('field-salt').value,
-      fiber: document.getElementById('field-fiber').value,
-      unit: document.getElementById('field-unit').value.trim(),
-      note: document.getElementById('field-note').value.trim(),
-    });
+    }));
     document.getElementById('master-key').value = result.savedMaster && result.savedMaster.masterKey ? result.savedMaster.masterKey : document.getElementById('master-key').value;
     document.getElementById('editing-master-key').value = '';
-    state.dashboard = result.dashboard || state.dashboard;
-    state.draft = result.draft || state.draft;
-    if (state.dashboard) {
-      renderDashboard(state.dashboard);
-    }
-    if (state.draft) {
-      renderDraft(state.draft);
-    }
-    applyIdentityStatus_(result.identity);
-    applyPermissionState_(result.permission);
+    applyDashboardDraftResponse_(auth.userId, result, { keepDraft: true });
     refreshMealSubmitControls_();
     pushStatus('info', '栄養マスタを保存しました。');
   } catch (error) {
