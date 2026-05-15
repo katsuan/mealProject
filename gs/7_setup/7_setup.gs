@@ -59,7 +59,7 @@ function send20hReminderNotifications() {
 
       const message = {
         type: 'text',
-        text: '20時です。まだ今日の記録がなければ、夕食や間食を入力しておきましょう。',
+        text: '20時になりました。まだ今日の記録がなければ、食べたものを入力しておきましょう。',
       };
       try {
         pushLineMessages_(user.userId, [message]);

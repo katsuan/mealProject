@@ -413,6 +413,8 @@ async function initializeApp() {
     bindMealDateButtons();
     bindLogFilterButtons();
     bindFieldInteractions();
+    syncAllFieldStates_();
+    window.setTimeout(syncAllFieldStates_, 200);
     renderAdvancedNutritionSection_();
     refreshTargetControls();
     renderStatus();
@@ -504,12 +506,20 @@ function setMenuValue_(value, options) {
   input.value = String(value || '');
   updateFieldState(input, false);
   state.isProgrammaticMenuUpdate = false;
+  syncMasterSearchQueryFromMenu_();
   state.appliedMenuValue = String(value || '').trim();
   if (config.markDirty) {
     state.menuDirty = true;
   } else if (!config.preserveDirty) {
     state.menuDirty = false;
   }
+}
+
+function syncMasterSearchQueryFromMenu_() {
+  const menuValue = String(document.getElementById('menu-name').value || '').trim();
+  const queryInput = document.getElementById('master-search-query');
+  queryInput.value = menuValue;
+  updateFieldState(queryInput, queryInput === document.activeElement);
 }
 
 function bindMealTypeButtons() {
@@ -643,7 +653,8 @@ function bindFieldInteractions() {
       state.menuDirty = true;
     }
     const menuValue = String(document.getElementById('menu-name').value || '').trim();
-    document.getElementById('master-search-query').value = menuValue;
+    syncMasterSearchQueryFromMenu_();
+    resetDraftUiForMenuTyping_(menuValue);
     if (state.masterSearchTimer) {
       window.clearTimeout(state.masterSearchTimer);
     }
@@ -669,6 +680,32 @@ function bindFieldInteractions() {
     if (menuValue === state.lastMasterSearchQuery || state.isMasterSearching) return;
     runMasterSearch_(menuValue, { announce: false, source: 'menu-blur' });
   });
+}
+
+function syncAllFieldStates_() {
+  document.querySelectorAll('.field input, .field textarea').forEach(input => {
+    updateFieldState(input, input === document.activeElement);
+  });
+}
+
+function resetDraftUiForMenuTyping_(menuValue) {
+  const normalizedMenu = normalizeMenuKey_(menuValue);
+  const normalizedDraftMenu = normalizeMenuKey_(state.draft && state.draft.menu);
+  if (!normalizedMenu || !normalizedDraftMenu || normalizedMenu === normalizedDraftMenu) {
+    return;
+  }
+  state.draft = null;
+  state.candidateAccordionOpen = false;
+  renderDraft(null);
+}
+
+function renderDraftLoadingState_() {
+  const candidateAccordion = document.getElementById('candidate-accordion');
+  const candidateList = document.getElementById('candidate-list');
+  if (candidateAccordion.hidden) return;
+  state.candidateAccordionOpen = true;
+  renderCandidateAccordion_();
+  candidateList.innerHTML = '<div class="empty-state">候補を読み込んでいます...</div>';
 }
 
 function hasAdvancedNutritionValues_() {
@@ -1652,6 +1689,7 @@ document.getElementById('refresh-draft').addEventListener('click', async () => {
   const previous = button.textContent;
   button.disabled = true;
   button.textContent = '更新中...';
+  renderDraftLoadingState_();
   try {
     await reloadState();
   } finally {
