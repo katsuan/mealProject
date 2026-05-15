@@ -640,7 +640,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
         menu: candidate.name,
         mealDate: parsed.mealDate,
       }),
-      displayText: `${parsed.meal} ${candidate.name} を記録しています...`,
+      displayText: `> ${parsed.meal} ${candidate.name} \nを記録しています...`,
     },
     contents: [
       {
@@ -742,7 +742,7 @@ function buildImageAttachChoiceFlexMessage(mealType, candidateLogs, selectionTok
                   row: log.row,
                   token: selectionToken,
                 }),
-                displayText: `${log.meal} ${log.menu} に画像を紐づけています...`,
+                displayText: `> ${log.meal} ${log.menu} \nに画像を紐づけています...`,
               },
               contents: [
                 {
