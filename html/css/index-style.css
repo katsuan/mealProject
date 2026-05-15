@@ -828,25 +828,25 @@
   }
 
   .streak-cards .card {
-    padding: 14px 14px 12px;
-    min-height: 108px;
+    padding: 12px 12px 10px;
+    min-height: 84px;
     display: grid;
     align-content: space-between;
   }
 
   .streak-cards .card .label {
-    font-size: 12px;
+    font-size: 11px;
     line-height: 1.4;
   }
 
   .streak-cards .card .value {
     margin-top: 0;
-    font-size: 32px;
+    font-size: 24px;
     line-height: 1;
   }
 
   .streak-cards + .ranking-list {
-    margin-top: 12px;
+    margin-top: 8px;
   }
 
   .card .value.is-warning {
@@ -997,7 +997,7 @@
 
   .ranking-list {
     display: grid;
-    gap: 10px;
+    gap: 8px;
   }
 
   .ranking-item {
@@ -1008,7 +1008,7 @@
     border: 1px solid var(--line);
     border-radius: 8px;
     background: var(--surface-subtle);
-    padding: 12px;
+    padding: 10px 12px;
   }
 
   .ranking-rank {
