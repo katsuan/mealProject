@@ -29,7 +29,7 @@ const state = {
   statusSeq: 0,
   isTargetSyncing: false,
   identityWarningKey: '',
-  statusAccordionOpen: false,
+  settingsModalTab: 'settings',
   candidateAccordionOpen: false,
   selectedLogFilter: 'all',
   activeView: 'input',
@@ -94,14 +94,7 @@ function pushVersionDebug_() {
 }
 
 function renderStatus() {
-  const latest = state.statusLogs[state.statusLogs.length - 1] || {
-    level: 'info',
-    label: STATUS_META.info.label,
-    message: 'プロフィールと今日の集計を準備しています。',
-  };
   const panelNode = document.getElementById('status-panel');
-  const accordionNode = document.getElementById('status-accordion');
-  const accordionToggle = document.getElementById('status-accordion-toggle');
   const controlsNode = document.getElementById('status-controls');
   const historyNode = document.getElementById('status-history');
   const availableLevels = [...new Set(
@@ -113,13 +106,7 @@ function renderStatus() {
     state.statusFilters[level] && availableLevels.includes(level)
   );
 
-  panelNode.hidden = !state.statusAccordionOpen;
-  accordionNode.hidden = !state.statusAccordionOpen;
-  accordionToggle.className = `hero-menu-button settings-debug-button status-accordion-toggle ${STATUS_META[latest.level].className}`;
-  accordionToggle.setAttribute('aria-expanded', state.statusAccordionOpen ? 'true' : 'false');
-  accordionToggle.textContent = state.statusAccordionOpen ? 'デバッグ ▾' : 'デバッグ ▸';
-  accordionToggle.setAttribute('aria-label', state.statusAccordionOpen ? 'ログを閉じる' : 'ログを開く');
-  accordionToggle.setAttribute('title', state.statusAccordionOpen ? 'ログを閉じる' : 'ログを開く');
+  panelNode.hidden = state.settingsModalTab !== 'debug';
 
   controlsNode.hidden = availableLevels.length <= 1;
   controlsNode.innerHTML = availableLevels.length > 1
@@ -159,21 +146,21 @@ function renderStatus() {
 }
 
 function bindStatusToggles() {
-  document.getElementById('status-accordion-toggle').addEventListener('click', () => {
-    state.statusAccordionOpen = !state.statusAccordionOpen;
-    renderStatus();
-  });
-
   document.getElementById('status-controls').addEventListener('click', event => {
     const button = event.target.closest('[data-log-toggle]');
     if (!button) return;
 
     const level = button.dataset.logToggle;
     state.statusFilters[level] = !state.statusFilters[level];
-    if (state.statusFilters[level]) {
-      state.statusAccordionOpen = true;
-    }
     renderStatus();
+  });
+}
+
+function bindSettingsModalTabs() {
+  document.querySelectorAll('[data-settings-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      setSettingsModalTab_(button.dataset.settingsTab || 'settings');
+    });
   });
 }
 
@@ -316,6 +303,7 @@ function resolveLoginRedirectUrl_() {
 
 function openSettingsModal_() {
   state.isSettingsModalOpen = true;
+  setSettingsModalTab_('settings');
   document.getElementById('settings-modal').hidden = false;
   document.body.classList.add('has-modal');
   refreshTargetControls();
@@ -333,6 +321,18 @@ function closeSettingsModal_() {
   document.body.classList.remove('has-modal');
   updateFieldState(document.getElementById('calorie-target'), false);
   refreshTargetControls();
+}
+
+function setSettingsModalTab_(tab) {
+  state.settingsModalTab = tab === 'debug' ? 'debug' : 'settings';
+  document.querySelectorAll('[data-settings-tab]').forEach(button => {
+    const isActive = button.dataset.settingsTab === state.settingsModalTab;
+    button.classList.toggle('is-active', isActive);
+    button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  document.getElementById('settings-tab-panel').hidden = state.settingsModalTab !== 'settings';
+  document.getElementById('debug-tab-panel').hidden = state.settingsModalTab !== 'debug';
+  renderStatus();
 }
 
 function shouldLoadFullStateOnBoot_() {
@@ -378,6 +378,7 @@ async function runServer(action, payload) {
 async function initializeApp() {
   try {
     bindStatusToggles();
+    bindSettingsModalTabs();
     bindCandidateAccordion();
     bindAdvancedNutritionToggle();
     bindPendingSummaryJump();

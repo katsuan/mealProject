@@ -294,30 +294,37 @@
           </div>
           <button id="close-settings-modal" type="button" class="hero-icon-button modal-close-button" aria-label="設定を閉じる" title="設定を閉じる">✕</button>
         </div>
-        <div class="fields">
-          <label id="target-field" class="field target-field" data-label="目標カロリー">
-            <span class="field-label">目標カロリー</span>
-            <div class="target-field-input">
-              <input
-                id="calorie-target"
-                aria-labelledby="settings-modal-title"
-                type="number"
-                min="0"
-                step="1"
-                inputmode="numeric"
-                data-field-label="目標カロリー"
-              >
-              <span>kcal</span>
-            </div>
-          </label>
-          <label class="notify-toggle">
-            <input id="notify-setting" type="checkbox">
-            <span>20時に未記録リマインドを受け取る</span>
-          </label>
+        <div class="modal-tabs" role="tablist" aria-label="設定タブ">
+          <button id="settings-tab-button" type="button" class="modal-tab-button is-active" data-settings-tab="settings" role="tab" aria-selected="true">設定</button>
+          <button id="debug-tab-button" type="button" class="modal-tab-button" data-settings-tab="debug" role="tab" aria-selected="false">デバッグ</button>
+        </div>
+        <div id="settings-tab-panel" class="modal-tab-panel">
+          <div class="fields">
+            <label id="target-field" class="field target-field" data-label="目標カロリー">
+              <span class="field-label">目標カロリー</span>
+              <div class="target-field-input">
+                <input
+                  id="calorie-target"
+                  aria-labelledby="settings-modal-title"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  data-field-label="目標カロリー"
+                >
+                <span>kcal</span>
+              </div>
+            </label>
+            <label class="notify-toggle">
+              <input id="notify-setting" type="checkbox">
+              <span>20時に未記録リマインドを受け取る</span>
+            </label>
+          </div>
+        </div>
+        <div id="debug-tab-panel" class="modal-tab-panel" hidden>
           <div class="settings-debug">
-            <button id="status-accordion-toggle" type="button" class="hero-menu-button settings-debug-button" aria-expanded="false">デバッグ ▸</button>
-            <div id="status-panel" class="status-panel" hidden>
-              <div id="status-accordion" class="status-accordion" hidden>
+            <div id="status-panel" class="status-panel">
+              <div id="status-accordion" class="status-accordion">
                 <div id="status-controls" class="status-controls" hidden></div>
                 <div id="status-history" class="status-history" hidden></div>
               </div>

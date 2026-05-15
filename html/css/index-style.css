@@ -426,65 +426,46 @@
     gap: 8px;
   }
 
-  .status-accordion-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: auto;
-    min-width: 72px;
-    min-height: 30px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    background: var(--surface-subtle);
-    padding: 6px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--muted);
-    white-space: nowrap;
-    line-height: 1;
-  }
-
-  .status-accordion-toggle.is-debug {
-    background: var(--debug-soft);
-    color: var(--debug);
-    border-color: rgba(47, 111, 214, 0.18);
-  }
-
-  .status-accordion-toggle.is-info {
-    background: rgba(255, 255, 255, 0.76);
-    color: var(--muted);
-  }
-
-  .status-accordion-toggle.is-notice {
-    background: var(--warning-soft);
-    color: var(--warning);
-    border-color: rgba(183, 103, 43, 0.18);
-  }
-
-  .status-accordion-toggle.is-warning {
-    background: var(--alert-soft);
-    color: var(--alert);
-    border-color: rgba(200, 73, 73, 0.18);
-  }
-
   .status-accordion {
     display: grid;
     gap: 8px;
   }
 
-  .status-accordion[hidden],
   .status-controls[hidden],
   .status-history[hidden] {
     display: none !important;
   }
 
+  .modal-tabs {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .modal-tab-button {
+    min-height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-subtle);
+    color: var(--muted);
+    padding: 7px 14px;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .modal-tab-button.is-active {
+    background: var(--accent-soft);
+    border-color: #ef9f88;
+    color: var(--accent-strong);
+  }
+
+  .modal-tab-panel {
+    margin-top: 12px;
+  }
+
   .settings-debug {
     display: grid;
     gap: 10px;
-  }
-
-  .settings-debug-button {
-    justify-self: start;
   }
 
   .status-controls {
