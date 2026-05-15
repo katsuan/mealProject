@@ -244,7 +244,7 @@ function buildDailySummaryBubble_(context) {
               type: 'text',
               text: context.recordDetailLine,
               size: 'xs',
-              color: '#8a6258',
+              color: '#231815',
               wrap: true,
             } : null,
             {
@@ -660,7 +660,7 @@ function buildCandidatePostbackRow_(parsed, candidate) {
             type: 'text',
             text: detailLine,
             size: 'xs',
-            color: '#8a6258',
+            color: '#231815',
             wrap: true,
           } : null,
           {
