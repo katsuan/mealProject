@@ -58,7 +58,7 @@ function handleLineEvent_(event) {
 
   if (String(event.source && event.source.type || '') === 'user') {
     try {
-      showLineLoadingAnimation_(userId, 5);
+      showLineLoadingAnimation_(userId, 30);
     } catch (error) {
       // Loading animation is a best-effort enhancement.
     }
