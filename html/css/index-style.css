@@ -165,6 +165,36 @@
     align-self: start;
   }
 
+  .hero-menu {
+    display: grid;
+    gap: 8px;
+    justify-items: end;
+  }
+
+  .hero-menu[hidden] {
+    display: none !important;
+  }
+
+  .hero-menu-button {
+    min-height: 34px;
+    min-width: 104px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-subtle);
+    color: var(--text);
+    padding: 7px 12px;
+    font-size: 12px;
+    text-align: center;
+  }
+
+  .hero-menu .status-accordion-toggle {
+    width: auto;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    justify-self: stretch;
+  }
+
   .hero-icon-button {
     flex: 0 0 auto;
     width: 32px;
@@ -233,6 +263,14 @@
     font-weight: 600;
     color: var(--muted);
     word-break: break-word;
+  }
+
+  .header-stat-value.has-unit::after,
+  .header-stat-subvalue.has-unit::after {
+    content: ' kcal';
+    font-size: 0.82em;
+    font-weight: 600;
+    color: var(--muted);
   }
 
   .header-stat-divider {
@@ -757,6 +795,19 @@
     gap: 8px;
   }
 
+  .candidate-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .candidate-count-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--muted);
+  }
+
   .menu-tools {
     display: flex;
     justify-content: flex-end;
@@ -836,10 +887,7 @@
   }
 
   .streak-cards .card {
-    padding: 12px 12px 10px;
-    min-height: 84px;
-    display: grid;
-    align-content: space-between;
+    padding: 12px;
   }
 
   .streak-cards .card .label {
@@ -848,9 +896,9 @@
   }
 
   .streak-cards .card .value {
-    margin-top: 0;
-    font-size: 24px;
-    line-height: 1;
+    margin-top: 6px;
+    font-size: 22px;
+    line-height: 1.1;
   }
 
   .streak-cards + .ranking-list {
@@ -924,14 +972,21 @@
   }
 
   .pending-summary-item {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
     border: 1px solid rgba(184, 70, 44, 0.12);
     border-radius: 8px;
     background: #ffffff;
     padding: 10px 12px;
+  }
+
+  .pending-summary-actions {
+    display: inline-flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .pending-summary-name {
@@ -1248,11 +1303,6 @@
   }
 
   @media (max-width: 420px) {
-    .field-row,
-    .cards {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
     .menu-tools {
       justify-content: flex-start;
     }
@@ -1314,6 +1364,11 @@
       font-size: 9px;
     }
 
+    .candidate-head {
+      align-items: flex-start;
+      flex-direction: column;
+    }
+
     .target-field {
       min-height: 42px;
       padding: 7px 9px;
@@ -1339,6 +1394,11 @@
   }
 
   @media (max-width: 360px) {
+    .field-row,
+    .cards {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .meal-type-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }

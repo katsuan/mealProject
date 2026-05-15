@@ -15,7 +15,12 @@ function summarizeMealLogs(logs) {
     totalExact: exactLogs.reduce((sum, log) => sum + Number(log.kcal || 0), 0),
     totalEstimated: estimatedLogs.reduce((sum, log) => sum + Number(log.kcal || 0), 0),
     hasPending: pendingLogs.length > 0,
-    pendingItems: [...new Set(pendingLogs.map(log => log.menu))],
+    pendingItems: pendingLogs.map(log => ({
+      row: Number(log.row || 0),
+      meal: String(log.meal || ''),
+      menu: String(log.menu || ''),
+      mealDate: toIsoDateTime_(log.mealDate),
+    })),
     nutrition: summarizeNutrition(logs),
   };
 }
@@ -506,6 +511,9 @@ function submitMealCandidate(userId, payload, source) {
       fiber: toNullableNumber_(master.fiber),
       kcalStatus: KCAL_STATUS.EXACT,
       masterKey: master.masterKey,
+      flavor: String(master.flavor || ''),
+      unit: String(master.unit || ''),
+      note: String(master.note || ''),
       source: source || SOURCE.LINE,
       updatedAt: new Date(),
     });
@@ -660,6 +668,9 @@ function updateMealLogDetail(userId, payload, source) {
     fiber: toNullableNumber_(savedMaster.fiber),
     kcalStatus: hasAnyNutritionValue_(savedMaster) ? KCAL_STATUS.EXACT : KCAL_STATUS.PENDING,
     masterKey: savedMaster.masterKey,
+    flavor: String(savedMaster.flavor || ''),
+    unit: String(savedMaster.unit || ''),
+    note: String(savedMaster.note || ''),
     source: source || SOURCE.LIFF,
     updatedAt: new Date(),
   });
@@ -865,9 +876,9 @@ function serializeMealLog_(log) {
     fiber: log.fiber,
     kcalStatus: log.kcalStatus,
     masterKey: log.masterKey,
-    flavor: master ? String(master.flavor || '') : '',
-    unit: master ? String(master.unit || '') : '',
-    note: master ? String(master.note || '') : '',
+    flavor: String(log.flavor || (master ? master.flavor : '') || ''),
+    unit: String(log.unit || (master ? master.unit : '') || ''),
+    note: String(log.note || (master ? master.note : '') || ''),
     source: log.source,
     imageFileId: String(log.imageFileId || ''),
     imageUrl: String(log.imageUrl || ''),

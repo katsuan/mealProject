@@ -15,18 +15,19 @@ function buildLogReply(userId, record) {
     `${record.meal}: ${displayName}`,
     buildMealKcalLine(record),
     buildKcalDiffLine_(userId, total),
-    `今日の合計: ${total} kcal`,
+    `今日の合計: ${formatKcalDisplay_(total)} kcal`,
     estimatedNote,
     buildPendingWarning_(summary),
   ].filter(Boolean).join('\n');
 }
 
 function buildMealKcalLine(record) {
+  const formattedKcal = formatKcalDisplay_(record && record.kcal);
   switch (record.kcalStatus) {
     case KCAL_STATUS.EXACT:
-      return `${record.kcal} kcal`;
+      return `${formattedKcal} kcal`;
     case KCAL_STATUS.ESTIMATED:
-      return `約 ${record.kcal} kcal`;
+      return `約 ${formattedKcal} kcal`;
     case KCAL_STATUS.PENDING:
       return 'カロリー未登録';
     default:
@@ -36,7 +37,7 @@ function buildMealKcalLine(record) {
 
 function buildPendingWarning_(summary) {
   if (!summary.hasPending) return '';
-  return ['未登録メニュー:', ...summary.pendingItems.map(item => `- ${item}`)].join('\n');
+  return ['未登録メニュー:', ...summary.pendingItems.map(item => `- ${item.menu || item}`)].join('\n');
 }
 
 function buildKcalDiffLine_(userId, total) {
@@ -46,7 +47,9 @@ function buildKcalDiffLine_(userId, total) {
   }
 
   const diff = user.calorieTarget - total;
-  return diff >= 0 ? `残り ${diff} kcal` : `目標オーバー ${Math.abs(diff)} kcal`;
+  return diff >= 0
+    ? `残り ${formatKcalDisplay_(diff)} kcal`
+    : `目標オーバー ${formatKcalDisplay_(Math.abs(diff))} kcal`;
 }
 
 function buildTargetUpdatedReply(userId, kcal) {
@@ -82,6 +85,12 @@ function formatPercentValue_(value) {
   return (Math.round(number * 10) / 10).toFixed(1);
 }
 
+function formatKcalDisplay_(value) {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number)) return '0';
+  return String(Math.round(number * 10) / 10).replace(/\.0$/, '');
+}
+
 function buildDailySummaryFlexMessage(userId, options) {
   const context = options || {};
   const dashboard = context.dashboard || getDashboardData(userId);
@@ -103,7 +112,7 @@ function buildDailySummaryFlexMessage(userId, options) {
     : '未登録なし';
   const totalColor = isOverTarget ? '#C84949' : '#231815';
   const targetPercentText = hasTarget ? formatPercentValue_(targetPercent) : null;
-  const targetValueLine = hasTarget ? `${targetKcal} kcal` : '目標未設定';
+  const targetValueLine = hasTarget ? `${formatKcalDisplay_(targetKcal)} kcal` : '目標未設定';
   const targetRatioColor = isOverTarget ? '#C84949' : '#231815';
   const targetValueColor = '#6b7280';
   const tone = getFlexTone_(isOverTarget ? 'warning' : (today.hasPending ? 'notice' : 'success'));
@@ -113,7 +122,7 @@ function buildDailySummaryFlexMessage(userId, options) {
 
   const message = {
     type: 'flex',
-    altText: `${headline} 合計 ${total} kcal`,
+      altText: `${headline} 合計 ${formatKcalDisplay_(total)} kcal${targetPercentText ? ` / 目標比 ${targetPercentText}%` : ''}`,
     quickReply: quickReply,
     contents: {
       type: 'carousel',
@@ -305,7 +314,7 @@ function buildDailySummaryBubble_(context) {
             },
             {
               type: 'text',
-              text: `${context.total} kcal`,
+              text: `${formatKcalDisplay_(context.total)} kcal`,
               flex: 5,
               size: 'xl',
               weight: 'bold',

@@ -18,18 +18,21 @@
             </div>
           </div>
           <div class="hero-actions">
-            <button id="open-settings" type="button" class="hero-icon-button" aria-label="設定を開く" title="設定を開く">⚙</button>
-            <button id="status-accordion-toggle" type="button" class="status-accordion-toggle" aria-expanded="false" aria-label="ログを開く" title="ログを開く">▸</button>
+            <button id="hero-menu-toggle" type="button" class="hero-icon-button" aria-label="メニューを開く" title="メニューを開く">☰</button>
           </div>
+        </div>
+        <div id="hero-menu" class="hero-menu" hidden>
+          <button id="open-settings" type="button" class="hero-menu-button">設定</button>
+          <button id="status-accordion-toggle" type="button" class="hero-menu-button" aria-expanded="false">デバッグ ▸</button>
         </div>
         <div id="header-summary-scope" class="header-summary-row">
           <div class="header-stat header-stat-wide">
             <div class="header-stat-head">
               <div class="header-stat-label">今日の確定カロリー</div>
-              <div id="header-pending-count" class="header-badge">0件未登録</div>
+              <button id="header-pending-count" type="button" class="header-badge">0件未登録</button>
             </div>
             <div class="header-stat-pair">
-              <div id="header-exact-kcal" class="header-stat-value">0 kcal</div>
+              <div id="header-exact-kcal" class="header-stat-value">0</div>
               <div class="header-stat-divider">/</div>
               <div id="header-target-kcal" class="header-stat-subvalue">-</div>
             </div>
@@ -85,9 +88,6 @@
                 <span class="field-label">メニュー名</span>
                 <input id="menu-name" data-field-label="メニュー名" data-required="true" autocomplete="off">
               </label>
-              <div class="menu-tools">
-                <button type="button" id="refresh-draft" class="secondary compact-button">候補を更新</button>
-              </div>
             </div>
 
             <div id="candidate-accordion" class="inline-accordion" hidden>
@@ -105,17 +105,22 @@
               </div>
             </div>
 
+            <div class="candidate-head">
+              <div id="candidate-count-label" class="candidate-count-label">候補 0件</div>
+              <button type="button" id="refresh-draft" class="secondary compact-button">候補を更新</button>
+            </div>
+
             <div id="suggestion-box" class="notice suggestion" hidden></div>
             <div id="empty-box" class="notice warning" hidden>近い候補がまだありません。数値を入れて保存すると、次回から候補として使えます。</div>
 
             <div class="field-row">
-                            <div class="field-with-help">
-                              <label class="field" data-label="単位">
-                                <span class="field-label">単位(メーカー・サイズ)</span>
-                                <input id="field-unit" data-field-label="単位 (メーカー・サイズ)" autocomplete="off">
-                              </label>
-                              <div class="field-help">例: 1個 / 吉野家並 / L / 100g</div>
-                            </div>
+              <div class="field-with-help">
+                <label class="field" data-label="単位">
+                  <span class="field-label">単位(メーカー・サイズ)</span>
+                  <input id="field-unit" data-field-label="単位 (メーカー・サイズ)" autocomplete="off">
+                </label>
+                <div class="field-help">例: 1個 / 吉野家並 / L / 100g</div>
+              </div>
               <div class="field-with-help">
                 <label class="field" data-label="フレーバー">
                   <span class="field-label">フレーバー</span>
@@ -206,23 +211,15 @@
         </div>
         <div id="today-summary-cards" class="cards">
           <div class="card">
-            <div class="label">確定カロリー</div>
-            <div id="card-exact" class="value">0</div>
-          </div>
-          <div class="card">
             <div class="label">推定カロリー</div>
             <div id="card-estimated" class="value">0</div>
           </div>
           <div class="card">
             <div class="card-head">
-              <div class="label">目標差分</div>
+              <div class="label">確定 - 目標</div>
               <div id="card-diff-rate" class="card-meta">-</div>
             </div>
             <div id="card-diff" class="value">-</div>
-          </div>
-          <div class="card">
-            <div class="label">未登録件数</div>
-            <div id="card-pending" class="value">0</div>
           </div>
         </div>
         <div id="nutrition-summary" class="summary-note"></div>

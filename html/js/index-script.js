@@ -38,11 +38,16 @@ const state = {
   dashboardLoaded: false,
   masterSearchResults: [],
   isSettingsModalOpen: false,
+  isHeroMenuOpen: false,
   menuDirty: false,
   mealDirty: false,
   mealDateDirty: false,
   isProgrammaticMenuUpdate: false,
   appliedMenuValue: '',
+  isDraftRefreshing: false,
+  isMasterSearching: false,
+  isMealSubmitting: false,
+  isMasterSaving: false,
 };
 
 function buildInitialQuery_(fallback) {
@@ -110,7 +115,7 @@ function renderStatus() {
   accordionNode.hidden = !state.statusAccordionOpen;
   accordionToggle.className = `status-accordion-toggle ${STATUS_META[latest.level].className}`;
   accordionToggle.setAttribute('aria-expanded', state.statusAccordionOpen ? 'true' : 'false');
-  accordionToggle.textContent = state.statusAccordionOpen ? '▾' : '▸';
+  accordionToggle.textContent = state.statusAccordionOpen ? 'デバッグ ▾' : 'デバッグ ▸';
   accordionToggle.setAttribute('aria-label', state.statusAccordionOpen ? 'ログを閉じる' : 'ログを開く');
   accordionToggle.setAttribute('title', state.statusAccordionOpen ? 'ログを閉じる' : 'ログを開く');
 
@@ -170,10 +175,38 @@ function bindStatusToggles() {
   });
 }
 
+function bindHeroMenu() {
+  const toggle = document.getElementById('hero-menu-toggle');
+  const menu = document.getElementById('hero-menu');
+  toggle.addEventListener('click', event => {
+    event.stopPropagation();
+    state.isHeroMenuOpen = !state.isHeroMenuOpen;
+    menu.hidden = !state.isHeroMenuOpen;
+  });
+  document.addEventListener('click', event => {
+    if (!state.isHeroMenuOpen) return;
+    if (event.target.closest('#hero-menu') || event.target.closest('#hero-menu-toggle')) return;
+    state.isHeroMenuOpen = false;
+    menu.hidden = true;
+  });
+}
+
 function bindCandidateAccordion() {
   document.getElementById('candidate-accordion-toggle').addEventListener('click', () => {
     state.candidateAccordionOpen = !state.candidateAccordionOpen;
     renderCandidateAccordion_();
+  });
+}
+
+function bindPendingSummaryJump() {
+  document.getElementById('header-pending-count').addEventListener('click', async () => {
+    await setActiveView('summary');
+    const target = document.getElementById('pending-summary');
+    if (!target || target.hidden) {
+      pushStatus('notice', '未登録メニューはまだありません。');
+      return;
+    }
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 }
 
@@ -194,6 +227,8 @@ function bindLoginButton() {
 
 function bindSettingsModal() {
   document.getElementById('open-settings').addEventListener('click', () => {
+    state.isHeroMenuOpen = false;
+    document.getElementById('hero-menu').hidden = true;
     const userId = document.getElementById('user-id').value.trim();
     if (!userId) {
       pushStatus('notice', 'LINEログイン後に設定を変更できます。');
@@ -230,6 +265,10 @@ function bindMasterSearch() {
       return;
     }
 
+    state.isMasterSearching = true;
+    const searchButton = document.getElementById('search-master');
+    searchButton.disabled = true;
+    searchButton.textContent = '検索中...';
     pushStatus('info', '登録済みDBを検索中...');
     try {
       const result = await runServer('searchNutritionMaster', {
@@ -246,6 +285,10 @@ function bindMasterSearch() {
     } catch (error) {
       pushStatus('warning', `登録済みDB検索に失敗しました: ${error.message}`);
       pushStatus('debug', buildErrorDetail_(error));
+    } finally {
+      state.isMasterSearching = false;
+      searchButton.disabled = false;
+      searchButton.textContent = '検索する';
     }
   });
 }
@@ -320,8 +363,10 @@ async function runServer(action, payload) {
 
 async function initializeApp() {
   try {
+    bindHeroMenu();
     bindStatusToggles();
     bindCandidateAccordion();
+    bindPendingSummaryJump();
     bindLoginButton();
     bindSettingsModal();
     bindMasterSearch();
@@ -794,13 +839,11 @@ function renderDashboard(dashboard) {
     document.getElementById('calorie-target').value = '';
     updateFieldState(document.getElementById('calorie-target'), false);
     renderHeaderSummary_(null);
-    document.getElementById('card-exact').textContent = '0';
-    document.getElementById('card-estimated').textContent = '0';
+    document.getElementById('card-estimated').textContent = '0 kcal';
     document.getElementById('card-diff').textContent = '-';
     document.getElementById('card-diff').classList.remove('is-warning');
     document.getElementById('card-diff-rate').textContent = '-';
     document.getElementById('card-diff-rate').classList.remove('is-warning');
-    document.getElementById('card-pending').textContent = '0';
     document.getElementById('nutrition-summary').textContent = '';
     renderPendingSummary_([]);
     renderMasterSearchResults_([]);
@@ -816,9 +859,8 @@ function renderDashboard(dashboard) {
   document.getElementById('calorie-target').value = dashboard.user.calorieTarget ?? '';
   updateFieldState(document.getElementById('calorie-target'), false);
   renderHeaderSummary_(buildHeaderSummaryFromDashboard_(dashboard));
-  document.getElementById('card-exact').textContent = formatNumber(dashboard.today.totalExact);
-  document.getElementById('card-estimated').textContent = formatNumber(dashboard.today.totalEstimated);
-  document.getElementById('card-diff').textContent = dashboard.targetDiff == null ? '-' : formatSignedNumber(dashboard.targetDiff);
+  document.getElementById('card-estimated').textContent = `${formatNumber(dashboard.today.totalEstimated)} kcal`;
+  document.getElementById('card-diff').textContent = dashboard.targetDiff == null ? '-' : `${formatSignedNumber(-Number(dashboard.targetDiff || 0))} kcal`;
   document.getElementById('card-diff-rate').textContent = formatTargetRateLabel(dashboard);
   document.getElementById('card-diff').classList.toggle(
     'is-warning',
@@ -828,7 +870,6 @@ function renderDashboard(dashboard) {
     'is-warning',
     dashboard.targetDiff != null && Number(dashboard.targetDiff) < 0
   );
-  document.getElementById('card-pending').textContent = String((dashboard.today.pendingItems || []).length);
   document.getElementById('nutrition-summary').textContent =
     `たんぱく質 ${formatNumber(dashboard.today.nutrition.protein)} g / 脂質 ${formatNumber(dashboard.today.nutrition.fat)} g / 炭水化物 ${formatNumber(dashboard.today.nutrition.carb)} g`;
   renderPendingSummary_(dashboard.today.pendingItems || []);
@@ -857,9 +898,13 @@ function renderHeaderSummary_(header) {
   const pendingCount = Number(summary.pendingCount || 0);
   const hasTarget = Number.isFinite(target) && target > 0;
   const rate = hasTarget ? Math.round((exact / target) * 100) : null;
+  const exactNode = document.getElementById('header-exact-kcal');
+  const targetNode = document.getElementById('header-target-kcal');
 
-  document.getElementById('header-target-kcal').textContent = hasTarget ? `${formatNumber(target)} kcal` : '未設定';
-  document.getElementById('header-exact-kcal').textContent = `${formatNumber(exact)} kcal`;
+  targetNode.textContent = hasTarget ? `${formatNumber(target)}` : '未設定';
+  exactNode.textContent = `${formatNumber(exact)}`;
+  exactNode.classList.add('has-unit');
+  targetNode.classList.toggle('has-unit', hasTarget);
   document.getElementById('header-exact-rate').textContent = hasTarget ? `目標比 ${rate}%` : '目標比 -';
   document.getElementById('header-pending-count').textContent = `${pendingCount}件未登録`;
   document.getElementById('header-exact-kcal').classList.toggle('is-warning', hasTarget && rate > 100);
@@ -997,8 +1042,11 @@ function renderPendingSummary_(pendingItems) {
   list.innerHTML = items.length
     ? items.map(item => `
         <div class="pending-summary-item">
-          <div class="pending-summary-name">${escapeHtml(item)}</div>
-          <button type="button" class="secondary compact-button" onclick="applyPendingMenu('${encodeURIComponent(String(item))}')">入力する</button>
+          <div class="pending-summary-name">${escapeHtml(item.menu || item)}</div>
+          <div class="pending-summary-actions">
+            <button type="button" class="secondary compact-button" onclick="applyPendingMenu('${encodeURIComponent(String(item.menu || item))}', ${Number(item.row || 0)})">入力する</button>
+            <button type="button" class="secondary compact-button" onclick="deletePendingItem(${Number(item.row || 0)}, '${encodeURIComponent(String(item.menu || item))}')">削除</button>
+          </div>
         </div>
       `).join('')
     : '';
@@ -1209,14 +1257,21 @@ function startMasterEdit(index) {
   pushStatus('info', `「${candidate.name}」のマスタ編集を開きました。`);
 }
 
-function applyPendingMenu(menu) {
+async function applyPendingMenu(menu, row) {
   const resolvedMenu = decodeURIComponent(String(menu || ''));
   setMenuValue_(resolvedMenu);
+  const rowValue = row ? String(row) : '';
   document.getElementById('master-key').value = '';
-  clearEditMode_();
+  document.getElementById('editing-master-key').value = '';
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
   pushStatus('info', `「${resolvedMenu}」の入力欄を開きました。`);
-  reloadState();
+  await reloadState();
+  document.getElementById('editing-log-row').value = rowValue;
+  refreshMealSubmitControls_();
+}
+
+function deletePendingItem(rowNumber, menuName) {
+  return deleteLog(rowNumber, menuName);
 }
 
 function renderCandidateAccordion_() {
@@ -1233,6 +1288,7 @@ function renderCandidateAccordion_() {
     body.hidden = true;
     icon.textContent = '▸';
     label.textContent = '近い候補';
+    document.getElementById('candidate-count-label').textContent = '候補 0件';
     toggle.setAttribute('aria-expanded', 'false');
     return;
   }
@@ -1242,6 +1298,7 @@ function renderCandidateAccordion_() {
   icon.textContent = state.candidateAccordionOpen ? '▾' : '▸';
   toggle.setAttribute('aria-expanded', state.candidateAccordionOpen ? 'true' : 'false');
   label.textContent = buildCandidateAccordionLabel_(candidates);
+  document.getElementById('candidate-count-label').textContent = `候補 ${candidates.length}件`;
 }
 
 function buildCandidateAccordionLabel_(candidates) {
@@ -1271,7 +1328,7 @@ function refreshTargetControls() {
 
   input.disabled = state.isTargetSyncing || !hasUser || !canUse;
   saveButton.disabled = state.isTargetSyncing || !hasUser || !canUse;
-  saveButton.textContent = state.isTargetSyncing ? '同期中...' : '保存';
+  saveButton.textContent = state.isTargetSyncing ? '保存中...' : '保存';
   openButton.disabled = state.isTargetSyncing || !hasUser || !canUse;
   field.classList.toggle('is-editable', Boolean(hasUser && canUse && !state.isTargetSyncing));
 }
@@ -1294,10 +1351,11 @@ function refreshMealSubmitControls_() {
   const editingMaster = Boolean(document.getElementById('editing-master-key').value.trim());
   const hasUser = Boolean(document.getElementById('user-id').value.trim());
   const canUse = !hasUser || state.userPermission.canUse !== false;
-  submitButton.textContent = editing ? '保存して更新' : '保存して記録';
-  submitButton.disabled = !canUse;
+  submitButton.textContent = state.isMealSubmitting ? (editing ? '更新中...' : '保存中...') : (editing ? '保存して更新' : '保存して記録');
+  submitButton.disabled = !canUse || state.isMealSubmitting;
   masterButton.hidden = !editingMaster;
-  masterButton.disabled = !canUse;
+  masterButton.disabled = !canUse || state.isMasterSaving;
+  masterButton.textContent = state.isMasterSaving ? '保存中...' : 'マスタだけ保存';
   cancelButton.disabled = !canUse;
   cancelButton.hidden = !editing && !editingMaster;
 }
@@ -1415,6 +1473,8 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
   const action = editingRow ? 'updateMealLog' : 'submitMealDetail';
 
   setSyncVisualState(true);
+  state.isMealSubmitting = true;
+  refreshMealSubmitControls_();
   pushStatus('info', editingRow ? '更新して集計を同期中...' : '保存して集計を同期中...');
 
   try {
@@ -1459,12 +1519,26 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     pushStatus('warning', `保存に失敗しました: ${error.message}`);
     pushStatus('debug', buildErrorDetail_(error));
   } finally {
+    state.isMealSubmitting = false;
+    refreshMealSubmitControls_();
     setSyncVisualState(false);
   }
 });
 
 document.getElementById('refresh-draft').addEventListener('click', async () => {
-  await reloadState();
+  if (state.isDraftRefreshing) return;
+  state.isDraftRefreshing = true;
+  const button = document.getElementById('refresh-draft');
+  const previous = button.textContent;
+  button.disabled = true;
+  button.textContent = '更新中...';
+  try {
+    await reloadState();
+  } finally {
+    state.isDraftRefreshing = false;
+    button.disabled = false;
+    button.textContent = previous;
+  }
 });
 
 document.getElementById('save-target').addEventListener('click', saveProfileTarget);
@@ -1480,6 +1554,8 @@ document.getElementById('save-master-only-button').addEventListener('click', asy
   }
 
   setSyncVisualState(true);
+  state.isMasterSaving = true;
+  refreshMealSubmitControls_();
   pushStatus('info', 'マスタを保存中...');
   try {
     const result = await runServer('saveNutritionMasterOnly', {
@@ -1519,6 +1595,8 @@ document.getElementById('save-master-only-button').addEventListener('click', asy
     pushStatus('warning', `マスタ保存に失敗しました: ${error.message}`);
     pushStatus('debug', buildErrorDetail_(error));
   } finally {
+    state.isMasterSaving = false;
+    refreshMealSubmitControls_();
     setSyncVisualState(false);
   }
 });
@@ -1593,7 +1671,7 @@ function formatTargetRateLabel(dashboard) {
     return '目標未設定';
   }
 
-  const total = Number(dashboard.today.totalExact || 0) + Number(dashboard.today.totalEstimated || 0);
+  const total = Number(dashboard && dashboard.today && dashboard.today.totalExact || 0);
   const percent = Math.round((total / target) * 100);
   return `目標比 ${percent}%`;
 }
@@ -1623,6 +1701,7 @@ function escapeHtml(value) {
 window.applyCandidate = applyCandidate;
 window.applyMasterSearchResult = applyMasterSearchResult;
 window.applyPendingMenu = applyPendingMenu;
+window.deletePendingItem = deletePendingItem;
 window.startEditLog = startEditLog;
 window.deleteLog = deleteLog;
 refreshMealSubmitControls_();

@@ -31,6 +31,9 @@ function logMealFromMaster(userId, parsed, master, options) {
     fiber: master.fiber,
     kcalStatus: KCAL_STATUS.EXACT,
     masterKey: master.masterKey,
+    flavor: master.flavor,
+    unit: master.unit,
+    note: master.note,
   }, options);
 }
 
@@ -44,6 +47,9 @@ function logMealWithNutrition(userId, parsed, nutrition, options) {
     fiber: nutrition.fiber,
     kcalStatus: options && options.kcalStatus ? options.kcalStatus : KCAL_STATUS.EXACT,
     masterKey: nutrition.masterKey || null,
+    flavor: nutrition.flavor || '',
+    unit: nutrition.unit || '',
+    note: nutrition.note || '',
   }, options);
 }
 
@@ -63,6 +69,9 @@ function appendMealLogRecord_(userId, parsed, nutrition, options) {
     fiber: toNullableNumber_(nutrition.fiber),
     kcalStatus: String(nutrition.kcalStatus || KCAL_STATUS.PENDING),
     masterKey: nutrition.masterKey || null,
+    flavor: String(nutrition.flavor || ''),
+    unit: String(nutrition.unit || ''),
+    note: String(nutrition.note || ''),
     source: config.source || SOURCE.TEXT,
     imageFileId: String(config.imageFileId || ''),
     imageUrl: String(config.imageUrl || ''),
@@ -178,6 +187,9 @@ function mapMealLogRow_(row, rowNumber) {
     fiber: toNullableNumber_(row[MEAL_LOG_COL_INDEX.fiber - 1]),
     kcalStatus: String(row[MEAL_LOG_COL_INDEX.kcalStatus - 1] || KCAL_STATUS.PENDING),
     masterKey: String(row[MEAL_LOG_COL_INDEX.masterKey - 1] || ''),
+    flavor: String(row[MEAL_LOG_COL_INDEX.flavor - 1] || ''),
+    unit: String(row[MEAL_LOG_COL_INDEX.unit - 1] || ''),
+    note: String(row[MEAL_LOG_COL_INDEX.note - 1] || ''),
     source: String(row[MEAL_LOG_COL_INDEX.source - 1] || SOURCE.TEXT),
     imageFileId: String(row[MEAL_LOG_COL_INDEX.imageFileId - 1] || ''),
     imageUrl: String(row[MEAL_LOG_COL_INDEX.imageUrl - 1] || ''),
