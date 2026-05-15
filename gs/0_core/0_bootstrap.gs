@@ -32,6 +32,7 @@ const DEFAULT_CANDIDATE_LIMIT = 5;
  * @property {number|null} carb
  * @property {number|null} salt
  * @property {number|null} fiber
+ * @property {string} flavor
  * @property {string} unit
  * @property {string} note
  * @property {'active'|'pending'|'disabled'} status
@@ -54,6 +55,7 @@ const NUTRITION_MASTER_COLUMNS = [
   'source',
   'createdAt',
   'updatedAt',
+  'flavor',
 ];
 
 const NUTRITION_COL_INDEX = NUTRITION_MASTER_COLUMNS.reduce((acc, key, index) => {
@@ -111,6 +113,7 @@ const MEAL_LOG_COL_INDEX = MEAL_LOG_COLUMNS.reduce((acc, key, index) => {
  * @typedef {Object} User
  * @property {string} userId
  * @property {string} displayName
+ * @property {string} pictureUrl
  * @property {number|null} calorieTarget
  * @property {string} goalType
  * @property {boolean} notify
@@ -121,13 +124,13 @@ const MEAL_LOG_COL_INDEX = MEAL_LOG_COLUMNS.reduce((acc, key, index) => {
 const USER_COLUMNS = [
   'userId',
   'displayName',
-  'pictureUrl',
   'calorieTarget',
   'goalType',
   'notify',
   'status',
   'createdAt',
   'updatedAt',
+  'pictureUrl',
 ];
 
 const USER_COL_INDEX = USER_COLUMNS.reduce((acc, key, index) => {

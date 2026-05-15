@@ -52,6 +52,7 @@ function findNutritionCandidates(menu, limit) {
     .slice(0, limit || DEFAULT_CANDIDATE_LIMIT)
     .map(candidate => ({
       masterKey: candidate.master.masterKey,
+      menu: String(candidate.master.name || ''),
       name: buildNutritionDisplayName_(candidate.master),
       kcal: toNullableNumber_(candidate.master.kcal),
       protein: toNullableNumber_(candidate.master.protein),
@@ -59,6 +60,7 @@ function findNutritionCandidates(menu, limit) {
       carb: toNullableNumber_(candidate.master.carb),
       salt: toNullableNumber_(candidate.master.salt),
       fiber: toNullableNumber_(candidate.master.fiber),
+      flavor: String(candidate.master.flavor || ''),
       unit: String(candidate.master.unit || ''),
       note: String(candidate.master.note || ''),
       status: candidate.master.status,
@@ -83,6 +85,7 @@ function buildNutritionDraft(menu) {
       nutrition: shouldPrefill
         ? pickNutrition_(best)
         : emptyNutrition_(),
+      flavor: shouldPrefill ? best.flavor : '',
       unit: shouldPrefill ? best.unit : '',
       note: shouldPrefill ? best.note : '',
     },
@@ -123,7 +126,7 @@ function saveNutritionMaster(input) {
 
   const now = new Date();
   const normalizedName = normalizeText_(input.name);
-  const matchedByName = normalizedName ? findNutritionMasterByName_(input.name, input.unit, input.note) : null;
+  const matchedByName = normalizedName ? findNutritionMasterByName_(input.name, input.flavor, input.unit) : null;
   const masterKey = String(input.masterKey || (matchedByName && matchedByName.masterKey) || Utilities.getUuid());
   const current = getNutritionMasterByKey_(masterKey) || matchedByName;
   const values = sheet.getDataRange().getValues();
@@ -140,6 +143,7 @@ function saveNutritionMaster(input) {
     carb: toNullableNumber_(input.carb),
     salt: toNullableNumber_(input.salt),
     fiber: toNullableNumber_(input.fiber),
+    flavor: String(input.flavor || ''),
     unit: String(input.unit || ''),
     note: String(input.note || ''),
     status: String(input.status || 'active'),
@@ -159,15 +163,14 @@ function saveNutritionMaster(input) {
   return record;
 }
 
-function findNutritionMasterByName_(name, unit, note) {
-  const searchTexts = [
-    normalizeText_(name),
-    normalizeText_(buildNutritionDisplayName_({ name: name, unit: unit, note: note })),
-  ].filter(Boolean);
-  if (!searchTexts.length) return null;
-  return getNutritionMasterCached().find(master =>
-    searchTexts.some(text => getNutritionMasterSearchTexts_(master).includes(text))
-  ) || null;
+function findNutritionMasterByName_(name, flavor, unit) {
+  return getNutritionMasterCached().find(master => isSameNutritionKey_(master, name, flavor, unit)) || null;
+}
+
+function isSameNutritionKey_(master, name, flavor, unit) {
+  return normalizeText_(master && master.name) === normalizeText_(name) &&
+    normalizeText_(master && master.flavor) === normalizeText_(flavor) &&
+    normalizeText_(master && master.unit) === normalizeText_(unit);
 }
 
 function normalizeText_(value) {
@@ -266,6 +269,7 @@ function mapNutritionMasterRow_(row) {
     carb: toNullableNumber_(row[NUTRITION_COL_INDEX.carb - 1]),
     salt: toNullableNumber_(row[NUTRITION_COL_INDEX.salt - 1]),
     fiber: toNullableNumber_(row[NUTRITION_COL_INDEX.fiber - 1]),
+    flavor: String(row[NUTRITION_COL_INDEX.flavor - 1] || ''),
     unit: String(row[NUTRITION_COL_INDEX.unit - 1] || ''),
     note: String(row[NUTRITION_COL_INDEX.note - 1] || ''),
     status: String(row[NUTRITION_COL_INDEX.status - 1] || 'active'),
@@ -275,12 +279,12 @@ function mapNutritionMasterRow_(row) {
   };
 }
 
-function buildNutritionDescriptor_(unit, note) {
-  return [String(unit || '').trim(), String(note || '').trim()].filter(Boolean).join(' ');
+function buildNutritionDescriptor_(flavor, unit) {
+  return [String(flavor || '').trim(), String(unit || '').trim()].filter(Boolean).join(' / ');
 }
 
 function buildNutritionDisplayName_(master) {
-  const descriptor = buildNutritionDescriptor_(master && master.unit, master && master.note);
+  const descriptor = buildNutritionDescriptor_(master && master.flavor, master && master.unit);
   const baseName = String(master && master.name || '').trim();
   return descriptor ? `${baseName}：${descriptor}` : baseName;
 }
@@ -288,5 +292,6 @@ function buildNutritionDisplayName_(master) {
 function getNutritionMasterSearchTexts_(master) {
   const base = normalizeText_(master && master.name);
   const display = normalizeText_(buildNutritionDisplayName_(master));
-  return [...new Set([base, display].filter(Boolean))];
+  const note = normalizeText_(master && master.note);
+  return [...new Set([base, display, note].filter(Boolean))];
 }

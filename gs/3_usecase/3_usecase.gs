@@ -243,6 +243,7 @@ function getPopularMenusByUser_(userId, limit) {
     if (!grouped[key]) {
       grouped[key] = {
         menu: log.menu,
+        displayName: buildMealLogDisplayName_(log),
         count: 0,
         totalKcal: 0,
         lastMealDate: log.mealDate,
@@ -264,6 +265,7 @@ function getPopularMenusByUser_(userId, limit) {
     .slice(0, limit || 5)
     .map(item => ({
       menu: item.menu,
+      displayName: item.displayName,
       count: item.count,
       averageKcal: item.count ? Math.round((item.totalKcal / item.count) * 10) / 10 : 0,
       lastMealDate: toIsoDateTime_(item.lastMealDate),
@@ -335,7 +337,15 @@ function getStreakRanking_(limit) {
 }
 
 function buildMealLogGroupingKey_(log) {
-  return normalizeText_(String(log && log.menu || ''));
+  return normalizeText_(buildMealLogDisplayName_(log));
+}
+
+function buildMealLogDisplayName_(log) {
+  const master = log && log.masterKey ? getNutritionMaster(log.masterKey) : null;
+  if (master) {
+    return buildNutritionDisplayName_(master);
+  }
+  return String(log && log.menu || '').trim();
 }
 
 function handleMealMessageFlow(userId, text, displayName, source, pictureUrl) {
@@ -415,12 +425,17 @@ function submitMealDetail(userId, payload, source) {
   }
 
   const existingMaster = payload.masterKey ? getNutritionMaster(payload.masterKey) : null;
-  const shouldReuseMasterKey = existingMaster &&
-    normalizeText_(existingMaster.name) === normalizeText_(parsed.menu);
+  const shouldReuseMasterKey = existingMaster && isSameNutritionKey_(
+    existingMaster,
+    parsed.menu,
+    payload.flavor,
+    payload.unit
+  );
 
   const savedMaster = saveNutritionMaster({
     masterKey: shouldReuseMasterKey ? payload.masterKey : '',
     name: parsed.menu,
+    flavor: payload.flavor,
     kcal: payload.kcal,
     protein: payload.protein,
     fat: payload.fat,
@@ -491,6 +506,7 @@ function getMealDraftState(payload) {
       score: 0,
       scorePercent: 0,
       nutrition: emptyNutrition_(),
+      flavor: '',
       unit: '',
       note: '',
     },
@@ -529,6 +545,7 @@ function saveNutritionMasterOnly(userId, payload, source) {
   const savedMaster = saveNutritionMaster({
     masterKey: payload && payload.masterKey,
     name: menu,
+    flavor: payload && payload.flavor,
     kcal: payload && payload.kcal,
     protein: payload && payload.protein,
     fat: payload && payload.fat,
@@ -576,12 +593,17 @@ function updateMealLogDetail(userId, payload, source) {
   }
 
   const existingMaster = payload.masterKey ? getNutritionMaster(payload.masterKey) : null;
-  const shouldReuseMasterKey = existingMaster &&
-    normalizeText_(existingMaster.name) === normalizeText_(parsed.menu);
+  const shouldReuseMasterKey = existingMaster && isSameNutritionKey_(
+    existingMaster,
+    parsed.menu,
+    payload.flavor,
+    payload.unit
+  );
 
   const savedMaster = saveNutritionMaster({
     masterKey: shouldReuseMasterKey ? payload.masterKey : '',
     name: parsed.menu,
+    flavor: payload.flavor,
     kcal: payload.kcal,
     protein: payload.protein,
     fat: payload.fat,
@@ -765,6 +787,7 @@ function serializeDraftPrefill_(prefill) {
     masterName: String(prefill && prefill.masterName || ''),
     score: Number(prefill && prefill.score || 0),
     scorePercent: Number(prefill && prefill.scorePercent || 0),
+    flavor: String(prefill && prefill.flavor || ''),
     unit: String(prefill && prefill.unit || ''),
     note: String(prefill && prefill.note || ''),
     nutrition: Object.assign({}, emptyNutrition_(), prefill && prefill.nutrition),
@@ -772,16 +795,21 @@ function serializeDraftPrefill_(prefill) {
 }
 
 function serializeNutritionCandidate_(candidate) {
+  const menu = String(candidate.menu || candidate.baseName || candidate.rawName || candidate.name || '');
+  const flavor = String(candidate.flavor || '');
+  const unit = String(candidate.unit || '');
   return {
     masterKey: candidate.masterKey,
-    name: candidate.name,
+    menu: menu,
+    name: String(candidate.displayName || buildNutritionDisplayName_({ name: menu, flavor: flavor, unit: unit })),
     kcal: candidate.kcal,
     protein: candidate.protein,
     fat: candidate.fat,
     carb: candidate.carb,
     salt: candidate.salt,
     fiber: candidate.fiber,
-    unit: candidate.unit,
+    flavor: flavor,
+    unit: unit,
     note: candidate.note,
     status: candidate.status,
     score: candidate.score,
@@ -805,6 +833,7 @@ function serializeMealLog_(log) {
     fiber: log.fiber,
     kcalStatus: log.kcalStatus,
     masterKey: log.masterKey,
+    flavor: master ? String(master.flavor || '') : '',
     unit: master ? String(master.unit || '') : '',
     note: master ? String(master.note || '') : '',
     source: log.source,

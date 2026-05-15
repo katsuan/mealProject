@@ -873,7 +873,7 @@ function renderMasterSearchResults_(results) {
           </div>
         </div>
       `).join('')
-    : '<div class="empty-state">メニュー名や補足で検索できます。</div>';
+    : '<div class="empty-state">メニュー名・フレーバー・単位で検索できます。</div>';
 }
 
 function renderWeeklyChart_(weekly, calorieTarget) {
@@ -924,7 +924,7 @@ function buildPopularRankingItem_(item, index) {
     <div class="ranking-item">
       <div class="ranking-rank">#${index + 1}</div>
       <div class="ranking-main">
-        <div class="ranking-name">${escapeHtml(item.menu)}</div>
+        <div class="ranking-name">${escapeHtml(item.displayName || item.menu)}</div>
         <div class="ranking-meta">平均 ${escapeHtml(formatNumber(item.averageKcal))} kcal</div>
       </div>
       <div class="ranking-value">${escapeHtml(String(item.count))}回</div>
@@ -1090,6 +1090,7 @@ function renderDraft(draft) {
   const prefill = draft.prefill || {};
   document.getElementById('master-key').value = prefill.masterKey || '';
   applyNutritionFields(prefill.nutrition || {}, {
+    flavor: prefill.flavor || '',
     unit: prefill.unit || '',
     note: prefill.note || '',
   });
@@ -1130,6 +1131,7 @@ function applyNutritionFields(nutrition, extras) {
   setFieldValue('field-carb', nutrition.carb ?? '');
   setFieldValue('field-salt', nutrition.salt ?? '');
   setFieldValue('field-fiber', nutrition.fiber ?? '');
+  setFieldValue('field-flavor', extras.flavor || '');
   setFieldValue('field-unit', extras.unit || '');
   setFieldValue('field-note', extras.note || '');
 }
@@ -1145,6 +1147,7 @@ function applyCandidate(index) {
   if (!candidate) return;
   document.getElementById('master-key').value = candidate.masterKey || '';
   applyNutritionFields(candidate, {
+    flavor: candidate.flavor || '',
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
@@ -1156,10 +1159,11 @@ function applyMasterSearchResult(index) {
   if (!candidate) return;
   const currentMeal = document.getElementById('meal-type').value;
   const currentMealDate = document.getElementById('meal-date').value;
-  setMenuValue_(candidate.name || '');
+  setMenuValue_(candidate.menu || candidate.name || '');
   document.getElementById('master-key').value = candidate.masterKey || '';
   document.getElementById('editing-master-key').value = '';
   applyNutritionFields(candidate, {
+    flavor: candidate.flavor || '',
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
@@ -1181,8 +1185,9 @@ function startMasterEdit(index) {
   document.getElementById('editing-master-key').value = candidate.masterKey || '';
   document.getElementById('editing-log-row').value = '';
   document.getElementById('master-key').value = candidate.masterKey || '';
-  setMenuValue_(candidate.name || '');
+  setMenuValue_(candidate.menu || candidate.name || '');
   applyNutritionFields(candidate, {
+    flavor: candidate.flavor || '',
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
@@ -1299,6 +1304,7 @@ function startEditLog(rowNumber) {
   setMealType(log.meal || '朝');
   setMealDatePreset(inferDatePresetFromMealDate_(log.mealDate), String(log.mealDate || '').slice(0, 10));
   applyNutritionFields(log, {
+    flavor: log.flavor || '',
     unit: log.unit || '',
     note: log.note || '',
   });
@@ -1412,6 +1418,7 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
       datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
       menu: document.getElementById('menu-name').value.trim(),
       masterKey: document.getElementById('master-key').value.trim(),
+      flavor: document.getElementById('field-flavor').value.trim(),
       kcal: document.getElementById('field-kcal').value,
       protein: document.getElementById('field-protein').value,
       fat: document.getElementById('field-fat').value,
@@ -1474,6 +1481,7 @@ document.getElementById('save-master-only-button').addEventListener('click', asy
       datePreset: inferDatePresetFromMealDate_(document.getElementById('meal-date').value),
       masterKey: document.getElementById('editing-master-key').value.trim() || document.getElementById('master-key').value.trim(),
       menu: document.getElementById('menu-name').value.trim(),
+      flavor: document.getElementById('field-flavor').value.trim(),
       kcal: document.getElementById('field-kcal').value,
       protein: document.getElementById('field-protein').value,
       fat: document.getElementById('field-fat').value,
