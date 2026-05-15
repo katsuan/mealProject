@@ -169,16 +169,6 @@
     font-weight: 700;
   }
 
-  .profile-debug-button {
-    margin-top: 8px;
-    width: fit-content;
-    min-width: 0;
-    min-height: 28px;
-    padding: 5px 10px;
-    font-size: 11px;
-    align-self: start;
-  }
-
   .hero-actions {
     display: inline-flex;
     align-items: center;
@@ -437,16 +427,21 @@
   }
 
   .status-accordion-toggle {
-    flex: 0 0 auto;
-    width: 28px;
-    height: 28px;
-    border: 1px solid rgba(255, 255, 255, 0.88);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 72px;
+    min-height: 30px;
+    border: 1px solid var(--line);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.76);
-    padding: 0;
-    font-size: 12px;
-    font-weight: 800;
+    background: var(--surface-subtle);
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
     color: var(--muted);
+    white-space: nowrap;
+    line-height: 1;
   }
 
   .status-accordion-toggle.is-debug {
@@ -481,6 +476,15 @@
   .status-controls[hidden],
   .status-history[hidden] {
     display: none !important;
+  }
+
+  .settings-debug {
+    display: grid;
+    gap: 10px;
+  }
+
+  .settings-debug-button {
+    justify-self: start;
   }
 
   .status-controls {

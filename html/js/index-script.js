@@ -48,6 +48,8 @@ const state = {
   isMealSubmitting: false,
   isMasterSaving: false,
   advancedNutritionOpen: false,
+  masterSearchTimer: null,
+  lastMasterSearchQuery: '',
 };
 
 function buildInitialQuery_(fallback) {
@@ -113,7 +115,7 @@ function renderStatus() {
 
   panelNode.hidden = !state.statusAccordionOpen;
   accordionNode.hidden = !state.statusAccordionOpen;
-  accordionToggle.className = `status-accordion-toggle ${STATUS_META[latest.level].className}`;
+  accordionToggle.className = `hero-menu-button settings-debug-button status-accordion-toggle ${STATUS_META[latest.level].className}`;
   accordionToggle.setAttribute('aria-expanded', state.statusAccordionOpen ? 'true' : 'false');
   accordionToggle.textContent = state.statusAccordionOpen ? 'デバッグ ▾' : 'デバッグ ▸';
   accordionToggle.setAttribute('aria-label', state.statusAccordionOpen ? 'ログを閉じる' : 'ログを開く');
@@ -242,44 +244,67 @@ function bindSettingsModal() {
 
 function bindMasterSearch() {
   document.getElementById('search-master').addEventListener('click', async () => {
-    const userId = document.getElementById('user-id').value.trim();
     const query = document.getElementById('master-search-query').value.trim();
-    if (!userId) {
-      pushStatus('notice', 'LINEログイン後に登録済みDBを検索できます。');
-      return;
-    }
     if (!query) {
       renderMasterSearchResults_([]);
       pushStatus('notice', '検索キーワードを入力してください。');
       return;
     }
+    await runMasterSearch_(query, { announce: true, source: 'manual' });
+  });
+}
 
-    state.isMasterSearching = true;
-    const searchButton = document.getElementById('search-master');
-    searchButton.disabled = true;
-    searchButton.textContent = '検索中...';
+async function runMasterSearch_(query, options) {
+  const config = options || {};
+  const normalizedQuery = String(query || '').trim();
+  const userId = document.getElementById('user-id').value.trim();
+  if (!userId) {
+    if (config.announce) {
+      pushStatus('notice', 'LINEログイン後に登録済みDBを検索できます。');
+    }
+    return;
+  }
+
+  if (!normalizedQuery) {
+    state.masterSearchResults = [];
+    state.lastMasterSearchQuery = '';
+    renderMasterSearchResults_([]);
+    return;
+  }
+
+  state.isMasterSearching = true;
+  const searchButton = document.getElementById('search-master');
+  const previous = searchButton.textContent;
+  searchButton.disabled = true;
+  searchButton.textContent = '検索中...';
+  if (config.announce) {
     pushStatus('info', '登録済みDBを検索中...');
-    try {
-      const result = await runServer('searchNutritionMaster', {
-        userId: userId,
-        displayName: document.getElementById('display-name').value.trim(),
-        idToken: state.idToken,
-        query: query,
-        limit: 12,
-      });
-      state.masterSearchResults = result.results || [];
-      applyPermissionState_(result.permission);
-      renderMasterSearchResults_(state.masterSearchResults);
+  }
+  try {
+    const result = await runServer('searchNutritionMaster', {
+      userId: userId,
+      displayName: document.getElementById('display-name').value.trim(),
+      idToken: state.idToken,
+      query: normalizedQuery,
+      limit: 12,
+    });
+    state.masterSearchResults = result.results || [];
+    state.lastMasterSearchQuery = normalizedQuery;
+    applyPermissionState_(result.permission);
+    renderMasterSearchResults_(state.masterSearchResults);
+    if (config.announce) {
       pushStatus('info', `${state.masterSearchResults.length}件の候補を見つけました。`);
-    } catch (error) {
+    }
+  } catch (error) {
+    if (config.announce) {
       pushStatus('warning', `登録済みDB検索に失敗しました: ${error.message}`);
       pushStatus('debug', buildErrorDetail_(error));
-    } finally {
-      state.isMasterSearching = false;
-      searchButton.disabled = false;
-      searchButton.textContent = '検索する';
     }
-  });
+  } finally {
+    state.isMasterSearching = false;
+    searchButton.disabled = false;
+    searchButton.textContent = previous || '検索する';
+  }
 }
 
 function resolveLoginRedirectUrl_() {
@@ -594,6 +619,21 @@ function bindFieldInteractions() {
     if (!state.isProgrammaticMenuUpdate) {
       state.menuDirty = true;
     }
+    const menuValue = String(document.getElementById('menu-name').value || '').trim();
+    document.getElementById('master-search-query').value = menuValue;
+    if (state.masterSearchTimer) {
+      window.clearTimeout(state.masterSearchTimer);
+    }
+    if (!menuValue) {
+      state.lastMasterSearchQuery = '';
+      renderMasterSearchResults_([]);
+      return;
+    }
+    state.masterSearchTimer = window.setTimeout(() => {
+      if (!document.getElementById('user-id').value.trim()) return;
+      if (menuValue === state.lastMasterSearchQuery) return;
+      runMasterSearch_(menuValue, { announce: false, source: 'menu-input' });
+    }, 350);
   });
 }
 

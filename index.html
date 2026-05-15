@@ -17,7 +17,6 @@
               <div class="eyebrow">LINEプロフィール</div>
               <div id="profile-name" class="name">ログイン待ちです</div>
               <button id="login-line" type="button" class="inline-login" hidden>LINEでログイン</button>
-              <button id="status-accordion-toggle" type="button" class="hero-menu-button profile-debug-button" aria-expanded="false">デバッグ ▸</button>
             </div>
           </div>
           <div id="header-summary-scope" class="header-summary-row">
@@ -33,12 +32,6 @@
               </div>
               <div id="header-exact-rate" class="header-stat-meta">目標比 -</div>
             </div>
-          </div>
-        </div>
-        <div id="status-panel" class="status-panel" hidden>
-          <div id="status-accordion" class="status-accordion" hidden>
-            <div id="status-controls" class="status-controls" hidden></div>
-            <div id="status-history" class="status-history" hidden></div>
           </div>
         </div>
       </section>
@@ -321,6 +314,15 @@
             <input id="notify-setting" type="checkbox">
             <span>20時に未記録リマインドを受け取る</span>
           </label>
+          <div class="settings-debug">
+            <button id="status-accordion-toggle" type="button" class="hero-menu-button settings-debug-button" aria-expanded="false">デバッグ ▸</button>
+            <div id="status-panel" class="status-panel" hidden>
+              <div id="status-accordion" class="status-accordion" hidden>
+                <div id="status-controls" class="status-controls" hidden></div>
+                <div id="status-history" class="status-history" hidden></div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="actions">
           <button id="save-target" type="button" class="primary">保存</button>
