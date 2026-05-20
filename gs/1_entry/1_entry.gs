@@ -83,7 +83,6 @@ function handleLineEvent_(event) {
   }
 
   const profile = resolveLineProfile_(userId);
-  const isFirstPostToday = getMealLogsByUserAndDate(userId, new Date()).length === 0;
   const result = handleMealMessageFlow(
     userId,
     String(event.message.text || ''),
@@ -117,12 +116,6 @@ function handleLineEvent_(event) {
         senderProfile: profile,
       }),
     ];
-    if (isFirstPostToday) {
-      messages.push({
-        type: 'text',
-        text: buildFirstPostComment(userId),
-      });
-    }
     replyLineMessages_(event.replyToken, messages);
     return;
   }
@@ -182,8 +175,6 @@ function handleLinePostbackEvent_(event, userId) {
   }
 
   const profile = resolveLineProfile_(userId);
-  const isFirstPostToday = getMealLogsByUserAndDate(userId, new Date()).length === 0;
-
   try {
     const result = submitMealCandidate(userId, {
       displayName: String(profile.displayName || ''),
@@ -202,12 +193,6 @@ function handleLinePostbackEvent_(event, userId) {
         senderProfile: profile,
       }),
     ];
-    if (isFirstPostToday) {
-      messages.push({
-        type: 'text',
-        text: buildFirstPostComment(userId),
-      });
-    }
     replyLineMessages_(event.replyToken, messages);
   } catch (error) {
     replyLineMessages_(event.replyToken, [{

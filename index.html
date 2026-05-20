@@ -3,6 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>食事管理</title>
+    <meta name="title" content="食事管理">
     <link rel="stylesheet" href="./html/css/index-style.css">
   </head>
   <body>
@@ -23,7 +25,7 @@
             <div class="header-stat header-stat-wide">
               <div class="header-stat-head">
                 <div class="header-stat-label">今日の確定カロリー</div>
-                <button id="header-pending-count" type="button" class="header-badge">0件未登録</button>
+                <button id="header-pending-count" type="button" class="header-badge">0件未記入</button>
               </div>
               <div class="header-stat-pair">
                 <div id="header-exact-kcal" class="header-stat-value">0</div>
@@ -46,7 +48,7 @@
         <div class="section-head">
           <div>
             <h2>食事を入力する</h2>
-            <div class="section-copy">新しい記録の追加も、未記入で残っているログの補完もここでできます。</div>
+            <div class="section-copy">新しい記録の追加も、未記入のまま残っている記録の補完もここでできます。</div>
           </div>
         </div>
 
@@ -225,7 +227,7 @@
         <div id="nutrition-summary" class="summary-note"></div>
         <div id="pending-summary" class="pending-summary" hidden>
           <div class="pending-summary-head">
-            <div class="label">未登録メニュー</div>
+            <div class="label">未記入のままの記録</div>
             <div id="pending-summary-count" class="card-meta">0件</div>
           </div>
           <div id="pending-summary-list" class="pending-summary-list"></div>

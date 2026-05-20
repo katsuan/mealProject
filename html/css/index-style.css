@@ -1040,9 +1040,9 @@
     margin-top: 12px;
     display: grid;
     gap: 10px;
-    border: 1px solid var(--line);
+    border: 1px solid rgba(183, 103, 43, 0.28);
     border-radius: 8px;
-    background: var(--surface-subtle);
+    background: #fff8f2;
     padding: 12px;
   }
 
@@ -1080,7 +1080,7 @@
     min-width: 0;
     font-size: 13px;
     font-weight: 700;
-    color: var(--text);
+    color: var(--warning);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

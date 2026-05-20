@@ -61,6 +61,16 @@ function buildInitialQuery_(fallback) {
     row: params.get('row') || String(fallback.row || '').trim(),
     meal: params.get('meal') || String(fallback.meal || '').trim(),
     menu: params.get('menu') || String(fallback.menu || '').trim(),
+    masterKey: params.get('masterKey') || String(fallback.masterKey || '').trim(),
+    flavor: params.get('flavor') || String(fallback.flavor || '').trim(),
+    unit: params.get('unit') || String(fallback.unit || '').trim(),
+    note: params.get('note') || String(fallback.note || '').trim(),
+    kcal: params.get('kcal') || String(fallback.kcal || '').trim(),
+    protein: params.get('protein') || String(fallback.protein || '').trim(),
+    fat: params.get('fat') || String(fallback.fat || '').trim(),
+    carb: params.get('carb') || String(fallback.carb || '').trim(),
+    salt: params.get('salt') || String(fallback.salt || '').trim(),
+    fiber: params.get('fiber') || String(fallback.fiber || '').trim(),
     datePreset: params.get('datePreset') || String(fallback.datePreset || '').trim(),
     mealDate: params.get('mealDate') || String(fallback.mealDate || '').trim(),
   };
@@ -359,7 +369,11 @@ function setSettingsModalTab_(tab) {
 }
 
 function shouldLoadFullStateOnBoot_() {
-  return Boolean(initialQuery.menu || initialQuery.logId || initialQuery.row || initialQuery.mode === 'detail');
+  return Boolean(
+    initialQuery.mode === 'detail' ||
+    ((initialQuery.logId || initialQuery.row) &&
+      !(initialQuery.kcal || initialQuery.masterKey || initialQuery.flavor || initialQuery.unit || initialQuery.note))
+  );
 }
 
 async function runServer(action, payload) {
@@ -430,7 +444,10 @@ async function initializeApp() {
     }
 
     if (state.userId) {
-      await reloadHeaderState();
+      const bootedFromCache = applyCachedAppState_(state.userId);
+      if (!bootedFromCache) {
+        await reloadHeaderState();
+      }
       if (shouldLoadFullStateOnBoot_()) {
         await reloadState();
       }
@@ -493,6 +510,26 @@ function hydrateQuery() {
   }
   if (initialQuery.menu) {
     setMenuValue_(initialQuery.menu);
+  }
+  if (initialQuery.masterKey) {
+    document.getElementById('master-key').value = initialQuery.masterKey;
+  }
+  if (
+    initialQuery.kcal || initialQuery.protein || initialQuery.fat || initialQuery.carb ||
+    initialQuery.salt || initialQuery.fiber || initialQuery.flavor || initialQuery.unit || initialQuery.note
+  ) {
+    applyNutritionFields({
+      kcal: initialQuery.kcal,
+      protein: initialQuery.protein,
+      fat: initialQuery.fat,
+      carb: initialQuery.carb,
+      salt: initialQuery.salt,
+      fiber: initialQuery.fiber,
+    }, {
+      flavor: initialQuery.flavor,
+      unit: initialQuery.unit,
+      note: initialQuery.note,
+    });
   }
 }
 
@@ -1044,7 +1081,7 @@ function renderHeaderSummary_(header) {
   exactNode.classList.add('has-unit');
   targetNode.classList.toggle('has-unit', hasTarget);
   document.getElementById('header-exact-rate').textContent = hasTarget ? `目標比 ${rate}%` : '目標比 -';
-  document.getElementById('header-pending-count').textContent = `${pendingCount}件未登録`;
+  document.getElementById('header-pending-count').textContent = `${pendingCount}件未記入`;
   document.getElementById('header-exact-kcal').classList.toggle('is-warning', hasTarget && rate > 100);
   document.getElementById('header-exact-rate').classList.toggle('is-warning', hasTarget && rate > 100);
 }
@@ -1180,7 +1217,7 @@ function renderPendingSummary_(pendingItems) {
   list.innerHTML = items.length
       ? items.map(item => `
         <div class="pending-summary-item">
-          <div class="pending-summary-name">${escapeHtml(item.menu || item)}</div>
+          <div class="pending-summary-name">未記入: ${escapeHtml(item.menu || item)}</div>
           <div class="pending-summary-actions">
             <button type="button" class="secondary compact-button" onclick="applyPendingMenu('${encodeURIComponent(String(item.menu || item))}', '${escapeHtml(String(item.logId || item.row || ''))}')">入力する</button>
             <button type="button" class="secondary compact-button" onclick="deletePendingItem('${escapeHtml(String(item.logId || item.row || ''))}', '${encodeURIComponent(String(item.menu || item))}')">削除</button>

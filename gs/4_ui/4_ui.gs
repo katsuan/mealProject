@@ -37,7 +37,7 @@ function buildMealKcalLine(record) {
 
 function buildPendingWarning_(summary) {
   if (!summary.hasPending) return '';
-  return ['未登録メニュー:', ...summary.pendingItems.map(item => `- ${item.menu || item}`)].join('\n');
+  return ['未記入の記録:', ...summary.pendingItems.map(item => `- ${item.menu || item}`)].join('\n');
 }
 
 function buildKcalDiffLine_(userId, total) {
@@ -54,6 +54,33 @@ function buildKcalDiffLine_(userId, total) {
 
 function buildTargetUpdatedReply(userId, kcal) {
   return `目標カロリーを ${kcal} kcal に更新しました`;
+}
+
+function buildMealEditUrl_(record) {
+  if (!record) {
+    return buildLiffUrl_({ mode: 'input' });
+  }
+  const mealDate = record.mealDate
+    ? Utilities.formatDate(new Date(record.mealDate), APP_TIMEZONE, 'yyyy-MM-dd')
+    : '';
+  return buildLiffUrl_({
+    mode: 'input',
+    logId: record.logId,
+    meal: record.meal,
+    menu: record.menu,
+    mealDate: mealDate,
+    datePreset: inferDatePresetFromMealDate_(mealDate),
+    masterKey: record.masterKey,
+    flavor: record.flavor,
+    unit: record.unit,
+    note: record.note,
+    kcal: record.kcal,
+    protein: record.protein,
+    fat: record.fat,
+    carb: record.carb,
+    salt: record.salt,
+    fiber: record.fiber,
+  });
 }
 
 function getFlexTone_(kind) {
@@ -113,7 +140,9 @@ function buildDailySummaryFlexMessage(userId, options) {
   const hasTarget = targetKcal > 0;
   const targetPercent = hasTarget ? (total / targetKcal) * 100 : null;
   const isOverTarget = hasTarget && total > targetKcal;
-  const inputUrl = buildLiffUrl_({ mode: 'input' });
+  const inputUrl = context.record
+    ? buildMealEditUrl_(context.record)
+    : buildLiffUrl_({ mode: 'input' });
   const logsUrl = buildLiffUrl_({ mode: 'logs' });
   const recordDisplayName = context.record ? buildRecordDisplayName_(context.record) : '';
   const recordDetailLine = context.record ? buildRecordDetailLine_(context.record) : '';
@@ -121,8 +150,8 @@ function buildDailySummaryFlexMessage(userId, options) {
   const subline = context.subline || buildKcalDiffLine_(userId, total);
   const sublineColor = isOverTarget ? '#C84949' : '#6b7280';
   const pendingLine = today.hasPending
-    ? `未登録 ${today.pendingItems.length}件`
-    : '未登録なし';
+    ? `未記入 ${today.pendingItems.length}件`
+    : '未記入なし';
   const totalColor = isOverTarget ? '#C84949' : '#231815';
   const targetPercentText = hasTarget ? formatPercentValue_(targetPercent) : null;
   const targetValueLine = hasTarget ? `${formatKcalDisplay_(targetKcal)} kcal` : '目標未設定';
