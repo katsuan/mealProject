@@ -61,6 +61,9 @@ function buildInitialQuery_(fallback) {
     row: params.get('row') || String(fallback.row || '').trim(),
     meal: params.get('meal') || String(fallback.meal || '').trim(),
     menu: params.get('menu') || String(fallback.menu || '').trim(),
+    todayExact: params.get('todayExact') || String(fallback.todayExact || '').trim(),
+    targetKcal: params.get('targetKcal') || String(fallback.targetKcal || '').trim(),
+    pendingCount: params.get('pendingCount') || String(fallback.pendingCount || '').trim(),
     masterKey: params.get('masterKey') || String(fallback.masterKey || '').trim(),
     flavor: params.get('flavor') || String(fallback.flavor || '').trim(),
     unit: params.get('unit') || String(fallback.unit || '').trim(),
@@ -531,6 +534,23 @@ function hydrateQuery() {
       note: initialQuery.note,
     });
   }
+  applyHeaderSummaryFromQuery_();
+}
+
+function applyHeaderSummaryFromQuery_() {
+  const hasAnyHeaderValue =
+    String(initialQuery.todayExact || '').trim() !== '' ||
+    String(initialQuery.targetKcal || '').trim() !== '' ||
+    String(initialQuery.pendingCount || '').trim() !== '';
+  if (!hasAnyHeaderValue) return;
+
+  renderHeaderSummary_({
+    user: {
+      calorieTarget: initialQuery.targetKcal,
+    },
+    todayExact: initialQuery.todayExact,
+    pendingCount: initialQuery.pendingCount,
+  });
 }
 
 function normalizeMenuKey_(value) {

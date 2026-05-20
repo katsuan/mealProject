@@ -80,7 +80,22 @@ function buildMealEditUrl_(record) {
     carb: record.carb,
     salt: record.salt,
     fiber: record.fiber,
+    todayExact: record.todayExact,
+    targetKcal: record.targetKcal,
+    pendingCount: record.pendingCount,
   });
+}
+
+function buildHeaderQueryParamsFromDashboard_(dashboard) {
+  const safeDashboard = dashboard || {};
+  const safeUser = safeDashboard.user || {};
+  const safeToday = safeDashboard.today || {};
+  const pendingItems = Array.isArray(safeToday.pendingItems) ? safeToday.pendingItems : [];
+  return {
+    todayExact: Number(safeToday.totalExact || 0),
+    targetKcal: Number(safeUser.calorieTarget || 0),
+    pendingCount: pendingItems.length,
+  };
 }
 
 function getFlexTone_(kind) {
@@ -140,10 +155,11 @@ function buildDailySummaryFlexMessage(userId, options) {
   const hasTarget = targetKcal > 0;
   const targetPercent = hasTarget ? (total / targetKcal) * 100 : null;
   const isOverTarget = hasTarget && total > targetKcal;
+  const headerQuery = buildHeaderQueryParamsFromDashboard_(dashboard);
   const inputUrl = context.record
-    ? buildMealEditUrl_(context.record)
-    : buildLiffUrl_({ mode: 'input' });
-  const logsUrl = buildLiffUrl_({ mode: 'logs' });
+    ? buildMealEditUrl_(Object.assign({}, context.record, headerQuery))
+    : buildLiffUrl_(Object.assign({ mode: 'input' }, headerQuery));
+  const logsUrl = buildLiffUrl_(Object.assign({ mode: 'logs' }, headerQuery));
   const recordDisplayName = context.record ? buildRecordDisplayName_(context.record) : '';
   const recordDetailLine = context.record ? buildRecordDetailLine_(context.record) : '';
   const headline = context.headline || (recordDisplayName ? `${recordDisplayName} を記録` : '今日の集計');
