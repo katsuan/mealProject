@@ -874,26 +874,32 @@
     text-align: center;
   }
 
+  #advanced-nutrition-toggle-label {
+    white-space: nowrap;
+  }
+
   .advanced-toggle-wrap {
     display: grid;
     align-content: start;
   }
 
   .advanced-nutrition-note {
-    position: absolute;
-    right: 10px;
-    bottom: 8px;
     font-size: 10px;
     line-height: 1;
     color: var(--muted);
     white-space: nowrap;
     pointer-events: none;
+    justify-self: end;
   }
 
   .advanced-toggle.has-note {
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    justify-content: stretch;
+    column-gap: 10px;
     padding-left: 14px;
-    padding-right: 64px;
+    padding-right: 14px;
     text-align: left;
   }
 

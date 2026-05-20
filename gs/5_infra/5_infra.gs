@@ -11,6 +11,7 @@ const SCRIPT_PROPERTY_WEBAPP_URL = 'WEBAPP_URL';
 const SCRIPT_PROPERTY_ADMIN_USER_IDS = 'ADMIN_USER_IDS';
 const SCRIPT_PROPERTY_AUTO_APPROVE_USER_IDS = 'AUTO_APPROVE_USER_IDS';
 const SCRIPT_PROPERTY_DRIVE_FOLDER_ID = 'DRIVE_FOLDER_ID';
+const SCRIPT_PROPERTY_REMINDER_STREAKS = 'REMINDER_STREAKS';
 const PENDING_IMAGE_ATTACHMENT_CACHE_PREFIX = 'PENDING_IMAGE_ATTACHMENT:';
 
 function refreshNutritionMasterCache_() {
@@ -132,6 +133,34 @@ function getDriveFolderId_() {
 
 function setDriveFolderId(folderId) {
   PropertiesService.getScriptProperties().setProperty(SCRIPT_PROPERTY_DRIVE_FOLDER_ID, String(folderId || '').trim());
+}
+
+function getReminderStreaks_() {
+  const raw = PropertiesService.getScriptProperties().getProperty(SCRIPT_PROPERTY_REMINDER_STREAKS) || '{}';
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (error) {
+    return {};
+  }
+}
+
+function setReminderStreaks_(streaks) {
+  PropertiesService.getScriptProperties().setProperty(
+    SCRIPT_PROPERTY_REMINDER_STREAKS,
+    JSON.stringify(streaks || {})
+  );
+}
+
+function buildScriptDateKey_(date) {
+  return Utilities.formatDate(date || new Date(), APP_TIMEZONE, 'yyyy-MM-dd');
+}
+
+function getPreviousDateKey_(dateKey) {
+  const date = new Date(`${String(dateKey || '').trim()}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setDate(date.getDate() - 1);
+  return buildScriptDateKey_(date);
 }
 
 function configureLiff(liffId, channelId, accessToken, webAppUrl) {

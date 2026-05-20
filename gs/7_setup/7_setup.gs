@@ -50,12 +50,16 @@ function onEdit(e) {
 
 function send20hReminderNotifications() {
   ensureProjectSetup_();
+  const todayKey = buildScriptDateKey_(new Date());
   listUsers()
     .filter(user => user.notify === true)
     .filter(user => serializeUserPermission_(user).canUse)
     .forEach(user => {
       const todayLogs = getMealLogsByUserAndDate(user.userId, new Date());
-      if (todayLogs.length > 0) return;
+      if (todayLogs.length > 0) {
+        resetReminderNotificationStreak_(user.userId);
+        return;
+      }
 
       const message = {
         type: 'text',
@@ -63,6 +67,10 @@ function send20hReminderNotifications() {
       };
       try {
         pushLineMessages_(user.userId, [message]);
+        const streakState = markReminderNotificationSent_(user.userId, todayKey);
+        if (streakState.shouldNotifyAdmin) {
+          notifyAdminsOfReminderStreak_(user, streakState.consecutiveReminderDays);
+        }
       } catch (error) {
         // Reminder push is best-effort only.
       }
@@ -97,4 +105,69 @@ function ensureSheet_(spreadsheet, name, columns) {
   if (sheet.getFrozenRows() !== 1) {
     sheet.setFrozenRows(1);
   }
+}
+
+function resetReminderNotificationStreak_(userId) {
+  const normalizedUserId = String(userId || '').trim();
+  if (!normalizedUserId) return;
+  const streaks = getReminderStreaks_();
+  if (!Object.prototype.hasOwnProperty.call(streaks, normalizedUserId)) return;
+  delete streaks[normalizedUserId];
+  setReminderStreaks_(streaks);
+}
+
+function markReminderNotificationSent_(userId, dateKey) {
+  const normalizedUserId = String(userId || '').trim();
+  const normalizedDateKey = String(dateKey || '').trim() || buildScriptDateKey_(new Date());
+  const streaks = getReminderStreaks_();
+  const current = streaks[normalizedUserId] || {};
+
+  if (current.lastReminderDate === normalizedDateKey) {
+    return {
+      consecutiveReminderDays: Number(current.consecutiveReminderDays || 0),
+      shouldNotifyAdmin: false,
+    };
+  }
+
+  const consecutiveReminderDays = current.lastReminderDate === getPreviousDateKey_(normalizedDateKey)
+    ? Number(current.consecutiveReminderDays || 0) + 1
+    : 1;
+
+  const shouldNotifyAdmin = consecutiveReminderDays >= 7 && current.lastAdminAlertDate !== normalizedDateKey;
+  streaks[normalizedUserId] = {
+    lastReminderDate: normalizedDateKey,
+    consecutiveReminderDays: consecutiveReminderDays,
+    lastAdminAlertDate: shouldNotifyAdmin ? normalizedDateKey : String(current.lastAdminAlertDate || ''),
+  };
+  setReminderStreaks_(streaks);
+
+  return {
+    consecutiveReminderDays: consecutiveReminderDays,
+    shouldNotifyAdmin: shouldNotifyAdmin,
+  };
+}
+
+function notifyAdminsOfReminderStreak_(user, consecutiveDays) {
+  const adminIds = getAdminUserIds_().filter(adminUserId => adminUserId !== String(user && user.userId || ''));
+  if (!adminIds.length || !getLineChannelAccessToken_()) return;
+
+  const displayName = String(user && user.displayName || '').trim() || '未設定';
+  const days = Number(consecutiveDays || 0);
+  const message = {
+    type: 'text',
+    text: [
+      '20時リマインドの連続送信を検知しました。',
+      `表示名: ${displayName}`,
+      `userId: ${String(user && user.userId || '')}`,
+      `${days}日連続で今日の記録がないため、通知対象になっています。`,
+    ].join('\n'),
+  };
+
+  adminIds.forEach(adminUserId => {
+    try {
+      pushLineMessages_(adminUserId, [message]);
+    } catch (error) {
+      // Admin notifications are best-effort only.
+    }
+  });
 }

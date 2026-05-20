@@ -1617,6 +1617,7 @@ function clearEditMode_() {
 function refreshMealSubmitControls_() {
   const submitButton = document.getElementById('meal-submit-button');
   const masterButton = document.getElementById('save-master-only-button');
+  const newEntryButton = document.getElementById('start-new-entry-button');
   const cancelButton = document.getElementById('cancel-edit-button');
   const editing = isEditingLog_();
   const editingMaster = Boolean(document.getElementById('editing-master-key').value.trim());
@@ -1627,8 +1628,47 @@ function refreshMealSubmitControls_() {
   masterButton.hidden = !editingMaster;
   masterButton.disabled = !canUse || state.isMasterSaving;
   masterButton.textContent = state.isMasterSaving ? '保存中...' : 'マスタだけ保存';
+  newEntryButton.disabled = !canUse;
+  newEntryButton.hidden = !editing && !editingMaster;
   cancelButton.disabled = !canUse;
   cancelButton.hidden = !editing && !editingMaster;
+}
+
+function resetInitialQueryState_() {
+  Object.keys(initialQuery).forEach(key => {
+    initialQuery[key] = '';
+  });
+  if (window.history && typeof window.history.replaceState === 'function') {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}
+
+function startNewEntryMode_() {
+  clearEditMode_();
+  document.getElementById('master-key').value = '';
+  document.getElementById('meal-reply').textContent = '';
+  setMenuValue_('');
+  setFieldValue('field-kcal', '');
+  setFieldValue('field-protein', '');
+  setFieldValue('field-fat', '');
+  setFieldValue('field-carb', '');
+  setFieldValue('field-salt', '');
+  setFieldValue('field-fiber', '');
+  setFieldValue('field-unit', '');
+  setFieldValue('field-flavor', '');
+  setFieldValue('field-note', '');
+  renderMasterSearchResults_([]);
+  renderMasterSearchStatus_('メニュー名に合わせて検索します。', false);
+  state.masterSearchResults = [];
+  state.lastMasterSearchQuery = '';
+  state.draft = null;
+  state.candidateAccordionOpen = false;
+  state.advancedNutritionOpen = false;
+  renderAdvancedNutritionSection_();
+  renderDraft(null);
+  resetInitialQueryState_();
+  document.getElementById('menu-name').focus();
+  pushStatus('info', '新規登録の入力に切り替えました。');
 }
 
 function startEditLog(logRef) {
@@ -1805,6 +1845,7 @@ document.getElementById('cancel-edit-button').addEventListener('click', () => {
   clearEditMode_();
   pushStatus('info', 'ログ編集をやめました。');
 });
+document.getElementById('start-new-entry-button').addEventListener('click', startNewEntryMode_);
 document.getElementById('calorie-target').addEventListener('keydown', async event => {
   if (event.key !== 'Enter') return;
   event.preventDefault();
