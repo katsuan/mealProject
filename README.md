@@ -17,7 +17,9 @@ LINE で食事名を送り、既存データがあれば即記録、なければ
 │   ├── css
 │   │   └── index-style.css
 │   └── js
-│       ├── index-script.js
+│       ├── app-actions.js
+│       ├── app-render.js
+│       ├── app-shared.js
 │       └── site-config.js
 └── gs
     ├── 0_core
@@ -44,7 +46,10 @@ LINE で食事名を送り、既存データがあれば即記録、なければ
 GitHub Pages の公開入口は直下の [index.html](./index.html) です。
 
 - スタイル: [html/css/index-style.css](./html/css/index-style.css)
-- 動作: [html/js/index-script.js](./html/js/index-script.js)
+- 動作:
+  - [html/js/app-shared.js](./html/js/app-shared.js)
+  - [html/js/app-render.js](./html/js/app-render.js)
+  - [html/js/app-actions.js](./html/js/app-actions.js)
 - 環境依存値: [html/js/site-config.js](./html/js/site-config.js)
 
 `site-config.js` では次を持たせます。
