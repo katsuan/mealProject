@@ -91,6 +91,23 @@ function buildPendingMasterSavePromptFlexMessage(record, senderProfile) {
   return applyFlexSender_({
     type: 'flex',
     altText: 'この数値をMYメニューにも保存しますか？',
+    quickReply: {
+      items: [
+        {
+          type: 'action',
+          action: {
+            type: 'postback',
+            label: trimQuickReplyLabel_('MYメニューに保存'),
+            data: buildQueryString_({
+              action: 'savePendingMaster',
+              logId: ref,
+              row: record && record.row,
+            }),
+            displayText: `> ${buildRecordDisplayName_(record)}\nをMYメニューに保存しています...`,
+          },
+        },
+      ],
+    },
     contents: {
       type: 'bubble',
       header: buildFlexHeaderBox_('MYメニューにも保存しますか？', buildRecordDisplayName_(record), {
@@ -110,27 +127,12 @@ function buildPendingMasterSavePromptFlexMessage(record, senderProfile) {
             size: 'sm',
             color: '#6b7280',
           },
-        ],
-      },
-      footer: {
-        type: 'box',
-        layout: 'vertical',
-        spacing: 'sm',
-        contents: [
           {
-            type: 'button',
-            style: 'secondary',
-            color: '#FDF5F2',
-            action: {
-              type: 'postback',
-              label: 'MYメニューに保存する',
-              data: buildQueryString_({
-                action: 'savePendingMaster',
-                logId: ref,
-                row: record && record.row,
-              }),
-              displayText: `> ${buildRecordDisplayName_(record)}\nをMYメニューに保存しています...`,
-            },
+            type: 'text',
+            text: '保存する場合は下のボタンを押してください。',
+            wrap: true,
+            size: 'xs',
+            color: '#8a6258',
           },
         ],
       },
@@ -258,12 +260,11 @@ function buildDailySummaryFlexMessage(userId, options) {
   const tone = getFlexTone_(isOverTarget ? 'warning' : (today.hasPending ? 'notice' : 'success'));
   const progressWidth = hasTarget ? `${Math.max(6, Math.min(targetPercent, 100))}%` : '0%';
   const logs = (dashboard.recentLogs || []).slice(0, 6);
-  const quickReply = buildPopularQuickReply_(userId);
+  const popularMenus = dashboard.popularMenus || [];
 
   const message = {
     type: 'flex',
       altText: `${headline} 合計 ${formatKcalDisplay_(total)} kcal${targetPercentText ? ` / 目標比 ${targetPercentText}%` : ''}`,
-    quickReply: quickReply,
     contents: {
       type: 'carousel',
       contents: [
@@ -294,34 +295,13 @@ function buildDailySummaryFlexMessage(userId, options) {
           detailUrl: logsUrl,
           pendingLine: pendingLine,
         }),
+        buildPopularMenusBubble_({
+          items: popularMenus,
+        }),
       ],
     },
   };
   return applyFlexSender_(message, context.senderProfile);
-}
-
-function buildPopularQuickReply_(userId) {
-  const seenMenus = {};
-  const items = getPopularMenusByUser_(userId, 20)
-    .filter(item => {
-      const menu = String(item.menu || '').trim();
-      if (!menu) return false;
-      const normalized = normalizeText_(menu);
-      if (seenMenus[normalized]) return false;
-      seenMenus[normalized] = true;
-      return true;
-    })
-    .slice(0, 6)
-    .map(item => ({
-      type: 'action',
-      action: {
-        type: 'message',
-        label: trimQuickReplyLabel_(item.menu),
-        text: `${item.menu}`,
-      },
-    }));
-
-  return items.length ? { items: items } : undefined;
 }
 
 function buildRecordDisplayName_(record) {
@@ -364,14 +344,14 @@ function buildFlexHeaderBox_(title, subtitle, options) {
         type: 'text',
         text: title,
         weight: 'bold',
-        size: config.titleSize || 'lg',
+        size: config.titleSize || 'md',
         color: config.titleColor || '#231815',
         wrap: true,
       },
       subtitle ? {
         type: 'text',
         text: subtitle,
-        size: config.subtitleSize || 'sm',
+        size: config.subtitleSize || 'xs',
         color: config.subtitleColor || '#6b7280',
         wrap: true,
         margin: 'sm',
@@ -466,14 +446,14 @@ function buildDailySummaryBubble_(context) {
               type: 'text',
               text: '合計',
               flex: 2,
-              size: 'sm',
+              size: 'xs',
               color: '#6b7280',
             },
             {
               type: 'text',
               text: `${formatKcalDisplay_(context.total)} kcal`,
               flex: 5,
-              size: 'xl',
+              size: 'lg',
               weight: 'bold',
               color: context.totalColor,
             },
@@ -488,14 +468,14 @@ function buildDailySummaryBubble_(context) {
               type: 'text',
               text: '目標',
               flex: 2,
-              size: 'sm',
+              size: 'xs',
               color: '#6b7280',
             },
             {
               type: 'text',
               text: context.targetValueLine,
               flex: 5,
-              size: 'sm',
+              size: 'xs',
               wrap: true,
               color: context.targetValueColor,
             },
@@ -510,21 +490,21 @@ function buildDailySummaryBubble_(context) {
               type: 'text',
               text: '目標比',
               flex: 2,
-              size: 'sm',
+              size: 'xs',
               color: '#6b7280',
             },
             context.hasTarget ? {
               type: 'text',
               text: `${context.targetPercentText}%`,
               flex: 5,
-              size: 'lg',
+              size: 'md',
               color: context.targetRatioColor,
               weight: 'bold',
             } : {
               type: 'text',
               text: '未設定',
               flex: 5,
-              size: 'sm',
+              size: 'xs',
               color: '#6b7280',
             },
           ].filter(Boolean),
@@ -538,14 +518,14 @@ function buildDailySummaryBubble_(context) {
               type: 'text',
               text: '状態',
               flex: 2,
-              size: 'sm',
+              size: 'xs',
               color: '#6b7280',
             },
             {
               type: 'text',
               text: context.pendingLine,
               flex: 5,
-              size: 'sm',
+              size: 'xs',
               wrap: true,
             },
           ],
@@ -614,7 +594,7 @@ function buildTodayLogBubble_(context) {
           {
             type: 'text',
             text: `${formatFlexLogKcal_(log)} ${log.menu}`,
-            size: 'sm',
+            size: 'xs',
             wrap: true,
             color: '#231815',
             flex: 1,
@@ -624,7 +604,7 @@ function buildTodayLogBubble_(context) {
     : [{
         type: 'text',
         text: 'まだ記録がありません。',
-        size: 'sm',
+        size: 'xs',
         color: '#6b7280',
         wrap: true,
       }];
@@ -670,6 +650,80 @@ function buildTodayLogBubble_(context) {
   };
 }
 
+function buildPopularMenusBubble_(context) {
+  const items = Array.isArray(context && context.items) ? context.items.slice(0, 6) : [];
+  return {
+    type: 'bubble',
+    size: 'mega',
+    header: buildFlexHeaderBox_('人気メニュー', 'よく記録しているものから、すぐ送れます。', {
+      backgroundColor: '#FDF5F2',
+      titleColor: '#B8462C',
+      subtitleColor: '#8a6258',
+    }),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      spacing: 'sm',
+      contents: items.length
+        ? items.map(item => ({
+            type: 'box',
+            layout: 'horizontal',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            spacing: 'sm',
+            paddingAll: '10px',
+            cornerRadius: '10px',
+            backgroundColor: '#FDF5F2',
+            action: {
+              type: 'message',
+              label: `${item.menu}`,
+              text: `${item.menu}`,
+            },
+            contents: [
+              {
+                type: 'box',
+                layout: 'vertical',
+                flex: 1,
+                spacing: 'xs',
+                contents: [
+                  {
+                    type: 'text',
+                    text: String(item.menu || ''),
+                    size: 'sm',
+                    weight: 'bold',
+                    wrap: true,
+                    color: '#231815',
+                  },
+                  {
+                    type: 'text',
+                    text: `${formatKcalDisplay_(item.averageKcal || 0)} kcal / ${item.count || 0}回`,
+                    size: 'xs',
+                    wrap: true,
+                    color: '#8a6258',
+                  },
+                ],
+              },
+              {
+                type: 'text',
+                text: '送る',
+                size: 'xs',
+                weight: 'bold',
+                color: '#B8462C',
+                flex: 0,
+              },
+            ],
+          }))
+        : [{
+            type: 'text',
+            text: 'まだ人気メニューはありません。',
+            size: 'xs',
+            color: '#6b7280',
+            wrap: true,
+          }],
+    },
+  };
+}
+
 function formatFlexLogTime_(value) {
   if (!value) return '';
   return Utilities.formatDate(new Date(value), APP_TIMEZONE, 'H:mm');
@@ -689,6 +743,7 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
   const message = {
     type: 'flex',
     altText: `${parsed.menu} は未登録のため未記入ログとして保存しました。候補を採用するか画面で入力してください。`,
+    quickReply: buildCandidateQuickReply_(parsed, topCandidates),
     contents: {
       type: 'bubble',
       header: buildFlexHeaderBox_('未記入で保存しました', `${parsed.meal} ${parsed.menu}`, {
@@ -710,9 +765,9 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
             contents: [
               {
                 type: 'text',
-                text: '近い候補はそのまま採用できます。違う場合だけ画面で内容を入力してください。',
+                text: '候補は下のボタンから採用できます。違う場合だけ画面で内容を入力してください。',
                 wrap: true,
-                size: 'sm',
+                size: 'xs',
                 color: '#8a6258',
               },
             ],
@@ -728,7 +783,7 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
                 type: 'text',
                 text: '近い候補',
                 weight: 'bold',
-                size: 'sm',
+                size: 'xs',
                 margin: 'md',
               },
               topCandidates.length
@@ -737,14 +792,14 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
                     layout: 'vertical',
                     spacing: 'sm',
                     margin: 'sm',
-                    contents: topCandidates.map(item => buildCandidatePostbackRow_(parsed, item)),
+                    contents: topCandidates.map(item => buildCandidatePreviewRow_(item)),
                   }
                 : {
                     type: 'text',
                     text: '候補なし',
                     wrap: true,
                     margin: 'sm',
-                    size: 'sm',
+                    size: 'xs',
                   },
             ],
           },
@@ -789,7 +844,7 @@ function applyFlexSender_(message, profile) {
   });
 }
 
-function buildCandidatePostbackRow_(parsed, candidate) {
+function buildCandidatePreviewRow_(candidate) {
   const detailLine = buildNutritionDescriptor_(candidate.flavor, candidate.unit);
   return {
     type: 'box',
@@ -800,20 +855,6 @@ function buildCandidatePostbackRow_(parsed, candidate) {
     paddingAll: '10px',
     cornerRadius: '10px',
     backgroundColor: '#FDF5F2',
-    action: {
-      type: 'postback',
-      label: `${candidate.name} を採用して記録`,
-      data: buildQueryString_({
-        action: 'logCandidate',
-        logId: parsed.logId,
-        row: parsed.row,
-        meal: parsed.meal,
-        masterKey: candidate.masterKey,
-        menu: candidate.name,
-        mealDate: parsed.mealDate,
-      }),
-      displayText: `> ${parsed.meal} ${candidate.name}\nを採用しています...`,
-    },
     contents: [
       {
         type: 'box',
@@ -846,14 +887,43 @@ function buildCandidatePostbackRow_(parsed, candidate) {
       },
       {
         type: 'text',
-        text: '採用',
+        text: '候補',
         size: 'xs',
         weight: 'bold',
-        color: '#B8462C',
+        color: '#8a6258',
         flex: 0,
       },
     ],
   };
+}
+
+function buildCandidateQuickReply_(parsed, candidates) {
+  const items = (Array.isArray(candidates) ? candidates : [])
+    .slice(0, 5)
+    .map(candidate => ({
+      type: 'action',
+      action: {
+        type: 'postback',
+        label: trimQuickReplyLabel_(buildCandidateQuickReplyLabel_(candidate)),
+        data: buildQueryString_({
+          action: 'logCandidate',
+          logId: parsed.logId,
+          row: parsed.row,
+          meal: parsed.meal,
+          masterKey: candidate.masterKey,
+          menu: candidate.name,
+          mealDate: parsed.mealDate,
+        }),
+        displayText: `> ${parsed.meal} ${candidate.name}\nを採用しています...`,
+      },
+    }));
+  return items.length ? { items: items } : undefined;
+}
+
+function buildCandidateQuickReplyLabel_(candidate) {
+  const name = String(candidate && candidate.name || '').trim();
+  const detail = buildNutritionDescriptor_(candidate && candidate.flavor, candidate && candidate.unit);
+  return detail ? `${name} ${detail}` : name;
 }
 
 function buildImageAttachChoiceFlexMessage(mealType, candidateLogs, selectionToken, senderProfile) {
