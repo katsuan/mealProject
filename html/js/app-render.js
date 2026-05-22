@@ -159,7 +159,7 @@ function bindFieldInteractions() {
       renderMasterSearchResults_([]);
       renderMasterSearchStatus_('メニュー名に合わせて検索します。', false);
     } else {
-      renderMasterSearchStatus_('右の「MYメニュー」で検索できます。', false);
+      renderMasterSearchStatus_('右の「検索」で呼び出せます。', false);
     }
   });
 }
@@ -518,11 +518,9 @@ function renderHeaderSummary_(header) {
   const exactNode = document.getElementById('header-exact-kcal');
   const targetNode = document.getElementById('header-target-kcal');
 
-  targetNode.textContent = hasTarget ? `${formatNumber(target)}` : '未設定';
+  targetNode.textContent = hasTarget ? `${formatNumber(target)}` : '-';
   exactNode.textContent = `${formatNumber(exact)}`;
-  exactNode.classList.add('has-unit');
-  targetNode.classList.toggle('has-unit', hasTarget);
-  document.getElementById('header-exact-rate').textContent = hasTarget ? `目標比 ${rate}%` : '目標比 -';
+  document.getElementById('header-exact-rate').textContent = hasTarget ? `(${rate}%)` : '(-)';
   document.getElementById('header-pending-count').textContent = `${pendingCount}件未記入`;
   document.getElementById('header-exact-kcal').classList.toggle('is-warning', hasTarget && rate > 100);
   document.getElementById('header-exact-rate').classList.toggle('is-warning', hasTarget && rate > 100);
@@ -531,14 +529,15 @@ function renderHeaderSummary_(header) {
 function renderMasterSearchResults_(results) {
   const list = Array.isArray(results) ? results : [];
   const container = document.getElementById('master-search-results');
+  const query = state.lastMasterSearchQuery || document.getElementById('menu-name').value.trim();
   container.innerHTML = list.length
     ? list.map((item, index) => `
         <div class="candidate-item">
           <div class="candidate-top">
-            <div class="candidate-name">${escapeHtml(item.name)}</div>
+            <div class="candidate-name">${buildHighlightedMatchHtml_(item.name, query)}</div>
             <div class="candidate-score">一致度 ${escapeHtml(String(item.scorePercent || 0))}%</div>
           </div>
-          <div class="candidate-meta">カロリー ${formatNumber(item.kcal)} kcal / たんぱく質 ${formatNumber(item.protein)} g / 脂質 ${formatNumber(item.fat)} g / 炭水化物 ${formatNumber(item.carb)} g</div>
+          <div class="candidate-meta">カロリー ${formatNullableNumber_(item.kcal)} kcal / たんぱく質 ${formatNullableNumber_(item.protein)} g / 脂質 ${formatNullableNumber_(item.fat)} g / 炭水化物 ${formatNullableNumber_(item.carb)} g</div>
           <div class="master-result-actions">
             <button type="button" class="secondary compact-button" onclick="applyMasterSearchResult(${index})">入力に使う</button>
             <button type="button" class="secondary compact-button" onclick="startMasterEdit(${index})">マスタ編集</button>
@@ -555,6 +554,49 @@ function renderMasterSearchResults_(results) {
         `
         : '<div class="empty-state">メニュー名・種類・サイズで検索できます。</div>'
     );
+}
+
+function buildHighlightedMatchHtml_(text, query) {
+  const source = String(text || '');
+  const tokens = String(query || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length);
+  if (!source || !tokens.length) {
+    return escapeHtml(source);
+  }
+
+  const pattern = tokens
+    .map(token => escapeRegExp_(token))
+    .filter(Boolean)
+    .join('|');
+  if (!pattern) {
+    return escapeHtml(source);
+  }
+
+  const matches = [...source.matchAll(new RegExp(pattern, 'gi'))];
+  if (!matches.length) {
+    return escapeHtml(source);
+  }
+
+  let cursor = 0;
+  let html = '';
+  matches.forEach(match => {
+    const matchedText = String(match[0] || '');
+    const start = Number(match.index || 0);
+    const end = start + matchedText.length;
+    if (start < cursor) return;
+    html += escapeHtml(source.slice(cursor, start));
+    html += `<span class="match-highlight">${escapeHtml(matchedText)}</span>`;
+    cursor = end;
+  });
+  html += escapeHtml(source.slice(cursor));
+  return html;
+}
+
+function escapeRegExp_(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function renderWeeklyChart_(weekly, calorieTarget) {
@@ -798,7 +840,7 @@ function renderDraft(draft) {
             <div class="candidate-score">一致度 ${candidate.scorePercent}%</div>
           </div>
           ${buildCandidateDetailLine_(candidate)}
-          <div class="candidate-meta">カロリー ${formatNumber(candidate.kcal)} kcal / たんぱく質 ${formatNumber(candidate.protein)} g / 脂質 ${formatNumber(candidate.fat)} g / 炭水化物 ${formatNumber(candidate.carb)} g</div>
+          <div class="candidate-meta">カロリー ${formatNullableNumber_(candidate.kcal)} kcal / たんぱく質 ${formatNullableNumber_(candidate.protein)} g / 脂質 ${formatNullableNumber_(candidate.fat)} g / 炭水化物 ${formatNullableNumber_(candidate.carb)} g</div>
           <div class="candidate-cta">タップで入力欄に反映</div>
         </button>
       `).join('')
@@ -911,7 +953,6 @@ function refreshMealSubmitControls_() {
   const submitButton = document.getElementById('meal-submit-button');
   const masterButton = document.getElementById('save-master-only-button');
   const newEntryButton = document.getElementById('start-new-entry-button');
-  const cancelButton = document.getElementById('cancel-edit-button');
   const editing = isEditingLog_();
   const editingMaster = Boolean(document.getElementById('editing-master-key').value.trim());
   const hasUser = Boolean(document.getElementById('user-id').value.trim());
@@ -923,8 +964,6 @@ function refreshMealSubmitControls_() {
   masterButton.textContent = state.isMasterSaving ? '保存中...' : 'マスタだけ保存';
   newEntryButton.disabled = !canUse;
   newEntryButton.hidden = !editing && !editingMaster;
-  cancelButton.disabled = !canUse;
-  cancelButton.hidden = !editing && !editingMaster;
 }
 
 function resetInitialQueryState_() {

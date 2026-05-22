@@ -139,10 +139,15 @@ function deletePendingItem(rowNumber, menuName) {
   return deleteLog(rowNumber, menuName);
 }
 
-function startNewEntryMode_() {
+function startNewEntryMode_(options) {
+  const config = options || {};
+  const currentMeal = document.getElementById('meal-type').value;
+  const currentMealDate = document.getElementById('meal-date').value;
+  const currentDatePreset = inferDatePresetFromMealDate_(currentMealDate);
+  const replyText = config.preserveReply ? document.getElementById('meal-reply').textContent : '';
   clearEditMode_();
   document.getElementById('master-key').value = '';
-  document.getElementById('meal-reply').textContent = '';
+  document.getElementById('meal-reply').textContent = replyText || '';
   setMenuValue_('');
   setFieldValue('field-kcal', '');
   setFieldValue('field-protein', '');
@@ -162,9 +167,15 @@ function startNewEntryMode_() {
   state.advancedNutritionOpen = false;
   renderAdvancedNutritionSection_();
   renderDraft(null);
+  if (config.preserveMealContext) {
+    setMealType(currentMeal);
+    setMealDatePreset(currentDatePreset, currentMealDate);
+  }
   resetInitialQueryState_();
   document.getElementById('menu-name').focus();
-  pushStatus('info', '新規登録の入力に切り替えました。');
+  if (!config.silent) {
+    pushStatus('info', '新規登録の入力に切り替えました。');
+  }
 }
 
 function startEditLog(logRef) {
@@ -294,8 +305,13 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
       sendLineSummary: true,
     }));
 
-    document.getElementById('meal-reply').textContent = result.reply || '';
     applyDashboardDraftResponse_(auth.userId, result);
+    document.getElementById('meal-reply').textContent = result.reply || '';
+    startNewEntryMode_({
+      preserveMealContext: true,
+      preserveReply: true,
+      silent: true,
+    });
     pushStatus(
       'info',
       editingLogId
@@ -340,10 +356,6 @@ document.getElementById('save-master-only-button').addEventListener('click', asy
     refreshMealSubmitControls_();
     setSyncVisualState(false);
   }
-});
-document.getElementById('cancel-edit-button').addEventListener('click', () => {
-  clearEditMode_();
-  pushStatus('info', 'ログ編集をやめました。');
 });
 document.getElementById('start-new-entry-button').addEventListener('click', startNewEntryMode_);
 document.getElementById('calorie-target').addEventListener('keydown', async event => {

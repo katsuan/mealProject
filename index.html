@@ -23,16 +23,17 @@
           </div>
           <div id="header-summary-scope" class="header-summary-row">
             <div class="header-stat header-stat-wide">
+              <div class="header-stat-main">
+                <div class="header-stat-pair">
+                  <div id="header-exact-kcal" class="header-stat-value">0</div>
+                  <div class="header-stat-divider">/</div>
+                  <div id="header-target-kcal" class="header-stat-subvalue">-</div>
+                  <div id="header-exact-rate" class="header-stat-meta">(-)</div>
+                </div>
+              </div>
               <div class="header-stat-head">
-                <div class="header-stat-label">今日の確定カロリー</div>
                 <button id="header-pending-count" type="button" class="header-badge">0件未記入</button>
               </div>
-              <div class="header-stat-pair">
-                <div id="header-exact-kcal" class="header-stat-value">0</div>
-                <div class="header-stat-divider">/</div>
-                <div id="header-target-kcal" class="header-stat-subvalue">-</div>
-              </div>
-              <div id="header-exact-rate" class="header-stat-meta">目標比 -</div>
             </div>
           </div>
         </div>
@@ -80,7 +81,7 @@
                   <span class="field-label">メニュー名</span>
                   <input id="menu-name" data-field-label="メニュー名" data-required="true" autocomplete="off">
                 </label>
-                <button type="button" id="search-master" class="secondary compact-button menu-search-button">MYメニュー</button>
+                <button type="button" id="search-master" class="secondary compact-button menu-search-button">検索</button>
               </div>
             </div>
 
@@ -95,7 +96,7 @@
                 <span id="candidate-accordion-label" class="inline-accordion-label">近い候補</span>
               </button>
               <div id="candidate-accordion-body" class="inline-accordion-body" hidden>
-                <div class="candidate-helper">右の「MYメニュー」を押すと候補を読み込みます。候補をタップすると入力欄へ反映されます。</div>
+                <div class="candidate-helper">右の「検索」を押すと候補を読み込みます。候補をタップすると入力欄へ反映されます。</div>
                 <div id="candidate-list" class="candidate-list"></div>
               </div>
             </div>
@@ -174,7 +175,6 @@
             <button id="meal-submit-button" type="submit" class="primary">保存して記録</button>
             <button id="save-master-only-button" type="button" class="secondary" hidden>マスタだけ保存</button>
             <button id="start-new-entry-button" type="button" class="secondary" hidden>新規登録に切り替え</button>
-            <button id="cancel-edit-button" type="button" class="secondary" hidden>編集をやめる</button>
           </div>
         </form>
 

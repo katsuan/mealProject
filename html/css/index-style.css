@@ -252,14 +252,20 @@
 
   .header-stat-wide {
     display: grid;
-    gap: 4px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
     min-height: 100%;
+  }
+
+  .header-stat-main {
+    min-width: 0;
   }
 
   .header-stat-head {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 8px;
   }
 
@@ -271,47 +277,42 @@
   .header-stat-pair {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .header-stat-value {
-    margin-top: 2px;
-    font-size: 18px;
+    margin-top: 0;
+    font-size: 16px;
     font-weight: 700;
     line-height: 1.2;
     color: var(--text);
-    word-break: break-word;
+    word-break: normal;
+    white-space: nowrap;
   }
 
   .header-stat-subvalue {
     min-width: 0;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--muted);
-    word-break: break-word;
-  }
-
-  .header-stat-value.has-unit::after,
-  .header-stat-subvalue.has-unit::after {
-    content: ' kcal';
-    font-size: 0.82em;
-    font-weight: 600;
-    color: var(--muted);
+    word-break: normal;
+    white-space: nowrap;
   }
 
   .header-stat-divider {
     color: var(--muted);
     font-size: 14px;
     font-weight: 700;
+    white-space: nowrap;
   }
 
   .header-stat-meta {
-    margin-top: 4px;
     font-size: 11px;
     color: var(--muted);
-    line-height: 1.4;
+    line-height: 1.2;
+    white-space: nowrap;
   }
 
   .header-stat-meta.is-warning,
@@ -1297,6 +1298,11 @@
     font-weight: 700;
   }
 
+  .match-highlight {
+    color: var(--debug);
+    font-weight: 700;
+  }
+
   .candidate-score,
   .log-date {
     font-size: 12px;
@@ -1425,7 +1431,8 @@
       font-size: 18px;
     }
 
-    .header-stat-value {
+    .header-stat-value,
+    .header-stat-subvalue {
       font-size: 16px;
     }
 

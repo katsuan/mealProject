@@ -250,7 +250,7 @@ function bindMasterSearch() {
     if (!query) {
       renderMasterSearchResults_([]);
       renderMasterSearchStatus_('メニュー名を入力してから検索できます。', false);
-      pushStatus('notice', 'メニュー名を入力してから MYメニュー を検索してください。');
+      pushStatus('notice', 'メニュー名を入力してから検索してください。');
       return;
     }
     renderDraftLoadingState_();
@@ -598,6 +598,11 @@ function formatNumber(value) {
   const number = Number(value);
   if (Number.isNaN(number)) return String(value);
   return Number.isInteger(number) ? String(number) : String(Math.round(number * 10) / 10);
+}
+
+function formatNullableNumber_(value) {
+  if (value == null || value === '') return '-';
+  return formatNumber(value);
 }
 
 function formatSignedNumber(value) {
