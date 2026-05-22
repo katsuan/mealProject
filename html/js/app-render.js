@@ -576,6 +576,29 @@ function formatDetailValue_(value, suffix) {
   return suffix ? `${text} ${suffix}` : text;
 }
 
+function getMealUiColor_(meal) {
+  switch (String(meal || '')) {
+    case '朝':
+      return '#F5A623';
+    case '昼':
+      return '#4A90E2';
+    case '夜':
+      return '#7B61FF';
+    default:
+      return '#6FCF97';
+  }
+}
+
+function getMealUiLabel_(meal) {
+  return String(meal || '') === 'その他' ? '他' : String(meal || '朝');
+}
+
+function buildLogMealBadge_(meal) {
+  const color = getMealUiColor_(meal);
+  const label = getMealUiLabel_(meal);
+  return `<span class="log-meal-badge" style="background:${escapeHtml(color)}">${escapeHtml(label)}</span>`;
+}
+
 function buildNutritionDetailRows_(detail) {
   const safe = detail || {};
   return [
@@ -893,15 +916,22 @@ function renderLogList(logs) {
     ? filteredLogs.map(log => `
         <div class="log-item">
           <div class="log-top">
-            <div class="log-menu">${escapeHtml(log.menu)}</div>
-            <div class="log-date">${escapeHtml(formatDateTime(log.updatedAt || log.createdAt || log.mealDate))}</div>
+            <div class="log-main">
+              ${buildLogMealBadge_(log.meal)}
+              <div class="log-main-copy">
+                <div class="log-menu">${escapeHtml(log.menu)}</div>
+                <div class="log-date">${escapeHtml(formatDateTime(log.updatedAt || log.createdAt || log.mealDate))}</div>
+              </div>
+            </div>
+            <div class="log-side">
+              <div class="log-kcal">${escapeHtml(formatLogKcal(log.kcal, log.kcalStatus))}</div>
+              <div class="log-actions">
+                <button type="button" class="secondary compact-button" onclick="startEditLog('${escapeHtml(String(log.logId || log.row || ''))}')">編集</button>
+                <button type="button" class="secondary compact-button" onclick="deleteLog('${escapeHtml(String(log.logId || log.row || ''))}', '${encodeURIComponent(String(log.menu || ''))}')">削除</button>
+              </div>
+            </div>
           </div>
-          <div class="log-meta">${escapeHtml(log.meal)} / ${escapeHtml(formatLogKcal(log.kcal, log.kcalStatus))}</div>
           ${buildLogMediaMarkup_(log)}
-          <div class="log-actions">
-            <button type="button" class="secondary compact-button" onclick="startEditLog('${escapeHtml(String(log.logId || log.row || ''))}')">編集</button>
-            <button type="button" class="secondary compact-button" onclick="deleteLog('${escapeHtml(String(log.logId || log.row || ''))}', '${encodeURIComponent(String(log.menu || ''))}')">削除</button>
-          </div>
         </div>
       `).join('')
     : '<div class="empty-state">条件に合う記録はまだありません。</div>';
