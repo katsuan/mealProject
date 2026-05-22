@@ -522,7 +522,7 @@ function renderHeaderSummary_(header) {
 
   targetNode.textContent = hasTarget ? `${formatNumber(target)} kcal` : '-';
   exactNode.textContent = hasTarget ? `${formatNumber(exact)}` : `${formatNumber(exact)} kcal`;
-  document.getElementById('header-exact-rate').textContent = hasTarget ? `(${rate}%)` : '(-)';
+  document.getElementById('header-exact-rate').textContent = hasTarget ? `確定値 ${rate}%` : '確定値 -';
   document.getElementById('header-pending-count').textContent = `${pendingCount}件未記入`;
   document.getElementById('header-exact-kcal').classList.toggle('is-warning', hasTarget && rate > 100);
   document.getElementById('header-exact-rate').classList.toggle('is-warning', hasTarget && rate > 100);

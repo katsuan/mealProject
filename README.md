@@ -54,6 +54,8 @@ GitHub Pages の公開入口は直下の [index.html](./index.html) です。
 
 `site-config.js` では次を持たせます。
 
+- `appVersion`
+- `appCommit`
 - `initialLiffId`
 - `apiBaseUrl`
 
@@ -61,9 +63,17 @@ GitHub Pages の公開入口は直下の [index.html](./index.html) です。
 
 ```js
 window.__MEAL_APP_CONFIG__ = Object.assign({}, window.__MEAL_APP_CONFIG__ || {}, {
+  appVersion: '2026-05-22-1',
+  appCommit: '698863f',
   initialLiffId: 'YOUR_LIFF_ID',
   apiBaseUrl: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec'
 });
+```
+
+デバッグ欄の `version / commit` はこの値を表示します。更新前に次を実行すると、現在の git commit に合わせて書き換えられます。
+
+```sh
+./scripts/update-site-version.sh
 ```
 
 ## GAS
