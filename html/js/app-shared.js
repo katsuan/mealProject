@@ -654,6 +654,11 @@ async function initializeLiffProfile_() {
 }
 
 function hydrateQuery() {
+  const isMasterPrefillOnly = Boolean(
+    initialQuery.masterKey &&
+    !(initialQuery.logId || initialQuery.row) &&
+    !(initialQuery.mealDate || initialQuery.datePreset)
+  );
   if (initialQuery.logId || initialQuery.row) {
     document.getElementById('editing-log-id').value = initialQuery.logId || initialQuery.row;
   }
@@ -689,6 +694,11 @@ function hydrateQuery() {
       unit: initialQuery.unit,
       note: initialQuery.note,
     });
+  }
+  if (typeof setSaveTargetState_ === 'function') {
+    setSaveTargetState_(isMasterPrefillOnly
+      ? { master: true, log: false }
+      : { master: true, log: true });
   }
   applyHeaderSummaryFromQuery_();
 }

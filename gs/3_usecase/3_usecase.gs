@@ -599,6 +599,7 @@ function submitMealDetail(userId, payload, source) {
     throw new Error('kcal is required');
   }
 
+  const shouldSaveMaster = payload.saveToMaster == null ? true : toBoolean_(payload.saveToMaster);
   const existingMaster = payload.masterKey ? getNutritionMaster(payload.masterKey) : null;
   const shouldReuseMasterKey = existingMaster && isSameNutritionKey_(
     existingMaster,
@@ -607,26 +608,45 @@ function submitMealDetail(userId, payload, source) {
     payload.unit
   );
 
-  const savedMaster = saveNutritionMaster({
-    masterKey: shouldReuseMasterKey ? payload.masterKey : '',
-    name: parsed.menu,
-    flavor: payload.flavor,
-    kcal: payload.kcal,
-    protein: payload.protein,
-    fat: payload.fat,
-    carb: payload.carb,
-    salt: payload.salt,
-    fiber: payload.fiber,
-    unit: payload.unit,
-    note: payload.note,
-    status: 'active',
-    source: source || SOURCE.LIFF,
-  });
+  const savedMaster = shouldSaveMaster
+    ? saveNutritionMaster({
+        masterKey: shouldReuseMasterKey ? payload.masterKey : '',
+        name: parsed.menu,
+        flavor: payload.flavor,
+        kcal: payload.kcal,
+        protein: payload.protein,
+        fat: payload.fat,
+        carb: payload.carb,
+        salt: payload.salt,
+        fiber: payload.fiber,
+        unit: payload.unit,
+        note: payload.note,
+        status: 'active',
+        source: source || SOURCE.LIFF,
+      })
+    : null;
 
-  const record = logMealFromMaster(userId, parsed, savedMaster, {
-    source: source || SOURCE.LIFF,
-    mealDate: payload.mealDate,
-  });
+  const record = savedMaster
+    ? logMealFromMaster(userId, parsed, savedMaster, {
+        source: source || SOURCE.LIFF,
+        mealDate: payload.mealDate,
+      })
+    : logMealWithNutrition(userId, parsed, {
+        kcal: payload.kcal,
+        protein: payload.protein,
+        fat: payload.fat,
+        carb: payload.carb,
+        salt: payload.salt,
+        fiber: payload.fiber,
+      }, {
+        source: source || SOURCE.LIFF,
+        mealDate: payload.mealDate,
+        kcalStatus: KCAL_STATUS.EXACT,
+        masterKey: '',
+        flavor: payload.flavor,
+        unit: payload.unit,
+        note: payload.note,
+      });
 
   return {
     record: record,
@@ -875,6 +895,7 @@ function updateMealLogDetail(userId, payload, source) {
     throw new Error('kcal is required');
   }
 
+  const shouldSaveMaster = payload.saveToMaster == null ? true : toBoolean_(payload.saveToMaster);
   const existingMaster = payload.masterKey ? getNutritionMaster(payload.masterKey) : null;
   const shouldReuseMasterKey = existingMaster && isSameNutritionKey_(
     existingMaster,
@@ -883,37 +904,39 @@ function updateMealLogDetail(userId, payload, source) {
     payload.unit
   );
 
-  const savedMaster = saveNutritionMaster({
-    masterKey: shouldReuseMasterKey ? payload.masterKey : '',
-    name: parsed.menu,
-    flavor: payload.flavor,
-    kcal: payload.kcal,
-    protein: payload.protein,
-    fat: payload.fat,
-    carb: payload.carb,
-    salt: payload.salt,
-    fiber: payload.fiber,
-    unit: payload.unit,
-    note: payload.note,
-    status: 'active',
-    source: source || SOURCE.LIFF,
-  });
+  const savedMaster = shouldSaveMaster
+    ? saveNutritionMaster({
+        masterKey: shouldReuseMasterKey ? payload.masterKey : '',
+        name: parsed.menu,
+        flavor: payload.flavor,
+        kcal: payload.kcal,
+        protein: payload.protein,
+        fat: payload.fat,
+        carb: payload.carb,
+        salt: payload.salt,
+        fiber: payload.fiber,
+        unit: payload.unit,
+        note: payload.note,
+        status: 'active',
+        source: source || SOURCE.LIFF,
+      })
+    : null;
 
   const updatedLog = Object.assign({}, currentLog, {
     mealDate: payload.mealDate ? new Date(payload.mealDate) : currentLog.mealDate,
     meal: sanitizeMealType_(parsed.meal),
     menu: parsed.menu,
-    kcal: toNullableNumber_(savedMaster.kcal),
-    protein: toNullableNumber_(savedMaster.protein),
-    fat: toNullableNumber_(savedMaster.fat),
-    carb: toNullableNumber_(savedMaster.carb),
-    salt: toNullableNumber_(savedMaster.salt),
-    fiber: toNullableNumber_(savedMaster.fiber),
-    kcalStatus: hasAnyNutritionValue_(savedMaster) ? KCAL_STATUS.EXACT : KCAL_STATUS.PENDING,
-    masterKey: savedMaster.masterKey,
-    flavor: String(savedMaster.flavor || ''),
-    unit: String(savedMaster.unit || ''),
-    note: String(savedMaster.note || ''),
+    kcal: toNullableNumber_(savedMaster ? savedMaster.kcal : payload.kcal),
+    protein: toNullableNumber_(savedMaster ? savedMaster.protein : payload.protein),
+    fat: toNullableNumber_(savedMaster ? savedMaster.fat : payload.fat),
+    carb: toNullableNumber_(savedMaster ? savedMaster.carb : payload.carb),
+    salt: toNullableNumber_(savedMaster ? savedMaster.salt : payload.salt),
+    fiber: toNullableNumber_(savedMaster ? savedMaster.fiber : payload.fiber),
+    kcalStatus: savedMaster ? (hasAnyNutritionValue_(savedMaster) ? KCAL_STATUS.EXACT : KCAL_STATUS.PENDING) : KCAL_STATUS.EXACT,
+    masterKey: savedMaster ? savedMaster.masterKey : '',
+    flavor: String(savedMaster ? savedMaster.flavor : (payload.flavor || '')),
+    unit: String(savedMaster ? savedMaster.unit : (payload.unit || '')),
+    note: String(savedMaster ? savedMaster.note : (payload.note || '')),
     source: source || SOURCE.LIFF,
     updatedAt: new Date(),
   });

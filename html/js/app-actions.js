@@ -107,6 +107,7 @@ function startMasterEdit(index) {
     unit: candidate.unit || '',
     note: candidate.note || '',
   });
+  setSaveTargetState_({ master: true, log: false });
   setMealType(currentMeal, { markDirty: state.mealDirty });
   setMealDatePreset(inferDatePresetFromMealDate_(currentMealDate), currentMealDate, { markDirty: state.mealDateDirty });
   refreshMealSubmitControls_();
@@ -129,6 +130,7 @@ async function applyPendingMenu(menu, row) {
   renderMasterSearchStatus_('メニュー名に合わせて検索します。', false);
   state.masterSearchResults = [];
   state.lastMasterSearchQuery = '';
+  setSaveTargetState_({ master: true, log: true });
   refreshMealSubmitControls_();
   setActiveView('input');
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -167,6 +169,7 @@ function startNewEntryMode_(options) {
   state.advancedNutritionOpen = false;
   renderAdvancedNutritionSection_();
   renderDraft(null);
+  setSaveTargetState_({ master: true, log: true });
   if (config.preserveMealContext) {
     setMealType(currentMeal);
     setMealDatePreset(currentDatePreset, currentMealDate);
@@ -195,6 +198,7 @@ function startEditLog(logRef) {
     unit: log.unit || '',
     note: log.note || '',
   });
+  setSaveTargetState_({ master: true, log: true });
   refreshMealSubmitControls_();
   setActiveView('input');
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -294,32 +298,63 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
   }
 
   const editingLogId = document.getElementById('editing-log-id').value.trim();
-  const action = editingLogId ? 'updateMealLog' : 'submitMealDetail';
+  const targets = getSaveTargetState_();
+  const editingMasterKey = document.getElementById('editing-master-key').value.trim();
+  const currentMasterKey = document.getElementById('master-key').value.trim();
+  const skipMasterSave = Boolean(targets.master && currentMasterKey && !editingMasterKey);
+
+  if (!targets.master && !targets.log) {
+    pushStatus('notice', 'MYメニュー登録かログ登録のどちらかを選んでください。');
+    return;
+  }
 
   setSyncVisualState(true);
   state.isMealSubmitting = true;
   refreshMealSubmitControls_();
-  pushStatus('info', editingLogId ? '更新して集計を同期中...' : '保存して集計を同期中...');
+  pushStatus('info', targets.log ? (editingLogId ? '保存内容を反映中...' : '保存内容を登録中...') : 'MYメニューを保存中...');
 
   try {
     const payload = buildMealDetailRequestPayload_({
-      sendLineSummary: true,
+      sendLineSummary: targets.log,
+      saveToMaster: targets.master && !skipMasterSave,
     });
-    const result = await runServer(action, payload);
-
-    applyDashboardDraftResponse_(auth.userId, result);
-    renderMealReplyCard_(result, payload);
-    startNewEntryMode_({
-      preserveMealContext: true,
-      preserveReply: true,
-      silent: true,
-    });
-    pushStatus(
-      'info',
-      editingLogId
-        ? (result.summaryPushed ? '更新してLINEに今日の集計を返しました。' : 'ログを更新しました。LINE送信は未実行です。')
-        : (result.summaryPushed ? '保存してLINEに今日の集計を返しました。' : '保存しました。LINE送信は未実行です。')
-    );
+    let result;
+    if (targets.log) {
+      const action = editingLogId ? 'updateMealLog' : 'submitMealDetail';
+      result = await runServer(action, payload);
+      applyDashboardDraftResponse_(auth.userId, result);
+      renderMealReplyCard_(result, payload);
+      startNewEntryMode_({
+        preserveMealContext: true,
+        preserveReply: true,
+        silent: true,
+      });
+      if (skipMasterSave) {
+        pushStatus('info', 'MYメニュー登録済みのため、ログ保存のみ反映しました。');
+      }
+      pushStatus(
+        'info',
+        editingLogId
+          ? (result.summaryPushed ? '更新してLINEに今日の集計を返しました。' : 'ログを更新しました。LINE送信は未実行です。')
+          : (result.summaryPushed ? '保存してLINEに今日の集計を返しました。' : '保存しました。LINE送信は未実行です。')
+      );
+    } else {
+      if (skipMasterSave) {
+        pushStatus('notice', 'この内容はすでにMYメニュー登録済みです。');
+        return;
+      }
+      result = await runServer('saveNutritionMasterOnly', buildMealDetailRequestPayload_({
+        masterKey: editingMasterKey || currentMasterKey,
+      }));
+      document.getElementById('master-key').value = result.savedMaster && result.savedMaster.masterKey ? result.savedMaster.masterKey : document.getElementById('master-key').value;
+      document.getElementById('editing-master-key').value = '';
+      applyDashboardDraftResponse_(auth.userId, result, { keepDraft: true });
+      renderMealReplyCard_({
+        reply: 'MYメニューに保存しました。',
+        record: null,
+      }, buildMealDetailRequestPayload_());
+      pushStatus('info', 'MYメニューに保存しました。');
+    }
   } catch (error) {
     pushStatus('warning', `保存に失敗しました: ${error.message}`);
     pushStatus('debug', buildErrorDetail_(error));
@@ -329,6 +364,9 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     setSyncVisualState(false);
   }
 });
+
+document.getElementById('save-target-master').addEventListener('change', refreshMealSubmitControls_);
+document.getElementById('save-target-log').addEventListener('change', refreshMealSubmitControls_);
 
 document.getElementById('save-target').addEventListener('click', saveProfileTarget);
 document.getElementById('save-master-only-button').addEventListener('click', async () => {

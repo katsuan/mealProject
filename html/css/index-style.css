@@ -984,6 +984,48 @@
     gap: 8px;
   }
 
+  .save-targets {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .save-target-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .save-target-chip input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .save-target-chip span {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface-subtle);
+    color: var(--muted);
+    padding: 6px 11px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .save-target-chip input:checked + span {
+    background: var(--accent-soft);
+    border-color: #ef9f88;
+    color: var(--accent-strong);
+  }
+
   button {
     border: 0;
     border-radius: 8px;
@@ -1504,6 +1546,14 @@
     display: grid;
     gap: 8px;
     justify-items: end;
+  }
+
+  .log-action-button {
+    min-height: 26px;
+    padding: 3px 10px;
+    font-size: 11px;
+    line-height: 1.1;
+    border-radius: 999px;
   }
 
   .log-media {

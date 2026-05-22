@@ -926,8 +926,8 @@ function renderLogList(logs) {
             </div>
             <div class="log-side">
               <div class="log-actions">
-                <button type="button" class="secondary compact-button" onclick="startEditLog('${escapeHtml(String(log.logId || log.row || ''))}')">編集</button>
-                <button type="button" class="secondary compact-button" onclick="deleteLog('${escapeHtml(String(log.logId || log.row || ''))}', '${encodeURIComponent(String(log.menu || ''))}')">削除</button>
+                <button type="button" class="secondary compact-button log-action-button" onclick="startEditLog('${escapeHtml(String(log.logId || log.row || ''))}')">編集</button>
+                <button type="button" class="secondary compact-button log-action-button" onclick="deleteLog('${escapeHtml(String(log.logId || log.row || ''))}', '${encodeURIComponent(String(log.menu || ''))}')">削除</button>
               </div>
             </div>
           </div>
@@ -1139,6 +1139,44 @@ function isEditingLog_() {
   return Boolean(document.getElementById('editing-log-id').value.trim());
 }
 
+function getSaveTargetState_() {
+  return {
+    master: Boolean(document.getElementById('save-target-master') && document.getElementById('save-target-master').checked),
+    log: Boolean(document.getElementById('save-target-log') && document.getElementById('save-target-log').checked),
+  };
+}
+
+function setSaveTargetState_(options) {
+  const config = options || {};
+  const masterInput = document.getElementById('save-target-master');
+  const logInput = document.getElementById('save-target-log');
+  if (masterInput && typeof config.master === 'boolean') {
+    masterInput.checked = config.master;
+  }
+  if (logInput && typeof config.log === 'boolean') {
+    logInput.checked = config.log;
+  }
+  refreshMealSubmitControls_();
+}
+
+function buildMealSubmitButtonLabel_(editing, targets, isSubmitting) {
+  if (!targets.master && !targets.log) {
+    return '保存先を選ぶ';
+  }
+  if (isSubmitting) {
+    if (targets.master && targets.log) return editing ? '保存中...' : '保存中...';
+    if (targets.log) return editing ? 'ログ更新中...' : 'ログ保存中...';
+    return 'MYメニュー保存中...';
+  }
+  if (targets.master && targets.log) {
+    return editing ? '保存する' : '保存する';
+  }
+  if (targets.log) {
+    return editing ? 'ログを更新' : 'ログに保存';
+  }
+  return 'MYメニューに保存';
+}
+
 function clearEditMode_() {
   document.getElementById('editing-log-id').value = '';
   document.getElementById('editing-master-key').value = '';
@@ -1149,17 +1187,22 @@ function refreshMealSubmitControls_() {
   const submitButton = document.getElementById('meal-submit-button');
   const masterButton = document.getElementById('save-master-only-button');
   const newEntryButton = document.getElementById('start-new-entry-button');
+  const masterToggle = document.getElementById('save-target-master');
+  const logToggle = document.getElementById('save-target-log');
   const editing = isEditingLog_();
   const editingMaster = Boolean(document.getElementById('editing-master-key').value.trim());
   const hasUser = Boolean(document.getElementById('user-id').value.trim());
   const canUse = !hasUser || state.userPermission.canUse !== false;
-  submitButton.textContent = state.isMealSubmitting ? (editing ? '更新中...' : '保存中...') : (editing ? '保存して更新' : '保存して記録');
-  submitButton.disabled = !canUse || state.isMealSubmitting;
-  masterButton.hidden = !editingMaster;
+  const targets = getSaveTargetState_();
+  submitButton.textContent = buildMealSubmitButtonLabel_(editing, targets, state.isMealSubmitting);
+  submitButton.disabled = !canUse || state.isMealSubmitting || (!targets.master && !targets.log);
+  masterButton.hidden = true;
   masterButton.disabled = !canUse || state.isMasterSaving;
   masterButton.textContent = state.isMasterSaving ? 'MYメニュー保存中...' : 'MYメニューに保存';
   newEntryButton.disabled = !canUse;
   newEntryButton.hidden = !editing && !editingMaster;
+  if (masterToggle) masterToggle.disabled = !canUse || state.isMealSubmitting;
+  if (logToggle) logToggle.disabled = !canUse || state.isMealSubmitting;
 }
 
 function resetInitialQueryState_() {
