@@ -740,7 +740,9 @@ function buildPopularMenusBubble_(context) {
       contents: items.length
         ? items.map(item => ({
             type: 'box',
-            layout: 'vertical',
+            layout: 'horizontal',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             spacing: 'sm',
             paddingAll: '9px',
             cornerRadius: '10px',
@@ -749,12 +751,22 @@ function buildPopularMenusBubble_(context) {
               {
                 type: 'box',
                 layout: 'vertical',
+                flex: 1,
                 spacing: 'xs',
+                action: {
+                  type: 'postback',
+                  label: `${String(item.menu || '')} の詳細`,
+                  data: buildQueryString_({
+                    action: 'showPopularDetail',
+                    groupKey: item.groupKey,
+                  }),
+                  displayText: `> ${String(item.displayName || item.menu || '')}\nの詳細を表示しています...`,
+                },
                 contents: [
                   {
                     type: 'text',
                     text: String(item.menu || ''),
-                    size: 'sm',
+                    size: 'xs',
                     weight: 'bold',
                     wrap: true,
                     color: '#231815',
@@ -769,35 +781,16 @@ function buildPopularMenusBubble_(context) {
                 ],
               },
               {
-                type: 'box',
-                layout: 'horizontal',
-                spacing: 'sm',
-                contents: [
-                  {
-                    type: 'button',
-                    style: 'secondary',
-                    height: 'sm',
-                    color: '#FFF7F2',
-                    flex: 1,
-                    action: {
-                      type: 'message',
-                      label: '送る',
-                      text: String(item.displayName || item.menu || ''),
-                    },
-                  },
-                  {
-                    type: 'button',
-                    style: 'secondary',
-                    height: 'sm',
-                    color: '#FFF7F2',
-                    flex: 1,
-                    action: {
-                      type: 'uri',
-                      label: '詳細',
-                      uri: buildMasterEditUrl_(item),
-                    },
-                  },
-                ],
+                type: 'button',
+                style: 'secondary',
+                height: 'sm',
+                color: '#FFF7F2',
+                flex: 0,
+                action: {
+                  type: 'message',
+                  label: '送る',
+                  text: String(item.displayName || item.menu || ''),
+                },
               },
             ],
           }))
@@ -891,7 +884,7 @@ function buildPopularMenuDetailFlexMessage(item, senderProfile) {
             color: '#FDF5F2',
             action: {
               type: 'uri',
-              label: '画面でマスタ編集',
+              label: 'このMYメニューを編集',
               uri: editUrl,
             },
           },
