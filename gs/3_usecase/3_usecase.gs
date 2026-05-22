@@ -6,6 +6,31 @@ function isSetTargetCommand(text) {
   return /^目標\s*\d+\s*(kcal)?$/i.test(String(text || '').trim());
 }
 
+function isStandaloneKcalInput_(text) {
+  return /^\d+(?:\.\d+)?$/.test(String(text || '').trim());
+}
+
+function parseStandaloneKcalInput_(text) {
+  if (!isStandaloneKcalInput_(text)) return null;
+  const value = Number(String(text || '').trim());
+  return Number.isFinite(value) ? value : null;
+}
+
+function parsePendingKcalInputContext_(text) {
+  const raw = String(text || '').trim();
+  const match = raw.match(/^(?:(昨日|今日)\s*)?(?:(朝|昼|夜|その他)\s*)?(\d+(?:\.\d+)?)\s*(?:kcal)?$/i);
+  if (!match) return null;
+  const kcal = Number(match[3] || '');
+  if (!Number.isFinite(kcal)) return null;
+  const datePreset = match[1] === '昨日' ? 'yesterday' : 'today';
+  const meal = match[2] ? sanitizeMealType_(match[2]) : '';
+  return {
+    kcal: kcal,
+    datePreset: datePreset,
+    meal: meal,
+  };
+}
+
 function summarizeMealLogs(logs) {
   const exactLogs = logs.filter(log => log.kcalStatus === KCAL_STATUS.EXACT);
   const estimatedLogs = logs.filter(log => log.kcalStatus === KCAL_STATUS.ESTIMATED);
@@ -55,6 +80,16 @@ function getMealLogsByUserAndDate(userId, date) {
 
 function getMealLogsByUser(userId) {
   return getMealLogs().filter(log => log.userId === userId);
+}
+
+function getPendingMealLogsByUser(userId) {
+  return getMealLogsByUser(userId)
+    .filter(log => log.kcalStatus === KCAL_STATUS.PENDING)
+    .sort((left, right) => {
+      const leftTime = new Date(left.updatedAt || left.createdAt || left.mealDate || 0).getTime();
+      const rightTime = new Date(right.updatedAt || right.createdAt || right.mealDate || 0).getTime();
+      return rightTime - leftTime;
+    });
 }
 
 function getMealLogsByUserInRange(userId, startDate, endDate) {
@@ -396,6 +431,11 @@ function handleMealMessageFlow(userId, text, displayName, source, pictureUrl) {
     };
   }
 
+  const pendingKcalContext = parsePendingKcalInputContext_(inputText);
+  if (pendingKcalContext) {
+    return handleStandaloneKcalInput_(userId, pendingKcalContext, source);
+  }
+
   const parsed = parseMealText(inputText);
   const exact = findExactNutritionMaster(parsed.menu);
 
@@ -426,6 +466,76 @@ function handleMealMessageFlow(userId, text, displayName, source, pictureUrl) {
     }),
     record: pendingRecord,
     draft: buildNutritionDraft(parsed.menu),
+    dashboard: getDashboardData(userId),
+  };
+}
+
+function handleStandaloneKcalInput_(userId, input, source) {
+  const context = typeof input === 'object' && input
+    ? input
+    : { kcal: input, datePreset: 'today', meal: '' };
+  const kcal = toNullableNumber_(context.kcal);
+  if (kcal == null) {
+    return {
+      kind: 'plain_text',
+      text: 'カロリーの数字を読み取れませんでした。',
+      dashboard: getDashboardData(userId),
+    };
+  }
+
+  const pendingLogs = getPendingMealLogsByUser(userId);
+  if (!pendingLogs.length) {
+    return {
+      kind: 'plain_text',
+      text: '未記入の記録がないため、数字だけでは登録できません。メニュー名と一緒に送ってください。',
+      dashboard: getDashboardData(userId),
+    };
+  }
+
+  const scopedLogs = pendingLogs.filter(log => {
+    if (context.meal && sanitizeMealType_(log.meal) !== context.meal) {
+      return false;
+    }
+    if (context.datePreset === 'yesterday') {
+      return isSameDay(log.mealDate, new Date(resolveMealDateByPreset_('yesterday')));
+    }
+    return isSameDay(log.mealDate, new Date(resolveMealDateByPreset_('today')));
+  });
+
+  if ((context.meal || context.datePreset) && !scopedLogs.length) {
+    const scopeLabel = [context.datePreset === 'yesterday' ? '昨日' : '', context.meal || '']
+      .filter(Boolean)
+      .join(' ');
+    return {
+      kind: 'plain_text',
+      text: `${scopeLabel || '指定条件'} の未記入が見つかりません。`,
+      dashboard: getDashboardData(userId),
+    };
+  }
+
+  const targetLogs = scopedLogs.length ? scopedLogs : pendingLogs;
+
+  if (targetLogs.length === 1) {
+    const result = applyPendingKcalInput(userId, {
+      logId: targetLogs[0].logId,
+      row: targetLogs[0].row,
+      kcal: kcal,
+    }, source || SOURCE.LINE);
+    return {
+      kind: 'logged',
+      record: result.record,
+      dashboard: result.dashboard,
+      parsed: {
+        meal: result.record.meal,
+        menu: result.record.menu,
+      },
+    };
+  }
+
+  return {
+    kind: 'pending_kcal_selection',
+    kcal: kcal,
+    pendingLogs: targetLogs.slice(0, 10),
     dashboard: getDashboardData(userId),
   };
 }
@@ -539,6 +649,37 @@ function submitMealCandidate(userId, payload, source) {
   return {
     parsed: parsed,
     record: record,
+    dashboard: getDashboardData(userId),
+  };
+}
+
+function applyPendingKcalInput(userId, payload, source) {
+  ensureProjectSetup_();
+  const user = ensureUserExists_(userId, payload && payload.displayName);
+  ensureUserCanUseService_(user);
+
+  const logId = String(payload && payload.logId || '').trim();
+  const row = Number(payload && payload.row || 0);
+  const currentLog = resolveMealLogReference_(logId || row);
+  if (!currentLog || currentLog.userId !== userId) {
+    throw new Error('未記入の記録が見つかりません。');
+  }
+
+  const kcal = toNullableNumber_(payload && payload.kcal);
+  if (kcal == null) {
+    throw new Error('kcal is required');
+  }
+
+  const updatedLog = Object.assign({}, currentLog, {
+    kcal: kcal,
+    kcalStatus: KCAL_STATUS.EXACT,
+    source: source || SOURCE.LINE,
+    updatedAt: new Date(),
+  });
+  updateMealLog(updatedLog);
+
+  return {
+    record: updatedLog,
     dashboard: getDashboardData(userId),
   };
 }

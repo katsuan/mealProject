@@ -19,6 +19,17 @@ function handleTextEvent(param) {
     return result.text;
   }
 
+  if (result.kind === 'plain_text') {
+    return result.text;
+  }
+
+  if (result.kind === 'pending_kcal_selection') {
+    return [
+      `${formatKcalDisplay_(result.kcal)} kcal をどの未記入に入れますか？`,
+      ...result.pendingLogs.map(log => `- ${sanitizeMealType_(log.meal)} ${log.menu}`),
+    ].join('\n');
+  }
+
   if (result.kind === 'logged') {
     return buildLogReply(param.userId, result.record);
   }
@@ -107,6 +118,21 @@ function handleLineEvent_(event) {
     return;
   }
 
+  if (result.kind === 'plain_text') {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: result.text,
+    }]);
+    return;
+  }
+
+  if (result.kind === 'pending_kcal_selection') {
+    replyLineMessages_(event.replyToken, [
+      buildPendingKcalSelectionMessage(result.kcal, result.pendingLogs),
+    ]);
+    return;
+  }
+
   if (result.kind === 'logged') {
     const messages = [
       buildDailySummaryFlexMessage(userId, {
@@ -170,6 +196,11 @@ function handleLinePostbackEvent_(event, userId) {
     return;
   }
 
+  if (action === 'resolvePendingKcal') {
+    handleLinePendingKcalPostback_(event, userId, data);
+    return;
+  }
+
   if (action !== 'logCandidate') {
     return;
   }
@@ -198,6 +229,32 @@ function handleLinePostbackEvent_(event, userId) {
     replyLineMessages_(event.replyToken, [{
       type: 'text',
       text: '候補の記録に失敗しました。入力画面から登録してください。',
+    }]);
+  }
+}
+
+function handleLinePendingKcalPostback_(event, userId, data) {
+  const profile = resolveLineProfile_(userId);
+  try {
+    const result = applyPendingKcalInput(userId, {
+      logId: data.logId,
+      row: data.row,
+      kcal: data.kcal,
+      displayName: String(profile.displayName || ''),
+    }, SOURCE.LINE);
+
+    replyLineMessages_(event.replyToken, [
+      buildDailySummaryFlexMessage(userId, {
+        dashboard: result.dashboard,
+        record: result.record,
+        headline: `${buildRecordDisplayName_(result.record)} を記録`,
+        senderProfile: profile,
+      }),
+    ]);
+  } catch (error) {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: '未記入へのカロリー入力に失敗しました。入力画面から確認してください。',
     }]);
   }
 }

@@ -56,6 +56,30 @@ function buildTargetUpdatedReply(userId, kcal) {
   return `目標カロリーを ${kcal} kcal に更新しました`;
 }
 
+function buildPendingKcalSelectionMessage(kcal, logs) {
+  const safeLogs = Array.isArray(logs) ? logs : [];
+  return {
+    type: 'text',
+    text: `${formatKcalDisplay_(kcal)} kcal をどの未記入に入れますか？`,
+    quickReply: {
+      items: safeLogs.slice(0, 10).map(log => ({
+        type: 'action',
+        action: {
+          type: 'postback',
+          label: trimQuickReplyLabel_(`${sanitizeMealType_(log.meal)} ${String(log.menu || '')}`.trim()),
+          data: buildQueryString_({
+            action: 'resolvePendingKcal',
+            logId: log.logId,
+            row: log.row,
+            kcal: kcal,
+          }),
+          displayText: `> ${sanitizeMealType_(log.meal)} ${String(log.menu || '')}\nに ${formatKcalDisplay_(kcal)} kcal を入れています...`,
+        },
+      })),
+    },
+  };
+}
+
 function buildMealEditUrl_(record) {
   if (!record) {
     return buildLiffUrl_({ mode: 'input' });
@@ -521,7 +545,7 @@ function buildTodayLogBubble_(context) {
             contents: [
               {
                 type: 'text',
-                text: String(log.meal || '他').slice(0, 1),
+                text: getMealFlexBadgeLabel_(log.meal),
                 size: 'xxs',
                 color: '#FFFFFF',
                 weight: 'bold',
@@ -932,4 +956,9 @@ function buildCollapsedFlexLogLine_(meal, logs) {
     kcal: totalKcal,
     menu: items.length > 1 ? `${first.menu || '記録'} 他${items.length - 1}件` : String(first.menu || ''),
   };
+}
+
+function getMealFlexBadgeLabel_(meal) {
+  if (meal === 'その他') return '他';
+  return String(meal || '他').slice(0, 1);
 }
