@@ -279,7 +279,10 @@
             <h2>今日のログ</h2>
             <div class="section-copy">今日と昨日の入力内容を時系列で表示します。</div>
           </div>
-          <button id="refresh-logs-button" type="button" class="secondary compact-button">更新</button>
+          <div class="logs-refresh-tools">
+            <div id="logs-refresh-status" class="logs-refresh-status">まだ更新していません。</div>
+            <button id="refresh-logs-button" type="button" class="secondary compact-button">更新</button>
+          </div>
         </div>
         <div class="date-chip-grid compact-date-grid" id="log-date-grid">
           <button type="button" class="date-chip-btn is-active" data-log-date="today">今日</button>

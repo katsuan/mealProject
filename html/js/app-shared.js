@@ -47,6 +47,7 @@ const state = {
   isDraftRefreshing: false,
   isMasterSearching: false,
   isLogsRefreshing: false,
+  lastLogsRefreshedAt: null,
   isMealSubmitting: false,
   isMasterSaving: false,
   isVisualSyncing: false,
@@ -307,14 +308,17 @@ function bindLogsRefresh() {
       return;
     }
     state.isLogsRefreshing = true;
+    renderLogsRefreshState_();
     button.disabled = true;
     button.textContent = '更新中...';
     setSyncVisualState(true);
     pushStatus('info', 'ログを更新中...');
     try {
       await reloadState();
+      pushStatus('info', 'ログを更新しました。');
     } finally {
       state.isLogsRefreshing = false;
+      renderLogsRefreshState_();
       button.disabled = false;
       button.textContent = '更新';
       setSyncVisualState(false);
@@ -504,6 +508,7 @@ async function initializeApp() {
     renderAdvancedNutritionSection_();
     refreshTargetControls();
     renderStatus();
+    renderLogsRefreshState_();
     pushStatus('info', 'プロフィールと今日の集計を準備しています。');
     pushVersionDebug_();
 

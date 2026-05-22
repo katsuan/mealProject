@@ -421,9 +421,11 @@ async function reloadState() {
     state.dashboard = null;
     state.draft = null;
     state.dashboardLoaded = false;
+    state.lastLogsRefreshedAt = null;
     renderDashboard(null);
     renderDraft(null);
     renderProfileHeader();
+    renderLogsRefreshState_();
     pushStatus('notice', 'LINEログインすると目標カロリーと今日の集計を同期できます。');
     return;
   }
@@ -451,11 +453,13 @@ async function reloadState() {
     state.dashboard = result.dashboard || null;
     state.draft = result.draft || null;
     state.dashboardLoaded = true;
+    state.lastLogsRefreshedAt = new Date();
 
     renderProfileHeader();
     applyHeaderState_(result.header, result.permission);
     renderDashboard(state.dashboard);
     renderDraft(state.draft);
+    renderLogsRefreshState_();
     if ((initialQuery.logId || initialQuery.row) && !document.getElementById('editing-log-id').value.trim()) {
       document.getElementById('editing-log-id').value = initialQuery.logId || initialQuery.row;
       refreshMealSubmitControls_();
@@ -547,6 +551,22 @@ function renderHeaderSummary_(header) {
   document.getElementById('header-pending-count').textContent = `${pendingCount}件未記入`;
   document.getElementById('header-exact-kcal').classList.toggle('is-warning', hasTarget && rate > 100);
   document.getElementById('header-exact-rate').classList.toggle('is-warning', hasTarget && rate > 100);
+}
+
+function renderLogsRefreshState_() {
+  const node = document.getElementById('logs-refresh-status');
+  if (!node) return;
+  if (state.isLogsRefreshing) {
+    node.textContent = 'GASから再取得しています...';
+    node.classList.add('is-loading');
+    return;
+  }
+  node.classList.remove('is-loading');
+  if (state.lastLogsRefreshedAt) {
+    node.textContent = `最終更新 ${formatClockTime(state.lastLogsRefreshedAt)}`;
+    return;
+  }
+  node.textContent = 'まだ更新していません。';
 }
 
 function formatDetailValue_(value, suffix) {
