@@ -134,14 +134,7 @@ function handleLineEvent_(event) {
   }
 
   if (result.kind === 'logged') {
-    const messages = [
-      buildDailySummaryFlexMessage(userId, {
-        dashboard: result.dashboard,
-        record: result.record,
-        headline: `${buildRecordDisplayName_(result.record)} を記録`,
-        senderProfile: profile,
-      }),
-    ];
+    const messages = buildLoggedReplyMessages_(userId, result.record, result.dashboard, profile);
     replyLineMessages_(event.replyToken, messages);
     return;
   }
@@ -201,6 +194,11 @@ function handleLinePostbackEvent_(event, userId) {
     return;
   }
 
+  if (action === 'savePendingMaster') {
+    handleLinePendingMasterSavePostback_(event, userId, data);
+    return;
+  }
+
   if (action !== 'logCandidate') {
     return;
   }
@@ -216,14 +214,7 @@ function handleLinePostbackEvent_(event, userId) {
       mealDate: data.mealDate,
     }, SOURCE.LINE);
 
-    const messages = [
-      buildDailySummaryFlexMessage(userId, {
-        dashboard: result.dashboard,
-        record: result.record,
-        headline: `${buildRecordDisplayName_(result.record)} を記録`,
-        senderProfile: profile,
-      }),
-    ];
+    const messages = buildLoggedReplyMessages_(userId, result.record, result.dashboard, profile);
     replyLineMessages_(event.replyToken, messages);
   } catch (error) {
     replyLineMessages_(event.replyToken, [{
@@ -243,18 +234,46 @@ function handleLinePendingKcalPostback_(event, userId, data) {
       displayName: String(profile.displayName || ''),
     }, SOURCE.LINE);
 
-    replyLineMessages_(event.replyToken, [
-      buildDailySummaryFlexMessage(userId, {
-        dashboard: result.dashboard,
-        record: result.record,
-        headline: `${buildRecordDisplayName_(result.record)} を記録`,
-        senderProfile: profile,
-      }),
-    ]);
+    replyLineMessages_(event.replyToken, buildLoggedReplyMessages_(userId, result.record, result.dashboard, profile));
   } catch (error) {
     replyLineMessages_(event.replyToken, [{
       type: 'text',
       text: '未記入へのカロリー入力に失敗しました。入力画面から確認してください。',
+    }]);
+  }
+}
+
+function buildLoggedReplyMessages_(userId, record, dashboard, profile) {
+  const messages = [
+    buildDailySummaryFlexMessage(userId, {
+      dashboard: dashboard,
+      record: record,
+      headline: `${buildRecordDisplayName_(record)} を記録`,
+      senderProfile: profile,
+    }),
+  ];
+  if (shouldOfferMasterSave_(record) && !String(record.masterKey || '').trim()) {
+    messages.push(buildPendingMasterSavePromptFlexMessage(record, profile));
+  }
+  return messages;
+}
+
+function handleLinePendingMasterSavePostback_(event, userId, data) {
+  const profile = resolveLineProfile_(userId);
+  try {
+    const result = savePendingLogAsMaster(userId, {
+      logId: data.logId,
+      row: data.row,
+      displayName: String(profile.displayName || ''),
+    }, SOURCE.LINE);
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: `「${buildRecordDisplayName_(result.record)}」をMYメニューに保存しました。`,
+    }]);
+  } catch (error) {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: 'MYメニューへの保存に失敗しました。画面から内容を確認してください。',
     }]);
   }
 }

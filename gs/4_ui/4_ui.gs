@@ -80,6 +80,64 @@ function buildPendingKcalSelectionMessage(kcal, logs) {
   };
 }
 
+function shouldOfferMasterSave_(record) {
+  if (!record) return false;
+  if (!String(record.menu || '').trim()) return false;
+  return toNullableNumber_(record.kcal) != null;
+}
+
+function buildPendingMasterSavePromptFlexMessage(record, senderProfile) {
+  const ref = String(record && (record.logId || record.row) || '').trim();
+  return applyFlexSender_({
+    type: 'flex',
+    altText: 'この数値をMYメニューにも保存しますか？',
+    contents: {
+      type: 'bubble',
+      header: buildFlexHeaderBox_('MYメニューにも保存しますか？', buildRecordDisplayName_(record), {
+        backgroundColor: '#FDF5F2',
+        titleColor: '#231815',
+        subtitleColor: '#8a6258',
+      }),
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          {
+            type: 'text',
+            text: `${buildMealKcalLine(record)} をこの記録だけでなく、次回の候補にも使えるようにします。`,
+            wrap: true,
+            size: 'sm',
+            color: '#6b7280',
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          {
+            type: 'button',
+            style: 'secondary',
+            color: '#FDF5F2',
+            action: {
+              type: 'postback',
+              label: 'MYメニューに保存する',
+              data: buildQueryString_({
+                action: 'savePendingMaster',
+                logId: ref,
+                row: record && record.row,
+              }),
+              displayText: `> ${buildRecordDisplayName_(record)}\nをMYメニューに保存しています...`,
+            },
+          },
+        ],
+      },
+    },
+  }, senderProfile);
+}
+
 function buildMealEditUrl_(record) {
   if (!record) {
     return buildLiffUrl_({ mode: 'input' });

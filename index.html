@@ -276,8 +276,13 @@
         <div class="section-head">
           <div>
             <h2>今日のログ</h2>
-            <div class="section-copy">当日の入力内容だけを時系列で表示します。</div>
+            <div class="section-copy">今日と昨日の入力内容を時系列で表示します。</div>
           </div>
+          <button id="refresh-logs-button" type="button" class="secondary compact-button">更新</button>
+        </div>
+        <div class="date-chip-grid compact-date-grid" id="log-date-grid">
+          <button type="button" class="date-chip-btn is-active" data-log-date="today">今日</button>
+          <button type="button" class="date-chip-btn" data-log-date="yesterday">昨日</button>
         </div>
         <div class="meal-type-grid compact-grid" id="log-filter-grid">
           <button type="button" class="meal-type-btn is-active" data-log-filter="all">すべて</button>

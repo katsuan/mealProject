@@ -32,6 +32,7 @@ const state = {
   settingsModalTab: 'settings',
   candidateAccordionOpen: false,
   selectedLogFilter: 'all',
+  selectedLogDatePreset: 'today',
   activeView: 'input',
   userPermission: { status: 'active', canUse: true, isAdmin: false, notify: true },
   headerLoaded: false,
@@ -45,6 +46,7 @@ const state = {
   appliedMenuValue: '',
   isDraftRefreshing: false,
   isMasterSearching: false,
+  isLogsRefreshing: false,
   isMealSubmitting: false,
   isMasterSaving: false,
   isVisualSyncing: false,
@@ -271,6 +273,30 @@ function bindMasterSearch() {
   });
 }
 
+function bindLogsRefresh() {
+  const button = document.getElementById('refresh-logs-button');
+  if (!button) return;
+  button.addEventListener('click', async () => {
+    const auth = ensureUserCanProceed_('LINEログイン後にログを更新できます。', '現在はログを更新できません。');
+    if (!auth) {
+      return;
+    }
+    state.isLogsRefreshing = true;
+    button.disabled = true;
+    button.textContent = '更新中...';
+    setSyncVisualState(true);
+    pushStatus('info', 'ログを更新中...');
+    try {
+      await reloadState();
+    } finally {
+      state.isLogsRefreshing = false;
+      button.disabled = false;
+      button.textContent = '更新';
+      setSyncVisualState(false);
+    }
+  });
+}
+
 function renderMasterSearchStatus_(message, isLoading) {
   const node = document.getElementById('master-search-status');
   if (!node) return;
@@ -440,10 +466,12 @@ async function initializeApp() {
     bindLoginButton();
     bindSettingsModal();
     bindMasterSearch();
+    bindLogsRefresh();
     hydrateQuery();
     bindViewTabs();
     bindMealTypeButtons();
     bindMealDateButtons();
+    bindLogDateButtons();
     bindLogFilterButtons();
     bindFieldInteractions();
     syncAllFieldStates_();

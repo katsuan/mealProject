@@ -155,14 +155,22 @@ function parseTargetKcal(text) {
 function getDashboardData(userId) {
   const user = ensureUserExists_(userId);
   const today = getTodaySummary(userId);
-  const recentLogs = getMealLogsByUserAndDate(userId, new Date())
-    .sort((left, right) => new Date(right.mealDate) - new Date(left.mealDate));
+  const todayLogs = getMealLogsByUserAndDate(userId, new Date())
+    .sort(compareMealLogDisplayTimeDesc_);
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayLogs = getMealLogsByUserAndDate(userId, yesterdayDate)
+    .sort(compareMealLogDisplayTimeDesc_);
   const totalIntake = today.totalExact + today.totalEstimated;
 
   return {
     user: user,
     today: today,
-    recentLogs: recentLogs.map(log => serializeMealLog_(log)),
+    recentLogs: todayLogs.map(log => serializeMealLog_(log)),
+    logEntries: {
+      today: todayLogs.map(log => serializeMealLog_(log)),
+      yesterday: yesterdayLogs.map(log => serializeMealLog_(log)),
+    },
     weekly: getWeeklyChartData_(userId, 7),
     popularMenus: getPopularMenusByUser_(userId, 5),
     streak: getUserStreakSummary_(userId),
@@ -170,6 +178,12 @@ function getDashboardData(userId) {
     targetDiff: user.calorieTarget == null ? null : user.calorieTarget - totalIntake,
     detailUrl: buildLiffUrl_({ mode: 'detail' }),
   };
+}
+
+function compareMealLogDisplayTimeDesc_(left, right) {
+  const leftTime = new Date(left && (left.updatedAt || left.createdAt || left.mealDate) || 0).getTime();
+  const rightTime = new Date(right && (right.updatedAt || right.createdAt || right.mealDate) || 0).getTime();
+  return rightTime - leftTime;
 }
 
 function isAdminCommand_(text) {
@@ -680,6 +694,53 @@ function applyPendingKcalInput(userId, payload, source) {
 
   return {
     record: updatedLog,
+    dashboard: getDashboardData(userId),
+  };
+}
+
+function savePendingLogAsMaster(userId, payload, source) {
+  ensureProjectSetup_();
+  const user = ensureUserExists_(userId, payload && payload.displayName);
+  ensureUserCanUseService_(user);
+
+  const logId = String(payload && payload.logId || '').trim();
+  const row = Number(payload && payload.row || 0);
+  const currentLog = resolveMealLogReference_(logId || row);
+  if (!currentLog || currentLog.userId !== userId) {
+    throw new Error('対象の記録が見つかりません。');
+  }
+  if (toNullableNumber_(currentLog.kcal) == null) {
+    throw new Error('カロリーが未入力のため、マスタに保存できません。');
+  }
+
+  const savedMaster = saveNutritionMaster({
+    masterKey: currentLog.masterKey || '',
+    name: currentLog.menu,
+    flavor: currentLog.flavor,
+    kcal: currentLog.kcal,
+    protein: currentLog.protein,
+    fat: currentLog.fat,
+    carb: currentLog.carb,
+    salt: currentLog.salt,
+    fiber: currentLog.fiber,
+    unit: currentLog.unit,
+    note: currentLog.note,
+    status: 'active',
+    source: source || SOURCE.LINE,
+  });
+
+  const updatedLog = Object.assign({}, currentLog, {
+    masterKey: savedMaster.masterKey,
+    flavor: String(savedMaster.flavor || ''),
+    unit: String(savedMaster.unit || ''),
+    note: String(savedMaster.note || ''),
+    updatedAt: new Date(),
+  });
+  updateMealLog(updatedLog);
+
+  return {
+    record: updatedLog,
+    savedMaster: savedMaster,
     dashboard: getDashboardData(userId),
   };
 }

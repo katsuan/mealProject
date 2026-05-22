@@ -624,6 +624,17 @@
     margin-bottom: 10px;
   }
 
+  .compact-date-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin-bottom: 10px;
+  }
+
+  .compact-date-grid .date-chip-btn {
+    min-height: 30px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
   .compact-grid .meal-type-btn {
     padding: 10px 4px;
     font-size: 12px;
@@ -878,6 +889,13 @@
   }
 
   .master-search-status.is-loading {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border: 1px solid rgba(184, 70, 44, 0.14);
+    border-radius: 999px;
+    background: var(--surface-subtle);
     color: var(--accent-strong);
   }
 

@@ -71,6 +71,12 @@ function bindLogFilterButtons() {
   });
 }
 
+function bindLogDateButtons() {
+  document.querySelectorAll('[data-log-date]').forEach(button => {
+    button.addEventListener('click', () => setLogDatePreset(button.dataset.logDate || 'today'));
+  });
+}
+
 function setMealType(mealType, options) {
   const config = options || {};
   const normalized = ['朝', '昼', '夜', 'その他'].includes(mealType) ? mealType : '朝';
@@ -129,7 +135,19 @@ function setLogFilter(filter) {
   document.querySelectorAll('[data-log-filter]').forEach(button => {
     button.classList.toggle('is-active', button.dataset.logFilter === state.selectedLogFilter);
   });
-  renderLogList(state.dashboard ? state.dashboard.recentLogs : []);
+  renderLogList();
+}
+
+function setLogDatePreset(datePreset) {
+  state.selectedLogDatePreset = datePreset === 'yesterday' ? 'yesterday' : 'today';
+  document.querySelectorAll('[data-log-date]').forEach(button => {
+    button.classList.toggle('is-active', button.dataset.logDate === state.selectedLogDatePreset);
+  });
+  const titleNode = document.querySelector('#today-log-band .section-head h2');
+  if (titleNode) {
+    titleNode.textContent = state.selectedLogDatePreset === 'yesterday' ? '昨日のログ' : '今日のログ';
+  }
+  renderLogList();
 }
 
 function bindFieldInteractions() {
@@ -466,7 +484,7 @@ function renderDashboard(dashboard) {
     document.getElementById('nutrition-summary').textContent = '';
     renderPendingSummary_([]);
     renderMasterSearchResults_([]);
-    document.getElementById('logs-list').innerHTML = '<div class="empty-state">ログインすると今日の記録を表示します。</div>';
+    document.getElementById('logs-list').innerHTML = '<div class="empty-state">ログインすると今日と昨日の記録を表示します。</div>';
     renderWeeklyChart_(null, null);
     renderRankingList_('popular-ranking', []);
     renderStreakSection_(null, []);
@@ -492,7 +510,7 @@ function renderDashboard(dashboard) {
   document.getElementById('nutrition-summary').textContent =
     `たんぱく質 ${formatNumber(dashboard.today.nutrition.protein)} g / 脂質 ${formatNumber(dashboard.today.nutrition.fat)} g / 炭水化物 ${formatNumber(dashboard.today.nutrition.carb)} g`;
   renderPendingSummary_(dashboard.today.pendingItems || []);
-  renderLogList(dashboard.recentLogs || []);
+  renderLogList();
   renderWeeklyChart_(dashboard.weekly || [], dashboard.user && dashboard.user.calorieTarget);
   renderRankingList_('popular-ranking', dashboard.popularMenus || [], buildPopularRankingItem_);
   renderStreakSection_(dashboard.streak || null, dashboard.streakRanking || []);
@@ -722,8 +740,20 @@ function renderPendingSummary_(pendingItems) {
     : '';
 }
 
+function getActiveLogEntries_() {
+  if (!state.dashboard) return [];
+  const logEntries = state.dashboard.logEntries || {};
+  if (state.selectedLogDatePreset === 'yesterday') {
+    return Array.isArray(logEntries.yesterday) ? logEntries.yesterday : [];
+  }
+  return Array.isArray(logEntries.today)
+    ? logEntries.today
+    : (Array.isArray(state.dashboard.recentLogs) ? state.dashboard.recentLogs : []);
+}
+
 function renderLogList(logs) {
-  const filteredLogs = (logs || []).filter(log =>
+  const sourceLogs = Array.isArray(logs) ? logs : getActiveLogEntries_();
+  const filteredLogs = sourceLogs.filter(log =>
     state.selectedLogFilter === 'all' || log.meal === state.selectedLogFilter
   );
 
@@ -732,7 +762,7 @@ function renderLogList(logs) {
         <div class="log-item">
           <div class="log-top">
             <div class="log-menu">${escapeHtml(log.menu)}</div>
-            <div class="log-date">${escapeHtml(formatDateTime(log.mealDate))}</div>
+            <div class="log-date">${escapeHtml(formatDateTime(log.updatedAt || log.createdAt || log.mealDate))}</div>
           </div>
           <div class="log-meta">${escapeHtml(log.meal)} / ${escapeHtml(formatLogKcal(log.kcal, log.kcalStatus))}</div>
           ${buildLogMediaMarkup_(log)}
