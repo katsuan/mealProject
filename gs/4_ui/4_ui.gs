@@ -955,7 +955,22 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
               },
             ],
           },
-        ],
+          topCandidates.length ? {
+            type: 'box',
+            layout: 'vertical',
+            spacing: 'sm',
+            contents: [
+              {
+                type: 'text',
+                text: '近い候補',
+                size: 'sm',
+                weight: 'bold',
+                color: '#231815',
+              },
+              ...topCandidates.map(candidate => buildCandidatePreviewRow_(candidate)),
+            ],
+          } : null,
+        ].filter(Boolean),
       },
       footer: {
         type: 'box',
