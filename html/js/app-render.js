@@ -920,11 +920,11 @@ function renderLogList(logs) {
               ${buildLogMealBadge_(log.meal)}
               <div class="log-main-copy">
                 <div class="log-menu">${escapeHtml(log.menu)}</div>
+                <div class="log-kcal">${escapeHtml(formatLogKcal(log.kcal, log.kcalStatus))}</div>
                 <div class="log-date">${escapeHtml(formatDateTime(log.updatedAt || log.createdAt || log.mealDate))}</div>
               </div>
             </div>
             <div class="log-side">
-              <div class="log-kcal">${escapeHtml(formatLogKcal(log.kcal, log.kcalStatus))}</div>
               <div class="log-actions">
                 <button type="button" class="secondary compact-button" onclick="startEditLog('${escapeHtml(String(log.logId || log.row || ''))}')">編集</button>
                 <button type="button" class="secondary compact-button" onclick="deleteLog('${escapeHtml(String(log.logId || log.row || ''))}', '${encodeURIComponent(String(log.menu || ''))}')">削除</button>
