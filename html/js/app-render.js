@@ -263,8 +263,8 @@ function renderProfileHeader() {
   const avatar = document.getElementById('avatar');
   const avatarButton = document.getElementById('open-settings');
   avatarButton.disabled = Boolean(state.userId && state.userPermission.canUse === false);
-  avatarButton.setAttribute('aria-label', state.userId ? '設定を開く' : '最新の画面に更新');
-  avatarButton.setAttribute('title', state.userId ? '設定を開く' : '最新の画面に更新');
+  avatarButton.setAttribute('aria-label', state.userId ? '設定を開く' : 'LINEログインを開く');
+  avatarButton.setAttribute('title', state.userId ? '設定を開く' : 'LINEログインを開く');
   if (state.pictureUrl) {
     avatar.innerHTML = `<img src="${escapeHtml(state.pictureUrl)}" alt="LINE profile">`;
   } else {

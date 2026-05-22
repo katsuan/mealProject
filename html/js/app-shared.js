@@ -209,16 +209,7 @@ function bindPendingSummaryJump() {
 
 function bindLoginButton() {
   document.getElementById('login-line').addEventListener('click', () => {
-    const redirectUrl = resolveLoginRedirectUrl_();
-    if (!redirectUrl) {
-      pushStatus('warning', '公開URLが未設定のため、ここではLINEログインを開始できません。');
-      return;
-    }
-    if (!window.liff || typeof liff.login !== 'function') {
-      window.location.href = redirectUrl;
-      return;
-    }
-    liff.login({ redirectUri: redirectUrl });
+    startLoginFlow_();
   });
 }
 
@@ -226,7 +217,7 @@ function bindSettingsModal() {
   document.getElementById('open-settings').addEventListener('click', () => {
     const userId = document.getElementById('user-id').value.trim();
     if (!userId) {
-      reloadPageWithCacheBust_();
+      startLoginFlow_();
       return;
     }
     if (!state.userPermission.canUse) {
@@ -254,6 +245,24 @@ function reloadPageWithCacheBust_() {
   const nextUrl = new URL(window.location.href);
   nextUrl.searchParams.set('_ts', String(Date.now()));
   window.location.href = nextUrl.toString();
+}
+
+function startLoginFlow_() {
+  const redirectUrl = resolveLoginRedirectUrl_();
+  if (!redirectUrl) {
+    pushStatus('warning', '公開URLが未設定のため、ここではLINEログインを開始できません。');
+    return;
+  }
+  pushStatus('info', 'LINEログイン画面へ移動しています...');
+  if (!window.liff || typeof liff.login !== 'function') {
+    window.location.href = redirectUrl;
+    return;
+  }
+  if (window.location.protocol === 'file:') {
+    window.location.href = redirectUrl;
+    return;
+  }
+  liff.login({ redirectUri: redirectUrl });
 }
 
 function bindMasterSearch() {
