@@ -224,7 +224,7 @@ function bindSettingsModal() {
   document.getElementById('open-settings').addEventListener('click', () => {
     const userId = document.getElementById('user-id').value.trim();
     if (!userId) {
-      pushStatus('notice', 'LINEログイン後に設定を変更できます。');
+      reloadPageWithCacheBust_();
       return;
     }
     if (!state.userPermission.canUse) {
@@ -234,6 +234,9 @@ function bindSettingsModal() {
     openSettingsModal_();
   });
 
+  document.getElementById('refresh-page-button').addEventListener('click', () => {
+    reloadPageWithCacheBust_();
+  });
   document.getElementById('close-settings-modal').addEventListener('click', closeSettingsModal_);
   document.getElementById('close-settings-secondary').addEventListener('click', closeSettingsModal_);
   document.getElementById('settings-modal-backdrop').addEventListener('click', closeSettingsModal_);
@@ -242,6 +245,13 @@ function bindSettingsModal() {
       closeSettingsModal_();
     }
   });
+}
+
+function reloadPageWithCacheBust_() {
+  pushStatus('info', '最新の画面を読み込み直しています...');
+  const nextUrl = new URL(window.location.href);
+  nextUrl.searchParams.set('_ts', String(Date.now()));
+  window.location.href = nextUrl.toString();
 }
 
 function bindMasterSearch() {

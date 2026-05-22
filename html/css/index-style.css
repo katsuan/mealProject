@@ -247,14 +247,14 @@
     border: 1px solid rgba(184, 70, 44, 0.12);
     border-radius: 8px;
     background: var(--surface-subtle);
-    padding: 9px 11px;
+    padding: 8px 10px;
   }
 
   .header-stat-wide {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     min-height: 100%;
   }
 
@@ -277,14 +277,14 @@
   .header-stat-pair {
     display: flex;
     align-items: baseline;
-    gap: 6px;
+    gap: 5px;
     min-width: 0;
     flex-wrap: nowrap;
   }
 
   .header-stat-value {
     margin-top: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 700;
     line-height: 1.2;
     color: var(--text);
@@ -294,7 +294,7 @@
 
   .header-stat-subvalue {
     min-width: 0;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--muted);
     word-break: normal;
@@ -303,13 +303,13 @@
 
   .header-stat-divider {
     color: var(--muted);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     white-space: nowrap;
   }
 
   .header-stat-meta {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--muted);
     line-height: 1.2;
     white-space: nowrap;
@@ -463,8 +463,16 @@
 
   .modal-tabs {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 8px;
     margin-top: 4px;
+  }
+
+  .modal-tabs-group {
+    display: inline-flex;
+    gap: 8px;
+    min-width: 0;
   }
 
   .modal-tab-button {
@@ -482,6 +490,11 @@
     background: var(--accent-soft);
     border-color: #ef9f88;
     color: var(--accent-strong);
+  }
+
+  .modal-reload-button {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 
   .modal-tab-panel {
@@ -1433,7 +1446,7 @@
 
     .header-stat-value,
     .header-stat-subvalue {
-      font-size: 16px;
+      font-size: 15px;
     }
 
     .notify-toggle {
@@ -1490,21 +1503,16 @@
       line-height: 1.15;
     }
 
-    .hero-top {
-      grid-template-columns: 1fr;
-      align-items: start;
-    }
-
     .header-stat {
-      padding: 8px 9px;
+      padding: 7px 8px;
     }
 
     .header-stat-head {
-      gap: 6px;
+      gap: 5px;
     }
 
     .header-stat-value {
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .header-stat-subvalue,
@@ -1514,7 +1522,7 @@
 
     .header-stat-meta,
     .header-stat-label {
-      font-size: 10px;
+      font-size: 9px;
     }
 
     .header-badge {
@@ -1552,6 +1560,11 @@
   }
 
   @media (max-width: 360px) {
+    .hero-top {
+      grid-template-columns: 1fr;
+      align-items: start;
+    }
+
     .field-row,
     .cards {
       grid-template-columns: minmax(0, 1fr);

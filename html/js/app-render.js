@@ -238,10 +238,12 @@ function renderProfileHeader() {
   const loginButton = document.getElementById('login-line');
   loginButton.hidden = Boolean(state.userId);
   loginButton.textContent = window.location.protocol === 'file:' ? '公開URLでLINEログイン' : 'LINEでログイン';
-  document.getElementById('open-settings').disabled = !state.userId || state.userPermission.canUse === false;
 
   const avatar = document.getElementById('avatar');
   const avatarButton = document.getElementById('open-settings');
+  avatarButton.disabled = Boolean(state.userId && state.userPermission.canUse === false);
+  avatarButton.setAttribute('aria-label', state.userId ? '設定を開く' : '最新の画面に更新');
+  avatarButton.setAttribute('title', state.userId ? '設定を開く' : '最新の画面に更新');
   if (state.pictureUrl) {
     avatar.innerHTML = `<img src="${escapeHtml(state.pictureUrl)}" alt="LINE profile">`;
   } else {
@@ -269,7 +271,7 @@ function applyPermissionState_(permission) {
   refreshMealSubmitControls_();
   const openSettingsButton = document.getElementById('open-settings');
   if (openSettingsButton) {
-    openSettingsButton.disabled = permission.canUse === false || !document.getElementById('user-id').value.trim();
+    openSettingsButton.disabled = permission.canUse === false && Boolean(document.getElementById('user-id').value.trim());
   }
 }
 
@@ -518,8 +520,8 @@ function renderHeaderSummary_(header) {
   const exactNode = document.getElementById('header-exact-kcal');
   const targetNode = document.getElementById('header-target-kcal');
 
-  targetNode.textContent = hasTarget ? `${formatNumber(target)}` : '-';
-  exactNode.textContent = `${formatNumber(exact)}`;
+  targetNode.textContent = hasTarget ? `${formatNumber(target)} kcal` : '-';
+  exactNode.textContent = hasTarget ? `${formatNumber(exact)}` : `${formatNumber(exact)} kcal`;
   document.getElementById('header-exact-rate').textContent = hasTarget ? `(${rate}%)` : '(-)';
   document.getElementById('header-pending-count').textContent = `${pendingCount}件未記入`;
   document.getElementById('header-exact-kcal').classList.toggle('is-warning', hasTarget && rate > 100);

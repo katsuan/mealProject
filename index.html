@@ -301,8 +301,11 @@
           <button id="close-settings-modal" type="button" class="hero-icon-button modal-close-button" aria-label="設定を閉じる" title="設定を閉じる">✕</button>
         </div>
         <div class="modal-tabs" role="tablist" aria-label="設定タブ">
-          <button id="settings-tab-button" type="button" class="modal-tab-button is-active" data-settings-tab="settings" role="tab" aria-selected="true">設定</button>
-          <button id="debug-tab-button" type="button" class="modal-tab-button" data-settings-tab="debug" role="tab" aria-selected="false">デバッグ</button>
+          <div class="modal-tabs-group">
+            <button id="settings-tab-button" type="button" class="modal-tab-button is-active" data-settings-tab="settings" role="tab" aria-selected="true">設定</button>
+            <button id="debug-tab-button" type="button" class="modal-tab-button" data-settings-tab="debug" role="tab" aria-selected="false">デバッグ</button>
+          </div>
+          <button id="refresh-page-button" type="button" class="modal-tab-button modal-reload-button" title="最新の画面に更新">再読み込み</button>
         </div>
         <div id="settings-tab-panel" class="modal-tab-panel">
           <div class="fields">
