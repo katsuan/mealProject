@@ -12,6 +12,7 @@ function setMenuValue_(value, options) {
   } else if (!config.preserveDirty) {
     state.menuDirty = false;
   }
+  renderCurrentMealDetailCard_();
 }
 
 function syncMasterSearchQueryFromMenu_() {
@@ -162,6 +163,7 @@ function bindFieldInteractions() {
         }
         renderAdvancedNutritionSection_();
       }
+      renderCurrentMealDetailCard_();
     });
     updateFieldState(input, false);
   });
@@ -179,6 +181,7 @@ function bindFieldInteractions() {
     } else {
       renderMasterSearchStatus_('右の「検索」で呼び出せます。', false);
     }
+    renderCurrentMealDetailCard_();
   });
 }
 
@@ -546,6 +549,115 @@ function renderHeaderSummary_(header) {
   document.getElementById('header-exact-rate').classList.toggle('is-warning', hasTarget && rate > 100);
 }
 
+function formatDetailValue_(value, suffix) {
+  if (value == null || value === '') return '-';
+  const text = typeof value === 'number' ? formatNumber(value) : String(value).trim();
+  if (!text) return '-';
+  return suffix ? `${text} ${suffix}` : text;
+}
+
+function buildNutritionDetailRows_(detail) {
+  const safe = detail || {};
+  return [
+    ['メニュー名', formatDetailValue_(safe.menu || safe.name || '')],
+    ['種類・メーカー / サイズ・量', formatDetailValue_(buildDetailDescriptor_(safe.flavor, safe.unit))],
+    ['カロリー', formatDetailValue_(safe.kcal, 'kcal')],
+    ['たんぱく質 / 脂質', `${formatDetailValue_(safe.protein, 'g')} / ${formatDetailValue_(safe.fat, 'g')}`],
+    ['炭水化物 / 食塩相当量', `${formatDetailValue_(safe.carb, 'g')} / ${formatDetailValue_(safe.salt, 'g')}`],
+    ['食物繊維', formatDetailValue_(safe.fiber, 'g')],
+    ['メモ', formatDetailValue_(safe.note || '')],
+  ];
+}
+
+function buildDetailDescriptor_(flavor, unit) {
+  return [String(flavor || '').trim(), String(unit || '').trim()].filter(Boolean).join(' / ');
+}
+
+function buildNutritionDetailCardMarkup_(detail, title) {
+  const rows = buildNutritionDetailRows_(detail);
+  return `
+    ${title ? `<div class="nutrition-detail-title">${escapeHtml(title)}</div>` : ''}
+    <div class="nutrition-detail-grid">
+      ${rows.map(([label, value]) => `
+        <div class="nutrition-detail-row">
+          <div class="nutrition-detail-label">${escapeHtml(label)}</div>
+          <div class="nutrition-detail-value">${escapeHtml(value)}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function getCurrentMealDetail_() {
+  return {
+    menu: document.getElementById('menu-name').value.trim(),
+    flavor: document.getElementById('field-flavor').value.trim(),
+    unit: document.getElementById('field-unit').value.trim(),
+    kcal: toNullableNumber_(document.getElementById('field-kcal').value),
+    protein: toNullableNumber_(document.getElementById('field-protein').value),
+    fat: toNullableNumber_(document.getElementById('field-fat').value),
+    carb: toNullableNumber_(document.getElementById('field-carb').value),
+    salt: toNullableNumber_(document.getElementById('field-salt').value),
+    fiber: toNullableNumber_(document.getElementById('field-fiber').value),
+    note: document.getElementById('field-note').value.trim(),
+  };
+}
+
+function hasRenderableMealDetail_(detail) {
+  const safe = detail || {};
+  return Boolean(
+    String(safe.menu || '').trim() ||
+    String(safe.flavor || '').trim() ||
+    String(safe.unit || '').trim() ||
+    toNullableNumber_(safe.kcal) != null ||
+    toNullableNumber_(safe.protein) != null ||
+    toNullableNumber_(safe.fat) != null ||
+    toNullableNumber_(safe.carb) != null ||
+    toNullableNumber_(safe.salt) != null ||
+    toNullableNumber_(safe.fiber) != null ||
+    String(safe.note || '').trim()
+  );
+}
+
+function renderCurrentMealDetailCard_() {
+  const card = document.getElementById('meal-detail-preview');
+  const detail = getCurrentMealDetail_();
+  const isEditingMaster = Boolean(document.getElementById('editing-master-key').value.trim());
+  const isEditingLog = Boolean(document.getElementById('editing-log-id').value.trim());
+  if (!hasRenderableMealDetail_(detail)) {
+    card.hidden = true;
+    card.innerHTML = '';
+    return;
+  }
+
+  const title = isEditingMaster
+    ? 'マスタの詳細'
+    : (isEditingLog ? '記録の詳細' : '入力内容の詳細');
+  card.hidden = false;
+  card.innerHTML = buildNutritionDetailCardMarkup_(detail, title);
+}
+
+function renderMealReplyCard_(result, fallbackDetail) {
+  const reply = document.getElementById('meal-reply');
+  const record = result && result.record ? result.record : null;
+  const safeDetail = record || fallbackDetail || {};
+  if (!hasRenderableMealDetail_(safeDetail)) {
+    reply.innerHTML = result && result.reply ? escapeHtml(result.reply) : '';
+    return;
+  }
+
+  const replyTitle = record
+    ? `保存しました (${String(record.meal || '').trim()} ${String(record.menu || '').trim()})`.trim()
+    : '保存しました';
+
+  reply.innerHTML = `
+    <div class="reply-card">
+      <div class="reply-title">${escapeHtml(replyTitle)}</div>
+      ${buildNutritionDetailCardMarkup_(safeDetail)}
+    </div>
+  `;
+}
+
 function renderMasterSearchResults_(results) {
   const list = Array.isArray(results) ? results : [];
   const container = document.getElementById('master-search-results');
@@ -900,12 +1012,14 @@ function applyNutritionFields(nutrition, extras) {
   setFieldValue('field-note', extras.note || '');
   state.advancedNutritionOpen = hasAdvancedNutritionValues_();
   renderAdvancedNutritionSection_();
+  renderCurrentMealDetailCard_();
 }
 
 function setFieldValue(id, value) {
   const input = document.getElementById(id);
   input.value = value;
   updateFieldState(input, false);
+  renderCurrentMealDetailCard_();
 }
 
 function renderCandidateAccordion_() {

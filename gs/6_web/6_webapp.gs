@@ -200,6 +200,7 @@ function submitMealDetailFromLiff(payload) {
     identity: serializeIdentityState_(identity),
     permission: serializeUserPermission_(getUserById(identity.userId)),
     reply: buildLogReply(identity.userId, result.record),
+    record: serializeMealLog_(result.record),
     dashboard: result.dashboard,
     draft: getMealDraftState({
       meal: result.record.meal,
@@ -283,6 +284,7 @@ function updateMealLogFromLiff(payload) {
     identity: serializeIdentityState_(identity),
     permission: serializeUserPermission_(getUserById(identity.userId)),
     reply: buildLogReply(identity.userId, result.record),
+    record: serializeMealLog_(result.record),
     dashboard: result.dashboard,
     draft: getMealDraftState({
       meal: result.record.meal,

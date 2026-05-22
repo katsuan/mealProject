@@ -740,7 +740,9 @@ function buildPopularMenusBubble_(context) {
       contents: items.length
         ? items.map(item => ({
             type: 'box',
-            layout: 'vertical',
+            layout: 'horizontal',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             spacing: 'sm',
             paddingAll: '10px',
             cornerRadius: '10px',
@@ -760,13 +762,6 @@ function buildPopularMenusBubble_(context) {
                     wrap: true,
                     color: '#231815',
                   },
-                  item.flavor || item.unit ? {
-                    type: 'text',
-                    text: buildNutritionDescriptor_(item.flavor, item.unit),
-                    size: 'xs',
-                    wrap: true,
-                    color: '#231815',
-                  } : null,
                   {
                     type: 'text',
                     text: `${formatKcalDisplay_(item.averageKcal || 0)} kcal / ${item.count || 0}回`,
@@ -774,12 +769,13 @@ function buildPopularMenusBubble_(context) {
                     wrap: true,
                     color: '#8a6258',
                   },
-                ].filter(Boolean),
+                ],
               },
               {
                 type: 'box',
                 layout: 'horizontal',
                 spacing: 'sm',
+                flex: 0,
                 contents: [
                   {
                     type: 'button',
@@ -796,13 +792,9 @@ function buildPopularMenusBubble_(context) {
                     style: 'secondary',
                     height: 'sm',
                     action: {
-                      type: 'postback',
+                      type: 'uri',
                       label: '詳細',
-                      data: buildQueryString_({
-                        action: 'showPopularDetail',
-                        groupKey: item.groupKey,
-                      }),
-                      displayText: `> ${String(item.menu || '')}\nの詳細を表示しています...`,
+                      uri: buildMasterEditUrl_(item),
                     },
                   },
                 ],
@@ -950,42 +942,13 @@ function buildMealInputPromptFlexMessage(parsed, draft, senderProfile) {
             contents: [
               {
                 type: 'text',
-                text: '候補は下のボタンから採用できます。違う場合だけ画面で内容を入力してください。',
+                text: topCandidates.length
+                  ? `候補は下のボタンから採用できます。違う場合だけ画面で内容を入力してください。`
+                  : '近い候補が見つからなかったため、画面で内容を入力してください。',
                 wrap: true,
                 size: 'xs',
                 color: '#8a6258',
               },
-            ],
-          },
-          {
-            type: 'box',
-            layout: 'vertical',
-            backgroundColor: '#F9FAFB',
-            cornerRadius: '12px',
-            paddingAll: '12px',
-            contents: [
-              {
-                type: 'text',
-                text: '近い候補',
-                weight: 'bold',
-                size: 'xs',
-                margin: 'md',
-              },
-              topCandidates.length
-                ? {
-                    type: 'box',
-                    layout: 'vertical',
-                    spacing: 'sm',
-                    margin: 'sm',
-                    contents: topCandidates.map(item => buildCandidatePreviewRow_(item)),
-                  }
-                : {
-                    type: 'text',
-                    text: '候補なし',
-                    wrap: true,
-                    margin: 'sm',
-                    size: 'xs',
-                  },
             ],
           },
         ],
@@ -1106,7 +1069,7 @@ function buildCandidateQuickReply_(parsed, candidates) {
 }
 
 function buildCandidateQuickReplyLabel_(candidate) {
-  const name = String(candidate && candidate.name || '').trim();
+  const name = String(candidate && candidate.menu || candidate && candidate.name || '').trim();
   const detail = buildNutritionDescriptor_(candidate && candidate.flavor, candidate && candidate.unit);
   return detail ? `${name} ${detail}` : name;
 }

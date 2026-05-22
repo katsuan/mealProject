@@ -144,10 +144,10 @@ function startNewEntryMode_(options) {
   const currentMeal = document.getElementById('meal-type').value;
   const currentMealDate = document.getElementById('meal-date').value;
   const currentDatePreset = inferDatePresetFromMealDate_(currentMealDate);
-  const replyText = config.preserveReply ? document.getElementById('meal-reply').textContent : '';
+  const replyHtml = config.preserveReply ? document.getElementById('meal-reply').innerHTML : '';
   clearEditMode_();
   document.getElementById('master-key').value = '';
-  document.getElementById('meal-reply').textContent = replyText || '';
+  document.getElementById('meal-reply').innerHTML = replyHtml || '';
   setMenuValue_('');
   setFieldValue('field-kcal', '');
   setFieldValue('field-protein', '');
@@ -176,6 +176,7 @@ function startNewEntryMode_(options) {
   if (!config.silent) {
     pushStatus('info', '新規登録の入力に切り替えました。');
   }
+  renderCurrentMealDetailCard_();
 }
 
 function startEditLog(logRef) {
@@ -301,12 +302,13 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
   pushStatus('info', editingLogId ? '更新して集計を同期中...' : '保存して集計を同期中...');
 
   try {
-    const result = await runServer(action, buildMealDetailRequestPayload_({
+    const payload = buildMealDetailRequestPayload_({
       sendLineSummary: true,
-    }));
+    });
+    const result = await runServer(action, payload);
 
     applyDashboardDraftResponse_(auth.userId, result);
-    document.getElementById('meal-reply').textContent = result.reply || '';
+    renderMealReplyCard_(result, payload);
     startNewEntryMode_({
       preserveMealContext: true,
       preserveReply: true,
