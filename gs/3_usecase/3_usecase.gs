@@ -301,10 +301,22 @@ function getPopularMenusByUser_(userId, limit) {
   const grouped = {};
   getMealLogsByUser(userId).forEach(log => {
     const key = buildMealLogGroupingKey_(log);
+    const master = log.masterKey ? getNutritionMaster(log.masterKey) : null;
     if (!grouped[key]) {
       grouped[key] = {
+        groupKey: key,
         menu: log.menu,
         displayName: buildMealLogDisplayName_(log),
+        masterKey: String(log.masterKey || ''),
+        flavor: String((master && master.flavor) || log.flavor || ''),
+        unit: String((master && master.unit) || log.unit || ''),
+        note: String((master && master.note) || log.note || ''),
+        kcal: toNullableNumber_((master && master.kcal) != null ? master.kcal : log.kcal),
+        protein: toNullableNumber_((master && master.protein) != null ? master.protein : log.protein),
+        fat: toNullableNumber_((master && master.fat) != null ? master.fat : log.fat),
+        carb: toNullableNumber_((master && master.carb) != null ? master.carb : log.carb),
+        salt: toNullableNumber_((master && master.salt) != null ? master.salt : log.salt),
+        fiber: toNullableNumber_((master && master.fiber) != null ? master.fiber : log.fiber),
         count: 0,
         totalKcal: 0,
         lastMealDate: log.mealDate,
@@ -325,12 +337,29 @@ function getPopularMenusByUser_(userId, limit) {
     })
     .slice(0, limit || 5)
     .map(item => ({
+      groupKey: item.groupKey,
       menu: item.menu,
       displayName: item.displayName,
+      masterKey: item.masterKey,
+      flavor: item.flavor,
+      unit: item.unit,
+      note: item.note,
+      kcal: item.kcal,
+      protein: item.protein,
+      fat: item.fat,
+      carb: item.carb,
+      salt: item.salt,
+      fiber: item.fiber,
       count: item.count,
       averageKcal: item.count ? Math.round((item.totalKcal / item.count) * 10) / 10 : 0,
       lastMealDate: toIsoDateTime_(item.lastMealDate),
     }));
+}
+
+function findPopularMenuByGroupKey_(userId, groupKey) {
+  const normalizedKey = String(groupKey || '').trim();
+  if (!normalizedKey) return null;
+  return getPopularMenusByUser_(userId, 20).find(item => String(item.groupKey || '') === normalizedKey) || null;
 }
 
 function getUserStreakSummary_(userId) {

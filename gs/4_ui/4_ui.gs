@@ -88,9 +88,10 @@ function shouldOfferMasterSave_(record) {
 
 function buildPendingMasterSavePromptFlexMessage(record, senderProfile) {
   const ref = String(record && (record.logId || record.row) || '').trim();
+  const editUrl = buildMealEditUrl_(record);
   return applyFlexSender_({
     type: 'flex',
-    altText: 'この数値をMYメニューにも保存しますか？',
+    altText: 'この記録をMYメニューにも保存できます。',
     quickReply: {
       items: [
         {
@@ -122,17 +123,35 @@ function buildPendingMasterSavePromptFlexMessage(record, senderProfile) {
         contents: [
           {
             type: 'text',
-            text: `${buildMealKcalLine(record)} をこの記録だけでなく、次回の候補にも使えるようにします。`,
+            text: `${buildMealKcalLine(record)} を次回の候補にも使えるようにします。`,
             wrap: true,
             size: 'sm',
             color: '#6b7280',
           },
           {
             type: 'text',
-            text: '保存する場合は下のボタンを押してください。',
+            text: 'カロリーだけ保存するなら下のクイックリプライ、種類・メーカーやサイズ・量も入れるなら画面から編集できます。',
             wrap: true,
             size: 'xs',
             color: '#8a6258',
+          },
+        ],
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'none',
+        contents: [
+          {
+            type: 'button',
+            style: 'secondary',
+            height: 'sm',
+            color: '#FDF5F2',
+            action: {
+              type: 'uri',
+              label: '画面で詳細を登録',
+              uri: editUrl,
+            },
           },
         ],
       },
@@ -167,6 +186,26 @@ function buildMealEditUrl_(record) {
     todayExact: record.todayExact,
     targetKcal: record.targetKcal,
     pendingCount: record.pendingCount,
+  });
+}
+
+function buildMasterEditUrl_(item) {
+  if (!item) {
+    return buildLiffUrl_({ mode: 'input' });
+  }
+  return buildLiffUrl_({
+    mode: 'input',
+    masterKey: item.masterKey,
+    menu: item.menu,
+    flavor: item.flavor,
+    unit: item.unit,
+    note: item.note,
+    kcal: item.kcal,
+    protein: item.protein,
+    fat: item.fat,
+    carb: item.carb,
+    salt: item.salt,
+    fiber: item.fiber,
   });
 }
 
@@ -228,6 +267,11 @@ function formatKcalDisplay_(value) {
   const number = Number(value || 0);
   if (!Number.isFinite(number)) return '0';
   return String(Math.round(number * 10) / 10).replace(/\.0$/, '');
+}
+
+function formatNullableNutritionForFlex_(value) {
+  const number = toNullableNumber_(value);
+  return number == null ? '-' : formatKcalDisplay_(number);
 }
 
 function buildDailySummaryFlexMessage(userId, options) {
@@ -381,34 +425,63 @@ function buildDailySummaryBubble_(context) {
       contents: [
         context.record ? {
           type: 'box',
-          layout: 'vertical',
-          spacing: 'xs',
+          layout: 'horizontal',
+          spacing: 'sm',
+          alignItems: 'center',
           cornerRadius: '12px',
           backgroundColor: '#F3F4F6',
           paddingAll: '12px',
           contents: [
             {
-              type: 'text',
-              text: `${context.record.meal} ${context.recordDisplayName}`,
-              size: 'sm',
-              weight: 'bold',
-              wrap: true,
+              type: 'box',
+              layout: 'vertical',
+              width: '26px',
+              height: '26px',
+              cornerRadius: '999px',
+              backgroundColor: getMealFlexColor_(context.record.meal),
+              justifyContent: 'center',
+              alignItems: 'center',
+              contents: [
+                {
+                  type: 'text',
+                  text: getMealFlexBadgeLabel_(context.record.meal),
+                  size: 'xxs',
+                  color: '#FFFFFF',
+                  weight: 'bold',
+                  align: 'center',
+                },
+              ],
             },
-            context.recordDetailLine ? {
-              type: 'text',
-              text: context.recordDetailLine,
-              size: 'xs',
-              color: '#231815',
-              wrap: true,
-            } : null,
             {
-              type: 'text',
-              text: buildMealKcalLine(context.record),
-              size: 'xs',
-              color: '#6b7280',
-              wrap: true,
+              type: 'box',
+              layout: 'vertical',
+              flex: 1,
+              spacing: 'xs',
+              contents: [
+                {
+                  type: 'text',
+                  text: context.recordDisplayName,
+                  size: 'sm',
+                  weight: 'bold',
+                  wrap: true,
+                },
+                context.recordDetailLine ? {
+                  type: 'text',
+                  text: context.recordDetailLine,
+                  size: 'xs',
+                  color: '#231815',
+                  wrap: true,
+                } : null,
+                {
+                  type: 'text',
+                  text: buildMealKcalLine(context.record),
+                  size: 'xs',
+                  color: '#6b7280',
+                  wrap: true,
+                },
+              ].filter(Boolean),
             },
-          ].filter(Boolean),
+          ],
         } : null,
         context.hasTarget ? {
           type: 'box',
@@ -667,18 +740,11 @@ function buildPopularMenusBubble_(context) {
       contents: items.length
         ? items.map(item => ({
             type: 'box',
-            layout: 'horizontal',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            layout: 'vertical',
             spacing: 'sm',
             paddingAll: '10px',
             cornerRadius: '10px',
             backgroundColor: '#FDF5F2',
-            action: {
-              type: 'message',
-              label: `${item.menu}`,
-              text: `${item.menu}`,
-            },
             contents: [
               {
                 type: 'box',
@@ -694,6 +760,13 @@ function buildPopularMenusBubble_(context) {
                     wrap: true,
                     color: '#231815',
                   },
+                  item.flavor || item.unit ? {
+                    type: 'text',
+                    text: buildNutritionDescriptor_(item.flavor, item.unit),
+                    size: 'xs',
+                    wrap: true,
+                    color: '#231815',
+                  } : null,
                   {
                     type: 'text',
                     text: `${formatKcalDisplay_(item.averageKcal || 0)} kcal / ${item.count || 0}回`,
@@ -701,15 +774,38 @@ function buildPopularMenusBubble_(context) {
                     wrap: true,
                     color: '#8a6258',
                   },
-                ],
+                ].filter(Boolean),
               },
               {
-                type: 'text',
-                text: '送る',
-                size: 'xs',
-                weight: 'bold',
-                color: '#B8462C',
-                flex: 0,
+                type: 'box',
+                layout: 'horizontal',
+                spacing: 'sm',
+                contents: [
+                  {
+                    type: 'button',
+                    style: 'secondary',
+                    height: 'sm',
+                    action: {
+                      type: 'message',
+                      label: '送る',
+                      text: String(item.displayName || item.menu || ''),
+                    },
+                  },
+                  {
+                    type: 'button',
+                    style: 'secondary',
+                    height: 'sm',
+                    action: {
+                      type: 'postback',
+                      label: '詳細',
+                      data: buildQueryString_({
+                        action: 'showPopularDetail',
+                        groupKey: item.groupKey,
+                      }),
+                      displayText: `> ${String(item.menu || '')}\nの詳細を表示しています...`,
+                    },
+                  },
+                ],
               },
             ],
           }))
@@ -722,6 +818,95 @@ function buildPopularMenusBubble_(context) {
           }],
     },
   };
+}
+
+function buildPopularMenuDetailFlexMessage(item, senderProfile) {
+  const safeItem = item || {};
+  const detailLine = buildNutritionDescriptor_(safeItem.flavor, safeItem.unit);
+  const editUrl = buildMasterEditUrl_(safeItem);
+  return applyFlexSender_({
+    type: 'flex',
+    altText: `${String(safeItem.menu || '人気メニュー')} の詳細`,
+    quickReply: {
+      items: [
+        {
+          type: 'action',
+          action: {
+            type: 'message',
+            label: trimQuickReplyLabel_(String(safeItem.menu || '送る')),
+            text: String(safeItem.displayName || safeItem.menu || ''),
+          },
+        },
+      ],
+    },
+    contents: {
+      type: 'bubble',
+      header: buildFlexHeaderBox_('人気メニューの詳細', String(safeItem.menu || ''), {
+        backgroundColor: '#FDF5F2',
+        titleColor: '#B8462C',
+        subtitleColor: '#231815',
+      }),
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          detailLine ? {
+            type: 'text',
+            text: detailLine,
+            size: 'xs',
+            color: '#231815',
+            wrap: true,
+          } : null,
+          {
+            type: 'text',
+            text: `${formatNullableNutritionForFlex_(safeItem.kcal)} kcal`,
+            size: 'md',
+            weight: 'bold',
+            color: '#231815',
+          },
+          {
+            type: 'text',
+            text: `たんぱく質 ${formatNullableNutritionForFlex_(safeItem.protein)}g - 脂質 ${formatNullableNutritionForFlex_(safeItem.fat)}g - 炭水化物 ${formatNullableNutritionForFlex_(safeItem.carb)}g`,
+            size: 'xs',
+            wrap: true,
+            color: '#8a6258',
+          },
+          {
+            type: 'text',
+            text: `食塩相当量 ${formatNullableNutritionForFlex_(safeItem.salt)}g - 食物繊維 ${formatNullableNutritionForFlex_(safeItem.fiber)}g`,
+            size: 'xs',
+            wrap: true,
+            color: '#8a6258',
+          },
+          {
+            type: 'text',
+            text: `${safeItem.count || 0}回記録 / 平均 ${formatKcalDisplay_(safeItem.averageKcal || 0)} kcal`,
+            size: 'xs',
+            wrap: true,
+            color: '#6b7280',
+          },
+        ].filter(Boolean),
+      },
+      footer: {
+        type: 'box',
+        layout: 'vertical',
+        spacing: 'sm',
+        contents: [
+          {
+            type: 'button',
+            style: 'secondary',
+            color: '#FDF5F2',
+            action: {
+              type: 'uri',
+              label: '画面でマスタ編集',
+              uri: editUrl,
+            },
+          },
+        ],
+      },
+    },
+  }, senderProfile);
 }
 
 function formatFlexLogTime_(value) {

@@ -199,6 +199,11 @@ function handleLinePostbackEvent_(event, userId) {
     return;
   }
 
+  if (action === 'showPopularDetail') {
+    handleLinePopularDetailPostback_(event, userId, data);
+    return;
+  }
+
   if (action !== 'logCandidate') {
     return;
   }
@@ -276,6 +281,22 @@ function handleLinePendingMasterSavePostback_(event, userId, data) {
       text: 'MYメニューへの保存に失敗しました。画面から内容を確認してください。',
     }]);
   }
+}
+
+function handleLinePopularDetailPostback_(event, userId, data) {
+  const profile = resolveLineProfile_(userId);
+  const item = findPopularMenuByGroupKey_(userId, data.groupKey);
+  if (!item) {
+    replyLineMessages_(event.replyToken, [{
+      type: 'text',
+      text: '人気メニューの詳細が見つかりませんでした。もう一度お試しください。',
+    }]);
+    return;
+  }
+
+  replyLineMessages_(event.replyToken, [
+    buildPopularMenuDetailFlexMessage(item, profile),
+  ]);
 }
 
 function handleLineImageAttachPostback_(event, userId, data) {
