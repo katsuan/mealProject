@@ -740,9 +740,7 @@ function buildPopularMenusBubble_(context) {
       contents: items.length
         ? items.map(item => ({
             type: 'box',
-            layout: 'horizontal',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            layout: 'vertical',
             spacing: 'sm',
             paddingAll: '9px',
             cornerRadius: '10px',
@@ -751,13 +749,12 @@ function buildPopularMenusBubble_(context) {
               {
                 type: 'box',
                 layout: 'vertical',
-                flex: 1,
                 spacing: 'xs',
                 contents: [
                   {
                     type: 'text',
                     text: String(item.menu || ''),
-                    size: 'xs',
+                    size: 'sm',
                     weight: 'bold',
                     wrap: true,
                     color: '#231815',
@@ -774,15 +771,14 @@ function buildPopularMenusBubble_(context) {
               {
                 type: 'box',
                 layout: 'horizontal',
-                spacing: 'md',
-                flex: 0,
+                spacing: 'sm',
                 contents: [
                   {
-                    type: 'text',
-                    text: '送る',
-                    size: 'xs',
-                    weight: 'bold',
-                    color: '#B8462C',
+                    type: 'button',
+                    style: 'secondary',
+                    height: 'sm',
+                    color: '#FFF7F2',
+                    flex: 1,
                     action: {
                       type: 'message',
                       label: '送る',
@@ -790,11 +786,11 @@ function buildPopularMenusBubble_(context) {
                     },
                   },
                   {
-                    type: 'text',
-                    text: '詳細',
-                    size: 'xs',
-                    weight: 'bold',
-                    color: '#8a6258',
+                    type: 'button',
+                    style: 'secondary',
+                    height: 'sm',
+                    color: '#FFF7F2',
+                    flex: 1,
                     action: {
                       type: 'uri',
                       label: '詳細',
@@ -1015,52 +1011,34 @@ function buildCandidatePreviewRow_(candidate) {
   const detailLine = buildNutritionDescriptor_(candidate.flavor, candidate.unit);
   return {
     type: 'box',
-    layout: 'horizontal',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    spacing: 'sm',
+    layout: 'vertical',
+    spacing: 'xs',
     paddingAll: '10px',
     cornerRadius: '10px',
     backgroundColor: '#FDF5F2',
     contents: [
       {
-        type: 'box',
-        layout: 'vertical',
-        flex: 1,
-        spacing: 'xs',
-        contents: [
-          {
-            type: 'text',
-            text: buildRecordDisplayName_(candidate),
-            size: 'sm',
-            weight: 'bold',
-            wrap: true,
-          },
-          detailLine ? {
-            type: 'text',
-            text: detailLine,
-            size: 'xs',
-            color: '#231815',
-            wrap: true,
-          } : null,
-          {
-            type: 'text',
-            text: `${candidate.kcal || '-'} kcal / 一致度 ${candidate.scorePercent}%`,
-            size: 'xs',
-            color: '#8a6258',
-            wrap: true,
-          },
-        ].filter(Boolean),
+        type: 'text',
+        text: buildRecordDisplayName_(candidate),
+        size: 'sm',
+        weight: 'bold',
+        wrap: true,
       },
+      detailLine ? {
+        type: 'text',
+        text: detailLine,
+        size: 'xs',
+        color: '#231815',
+        wrap: true,
+      } : null,
       {
         type: 'text',
-        text: '候補',
+        text: `${candidate.kcal || '-'} kcal / 一致度 ${candidate.scorePercent}%`,
         size: 'xs',
-        weight: 'bold',
         color: '#8a6258',
-        flex: 0,
+        wrap: true,
       },
-    ],
+    ].filter(Boolean),
   };
 }
 
