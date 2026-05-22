@@ -1139,4 +1139,5 @@ function resetInitialQueryState_() {
   if (window.history && typeof window.history.replaceState === 'function') {
     window.history.replaceState({}, '', window.location.pathname);
   }
+  state.lastKnownSearch = window.location.search || '';
 }

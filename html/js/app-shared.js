@@ -54,6 +54,7 @@ const state = {
   advancedNutritionOpen: false,
   masterSearchTimer: null,
   lastMasterSearchQuery: '',
+  lastKnownSearch: window.location.search || '',
 };
 
 function buildInitialQuery_(fallback) {
@@ -80,6 +81,15 @@ function buildInitialQuery_(fallback) {
     datePreset: params.get('datePreset') || String(fallback.datePreset || '').trim(),
     mealDate: params.get('mealDate') || String(fallback.mealDate || '').trim(),
   };
+}
+
+function refreshInitialQuery_() {
+  const next = buildInitialQuery_(appConfig.initialQuery || {});
+  Object.keys(initialQuery).forEach(key => {
+    initialQuery[key] = next[key] || '';
+  });
+  state.lastKnownSearch = window.location.search || '';
+  return initialQuery;
 }
 
 function pushStatus(level, message) {
@@ -241,6 +251,25 @@ function bindSettingsModal() {
   });
 }
 
+function bindQueryLifecycleRefresh() {
+  const handleLifecycleRefresh = async () => {
+    const nextSearch = window.location.search || '';
+    if (nextSearch === state.lastKnownSearch) return;
+    await applyQueryNavigationRefresh_();
+  };
+
+  window.addEventListener('pageshow', () => {
+    void handleLifecycleRefresh();
+  });
+  window.addEventListener('popstate', () => {
+    void handleLifecycleRefresh();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    void handleLifecycleRefresh();
+  });
+}
+
 function reloadPageWithCacheBust_() {
   pushStatus('info', '最新の画面を読み込み直しています...');
   const nextUrl = new URL(window.location.href);
@@ -297,6 +326,56 @@ function bindMasterSearch() {
       reloadState(),
     ]);
   });
+}
+
+function resetUiForIncomingQuery_() {
+  document.getElementById('editing-log-id').value = '';
+  document.getElementById('editing-master-key').value = '';
+  document.getElementById('master-key').value = '';
+  document.getElementById('meal-reply').innerHTML = '';
+  setMenuValue_('');
+  setFieldValue('field-kcal', '');
+  setFieldValue('field-protein', '');
+  setFieldValue('field-fat', '');
+  setFieldValue('field-carb', '');
+  setFieldValue('field-salt', '');
+  setFieldValue('field-fiber', '');
+  setFieldValue('field-flavor', '');
+  setFieldValue('field-unit', '');
+  setFieldValue('field-note', '');
+  state.masterSearchResults = [];
+  state.lastMasterSearchQuery = '';
+  state.draft = null;
+  state.candidateAccordionOpen = false;
+  state.advancedNutritionOpen = false;
+  renderMasterSearchResults_([]);
+  renderMasterSearchStatus_('メニュー名に合わせて検索します。', false);
+  renderDraft(null);
+  renderAdvancedNutritionSection_();
+  renderCurrentMealDetailCard_();
+}
+
+function hasMeaningfulInitialQuery_() {
+  return Object.entries(initialQuery).some(([key, value]) => {
+    if (key === 'mode') return String(value || '').trim() && String(value) !== 'input';
+    return String(value || '').trim() !== '';
+  });
+}
+
+async function applyQueryNavigationRefresh_() {
+  refreshInitialQuery_();
+  resetUiForIncomingQuery_();
+  hydrateQuery();
+  const targetView = resolveInitialView_();
+  const shouldReload = state.userId && hasMeaningfulInitialQuery_();
+  if (shouldReload) {
+    state.dashboardLoaded = false;
+  }
+  await setActiveView(targetView);
+  if (shouldReload && targetView === 'input') {
+    pushStatus('info', '画面の内容を読み込み直しています...');
+    await reloadState();
+  }
 }
 
 function bindLogsRefresh() {
@@ -496,6 +575,8 @@ async function initializeApp() {
     bindSettingsModal();
     bindMasterSearch();
     bindLogsRefresh();
+    bindQueryLifecycleRefresh();
+    refreshInitialQuery_();
     hydrateQuery();
     bindViewTabs();
     bindMealTypeButtons();
@@ -666,6 +747,14 @@ function formatNumber(value) {
   const number = Number(value);
   if (Number.isNaN(number)) return String(value);
   return Number.isInteger(number) ? String(number) : String(Math.round(number * 10) / 10);
+}
+
+function toNullableNumber_(value) {
+  if (value == null || value === '') return null;
+  const normalized = String(value).replace(/,/g, '').trim();
+  if (!normalized) return null;
+  const number = Number(normalized);
+  return Number.isFinite(number) ? number : null;
 }
 
 function formatNullableNumber_(value) {
