@@ -744,7 +744,7 @@ function buildPopularMenusBubble_(context) {
             alignItems: 'center',
             justifyContent: 'space-between',
             spacing: 'sm',
-            paddingAll: '10px',
+            paddingAll: '9px',
             cornerRadius: '10px',
             backgroundColor: '#FDF5F2',
             contents: [
@@ -757,7 +757,7 @@ function buildPopularMenusBubble_(context) {
                   {
                     type: 'text',
                     text: String(item.menu || ''),
-                    size: 'sm',
+                    size: 'xs',
                     weight: 'bold',
                     wrap: true,
                     color: '#231815',
@@ -774,13 +774,15 @@ function buildPopularMenusBubble_(context) {
               {
                 type: 'box',
                 layout: 'horizontal',
-                spacing: 'sm',
+                spacing: 'md',
                 flex: 0,
                 contents: [
                   {
-                    type: 'button',
-                    style: 'secondary',
-                    height: 'sm',
+                    type: 'text',
+                    text: '送る',
+                    size: 'xs',
+                    weight: 'bold',
+                    color: '#B8462C',
                     action: {
                       type: 'message',
                       label: '送る',
@@ -788,9 +790,11 @@ function buildPopularMenusBubble_(context) {
                     },
                   },
                   {
-                    type: 'button',
-                    style: 'secondary',
-                    height: 'sm',
+                    type: 'text',
+                    text: '詳細',
+                    size: 'xs',
+                    weight: 'bold',
+                    color: '#8a6258',
                     action: {
                       type: 'uri',
                       label: '詳細',
