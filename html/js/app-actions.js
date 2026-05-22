@@ -352,11 +352,28 @@ document.getElementById('calorie-target').addEventListener('keydown', async even
   await saveProfileTarget();
 });
 
+function openExternalMenuSearch() {
+  const query = String(
+    state.lastMasterSearchQuery ||
+    document.getElementById('menu-name').value ||
+    document.getElementById('master-search-query').value ||
+    ''
+  ).trim();
+  if (!query) {
+    pushStatus('notice', 'メニュー名を入力してから Web検索できます。');
+    return;
+  }
+  const url = `https://www.google.com/search?q=${encodeURIComponent(`${query} カロリー 栄養`)}`;
+  window.open(url, '_blank', 'noopener');
+  pushStatus('info', `「${query}」をWeb検索で開きました。`);
+}
+
 window.applyCandidate = applyCandidate;
 window.applyMasterSearchResult = applyMasterSearchResult;
 window.applyPendingMenu = applyPendingMenu;
 window.deletePendingItem = deletePendingItem;
 window.startEditLog = startEditLog;
 window.deleteLog = deleteLog;
+window.openExternalMenuSearch = openExternalMenuSearch;
 refreshMealSubmitControls_();
 initializeApp();

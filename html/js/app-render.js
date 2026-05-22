@@ -320,11 +320,9 @@ function applyCachedAppState_(userId) {
 
 function setSyncVisualState(isLoading) {
   state.isVisualSyncing = Boolean(isLoading);
-  const menuValue = String(document.getElementById('menu-name').value || '').trim();
   [
     document.getElementById('header-summary-scope'),
     state.isSettingsModalOpen ? document.getElementById('target-field') : null,
-    menuValue ? document.getElementById('candidate-sync-scope') : null,
     document.getElementById('today-summary-band'),
     document.getElementById('today-log-band'),
   ].filter(Boolean).forEach(node => {
@@ -547,7 +545,16 @@ function renderMasterSearchResults_(results) {
           </div>
         </div>
       `).join('')
-    : '<div class="empty-state">メニュー名・種類・サイズで検索できます。</div>';
+    : (
+      state.lastMasterSearchQuery
+        ? `
+          <div class="empty-state">
+            <div>一致する MYメニューはまだありません。</div>
+            <button type="button" class="secondary compact-button" onclick="openExternalMenuSearch()">Webで調べる</button>
+          </div>
+        `
+        : '<div class="empty-state">メニュー名・種類・サイズで検索できます。</div>'
+    );
 }
 
 function renderWeeklyChart_(weekly, calorieTarget) {
