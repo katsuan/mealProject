@@ -254,15 +254,31 @@ function startLoginFlow_() {
     return;
   }
   pushStatus('info', 'LINEログイン画面へ移動しています...');
-  if (!window.liff || typeof liff.login !== 'function') {
-    window.location.href = redirectUrl;
-    return;
-  }
   if (window.location.protocol === 'file:') {
-    window.location.href = redirectUrl;
+    try {
+      window.location.assign(redirectUrl);
+    } catch (error) {
+      window.location.href = redirectUrl;
+    }
     return;
   }
-  liff.login({ redirectUri: redirectUrl });
+  if (!window.liff || typeof liff.login !== 'function') {
+    try {
+      window.location.assign(redirectUrl);
+    } catch (error) {
+      window.location.href = redirectUrl;
+    }
+    return;
+  }
+  try {
+    liff.login({ redirectUri: redirectUrl });
+  } catch (error) {
+    try {
+      window.location.assign(redirectUrl);
+    } catch (fallbackError) {
+      window.location.href = redirectUrl;
+    }
+  }
 }
 
 function bindMasterSearch() {
