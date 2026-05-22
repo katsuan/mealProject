@@ -154,30 +154,13 @@ function bindFieldInteractions() {
     const menuValue = String(document.getElementById('menu-name').value || '').trim();
     syncMasterSearchQueryFromMenu_();
     resetDraftUiForMenuTyping_(menuValue);
-    if (state.masterSearchTimer) {
-      window.clearTimeout(state.masterSearchTimer);
-    }
     if (!menuValue) {
       state.lastMasterSearchQuery = '';
       renderMasterSearchResults_([]);
       renderMasterSearchStatus_('メニュー名に合わせて検索します。', false);
-      return;
+    } else {
+      renderMasterSearchStatus_('右の「MYメニュー」で検索できます。', false);
     }
-    state.masterSearchTimer = window.setTimeout(() => {
-      if (!document.getElementById('user-id').value.trim()) return;
-      if (menuValue === state.lastMasterSearchQuery) return;
-      runMasterSearch_(menuValue, { announce: false, source: 'menu-input' });
-    }, 350);
-  });
-  document.getElementById('menu-name').addEventListener('blur', () => {
-    const menuValue = String(document.getElementById('menu-name').value || '').trim();
-    if (state.masterSearchTimer) {
-      window.clearTimeout(state.masterSearchTimer);
-      state.masterSearchTimer = null;
-    }
-    if (!menuValue || !document.getElementById('user-id').value.trim()) return;
-    if (menuValue === state.lastMasterSearchQuery || state.isMasterSearching) return;
-    runMasterSearch_(menuValue, { announce: false, source: 'menu-blur' });
   });
 }
 
@@ -564,7 +547,7 @@ function renderMasterSearchResults_(results) {
           </div>
         </div>
       `).join('')
-    : '<div class="empty-state">メニュー名・フレーバー・単位で検索できます。</div>';
+    : '<div class="empty-state">メニュー名・種類・サイズで検索できます。</div>';
 }
 
 function renderWeeklyChart_(weekly, calorieTarget) {
@@ -817,7 +800,7 @@ function renderDraft(draft) {
 }
 
 function buildCandidateDetailLine_(candidate) {
-  const detailParts = [candidate.unit, candidate.flavor]
+  const detailParts = [candidate.flavor, candidate.unit]
     .map(value => String(value || '').trim())
     .filter(Boolean);
   if (!detailParts.length) return '';

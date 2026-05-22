@@ -825,6 +825,18 @@
     gap: 8px;
   }
 
+  .menu-input-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .menu-search-button {
+    min-width: 96px;
+    align-self: end;
+  }
+
   .candidate-head {
     display: flex;
     align-items: center;
@@ -1433,6 +1445,10 @@
   }
 
   @media (max-width: 420px) {
+    .menu-input-row {
+      grid-template-columns: minmax(0, 1fr) 92px;
+    }
+
     .menu-tools {
       justify-content: flex-start;
     }

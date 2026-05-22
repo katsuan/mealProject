@@ -295,7 +295,7 @@ function mapNutritionMasterRow_(row) {
 }
 
 function buildNutritionDescriptor_(flavor, unit) {
-  return [String(unit || '').trim(), String(flavor || '').trim()].filter(Boolean).join(' / ');
+  return [String(flavor || '').trim(), String(unit || '').trim()].filter(Boolean).join(' / ');
 }
 
 function buildNutritionDisplayName_(master) {

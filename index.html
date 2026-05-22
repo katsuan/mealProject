@@ -75,10 +75,13 @@
 
           <div class="fields">
             <div id="candidate-sync-scope" class="menu-block">
-              <label class="field field-required" data-label="メニュー名">
-                <span class="field-label">メニュー名</span>
-                <input id="menu-name" data-field-label="メニュー名" data-required="true" autocomplete="off">
-              </label>
+              <div class="menu-input-row">
+                <label class="field field-required" data-label="メニュー名">
+                  <span class="field-label">メニュー名</span>
+                  <input id="menu-name" data-field-label="メニュー名" data-required="true" autocomplete="off">
+                </label>
+                <button type="button" id="search-master" class="secondary compact-button menu-search-button">MYメニュー</button>
+              </div>
             </div>
 
             <div id="candidate-accordion" class="inline-accordion" hidden>
@@ -92,11 +95,8 @@
                 <span id="candidate-accordion-label" class="inline-accordion-label">近い候補</span>
               </button>
               <div id="candidate-accordion-body" class="inline-accordion-body" hidden>
-                <div class="candidate-helper">候補をタップして入力欄へ反映し、下の保存で記録します。</div>
+                <div class="candidate-helper">右の「MYメニュー」を押すと候補を読み込みます。候補をタップすると入力欄へ反映されます。</div>
                 <div id="candidate-list" class="candidate-list"></div>
-                <div class="menu-tools candidate-tools">
-                  <button type="button" id="refresh-draft" class="secondary compact-button">この名前で候補を見る</button>
-                </div>
               </div>
             </div>
 
@@ -105,18 +105,18 @@
 
             <div class="field-row">
               <div class="field-with-help">
-                <label class="field" data-label="単位">
-                  <span class="field-label">単位(メーカー・サイズ)</span>
-                  <input id="field-unit" data-field-label="単位 (メーカー・サイズ)" autocomplete="off">
+                <label class="field" data-label="種類・メーカー">
+                  <span class="field-label">種類・メーカー</span>
+                  <input id="field-flavor" data-field-label="種類・メーカー" autocomplete="off">
                 </label>
-                <div class="field-help">例: 1個 / 吉野家並 / L / 100g</div>
+                <div class="field-help">例: 鮭 / チーズ / 吉野家 / Coco壱</div>
               </div>
               <div class="field-with-help">
-                <label class="field" data-label="フレーバー">
-                  <span class="field-label">フレーバー</span>
-                  <input id="field-flavor" data-field-label="フレーバー" autocomplete="off">
+                <label class="field" data-label="サイズ・量">
+                  <span class="field-label">サイズ・量</span>
+                  <input id="field-unit" data-field-label="サイズ・量" autocomplete="off">
                 </label>
-                <div class="field-help">例: 鮭 / 塩 / いちご</div>
+                <div class="field-help">例: 1個 / 並 / L / 100g</div>
               </div>
             </div>
 
@@ -184,19 +184,16 @@
       <section class="band" data-view-section="input">
         <div class="section-head">
           <div>
-            <h2>登録済みDB検索</h2>
-            <div class="section-copy">過去に登録した栄養マスタを探して、入力欄へすばやく反映できます。</div>
+            <h2>MYメニュー</h2>
+            <div class="section-copy">メニュー名から探した候補をここに表示します。</div>
           </div>
         </div>
         <div class="fields">
           <div class="menu-block">
-            <label class="field" data-label="検索キーワード">
+            <label class="field" data-label="検索キーワード" hidden>
               <span class="field-label">検索キーワード</span>
               <input id="master-search-query" data-field-label="検索キーワード" autocomplete="off">
             </label>
-            <div class="menu-tools">
-              <button type="button" id="search-master" class="secondary compact-button">検索する</button>
-            </div>
             <div id="master-search-status" class="master-search-status">メニュー名に合わせて検索します。</div>
           </div>
           <div id="master-search-results" class="candidate-list">

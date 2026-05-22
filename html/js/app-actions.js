@@ -117,15 +117,22 @@ function startMasterEdit(index) {
 
 async function applyPendingMenu(menu, row) {
   const resolvedMenu = decodeURIComponent(String(menu || ''));
-  setMenuValue_(resolvedMenu);
   const rowValue = row ? String(row) : '';
+  setMenuValue_(resolvedMenu);
   document.getElementById('master-key').value = '';
   document.getElementById('editing-master-key').value = '';
+  document.getElementById('editing-log-id').value = rowValue;
+  state.draft = null;
+  state.candidateAccordionOpen = false;
+  renderDraft(null);
+  renderMasterSearchResults_([]);
+  renderMasterSearchStatus_('メニュー名に合わせて検索します。', false);
+  state.masterSearchResults = [];
+  state.lastMasterSearchQuery = '';
+  refreshMealSubmitControls_();
+  setActiveView('input');
   document.getElementById('meal-entry-band').scrollIntoView({ behavior: 'smooth', block: 'start' });
   pushStatus('info', `「${resolvedMenu}」の入力欄を開きました。`);
-  await reloadState();
-  document.getElementById('editing-log-id').value = rowValue;
-  refreshMealSubmitControls_();
 }
 
 function deletePendingItem(rowNumber, menuName) {
@@ -302,23 +309,6 @@ document.getElementById('meal-detail-form').addEventListener('submit', async eve
     state.isMealSubmitting = false;
     refreshMealSubmitControls_();
     setSyncVisualState(false);
-  }
-});
-
-document.getElementById('refresh-draft').addEventListener('click', async () => {
-  if (state.isDraftRefreshing) return;
-  state.isDraftRefreshing = true;
-  const button = document.getElementById('refresh-draft');
-  const previous = button.textContent;
-  button.disabled = true;
-  button.textContent = '更新中...';
-  renderDraftLoadingState_();
-  try {
-    await reloadState();
-  } finally {
-    state.isDraftRefreshing = false;
-    button.disabled = false;
-    button.textContent = previous;
   }
 });
 

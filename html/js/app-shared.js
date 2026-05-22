@@ -246,13 +246,18 @@ function bindSettingsModal() {
 
 function bindMasterSearch() {
   document.getElementById('search-master').addEventListener('click', async () => {
-    const query = document.getElementById('master-search-query').value.trim();
+    const query = document.getElementById('menu-name').value.trim() || document.getElementById('master-search-query').value.trim();
     if (!query) {
       renderMasterSearchResults_([]);
-      pushStatus('notice', '検索キーワードを入力してください。');
+      renderMasterSearchStatus_('メニュー名を入力してから検索できます。', false);
+      pushStatus('notice', 'メニュー名を入力してから MYメニュー を検索してください。');
       return;
     }
-    await runMasterSearch_(query, { announce: true, source: 'manual' });
+    renderDraftLoadingState_();
+    await Promise.all([
+      runMasterSearch_(query, { announce: true, source: 'manual' }),
+      reloadState(),
+    ]);
   });
 }
 
@@ -447,12 +452,12 @@ async function initializeApp() {
     }
 
     if (state.userId) {
+      const needsFullState = shouldLoadFullStateOnBoot_();
       const bootedFromCache = applyCachedAppState_(state.userId);
-      if (!bootedFromCache) {
-        await reloadHeaderState();
-      }
-      if (shouldLoadFullStateOnBoot_()) {
+      if (needsFullState) {
         await reloadState();
+      } else if (!bootedFromCache) {
+        await reloadHeaderState();
       }
     }
   } catch (error) {
@@ -505,6 +510,8 @@ function hydrateQuery() {
   }
   if (initialQuery.meal) {
     setMealType(initialQuery.meal);
+  } else {
+    setMealType(inferCurrentMealType_());
   }
   if (initialQuery.mealDate || initialQuery.datePreset) {
     setMealDatePreset(initialQuery.datePreset || inferDatePresetFromMealDate_(initialQuery.mealDate), initialQuery.mealDate);
@@ -535,6 +542,13 @@ function hydrateQuery() {
     });
   }
   applyHeaderSummaryFromQuery_();
+}
+
+function inferCurrentMealType_() {
+  const hour = new Date().getHours();
+  if (hour < 11) return '朝';
+  if (hour < 17) return '昼';
+  return '夜';
 }
 
 function applyHeaderSummaryFromQuery_() {
