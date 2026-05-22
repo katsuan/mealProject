@@ -43,7 +43,7 @@ function resolveInitialView_() {
   if (['input', 'summary', 'logs'].includes(initialQuery.mode)) {
     return initialQuery.mode;
   }
-  return initialQuery.mode === 'detail' ? 'summary' : 'input';
+  return initialQuery.mode === 'detail' ? 'input' : 'input';
 }
 
 async function setActiveView(view) {

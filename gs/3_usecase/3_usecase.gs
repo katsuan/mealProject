@@ -176,7 +176,7 @@ function getDashboardData(userId) {
     streak: getUserStreakSummary_(userId),
     streakRanking: getStreakRanking_(10),
     targetDiff: user.calorieTarget == null ? null : user.calorieTarget - totalIntake,
-    detailUrl: buildLiffUrl_({ mode: 'detail' }),
+    detailUrl: buildLiffUrl_({ mode: 'input' }),
   };
 }
 
