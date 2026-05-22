@@ -1107,7 +1107,7 @@ function refreshMealSubmitControls_() {
   submitButton.disabled = !canUse || state.isMealSubmitting;
   masterButton.hidden = !editingMaster;
   masterButton.disabled = !canUse || state.isMasterSaving;
-  masterButton.textContent = state.isMasterSaving ? '保存中...' : 'マスタだけ保存';
+  masterButton.textContent = state.isMasterSaving ? 'MYメニュー保存中...' : 'MYメニューに保存';
   newEntryButton.disabled = !canUse;
   newEntryButton.hidden = !editing && !editingMaster;
 }

@@ -1069,9 +1069,7 @@ function buildCandidateQuickReply_(parsed, candidates) {
 }
 
 function buildCandidateQuickReplyLabel_(candidate) {
-  const name = String(candidate && candidate.menu || candidate && candidate.name || '').trim();
-  const detail = buildNutritionDescriptor_(candidate && candidate.flavor, candidate && candidate.unit);
-  return detail ? `${name} ${detail}` : name;
+  return String(candidate && candidate.name || candidate && candidate.menu || '').trim();
 }
 
 function buildImageAttachChoiceFlexMessage(mealType, candidateLogs, selectionToken, senderProfile) {

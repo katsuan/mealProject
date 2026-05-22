@@ -1039,6 +1039,15 @@
     word-break: break-word;
   }
 
+  .reply-card .nutrition-detail-label {
+    font-size: 10px;
+  }
+
+  .reply-card .nutrition-detail-value {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
   .cards {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -45,6 +45,13 @@ function findExactNutritionMaster(menu) {
     return baseNameMatches[0];
   }
 
+  const searchTextMatches = exactCandidates.filter(master =>
+    getNutritionMasterSearchTexts_(master).some(text => text === normalizedMenu)
+  );
+  if (searchTextMatches.length === 1) {
+    return searchTextMatches[0];
+  }
+
   return null;
 }
 
@@ -307,6 +314,12 @@ function buildNutritionDisplayName_(master) {
 function getNutritionMasterSearchTexts_(master) {
   const base = normalizeText_(master && master.name);
   const display = normalizeText_(buildNutritionDisplayName_(master));
+  const flavor = normalizeText_(master && master.flavor);
+  const unit = normalizeText_(master && master.unit);
+  const descriptor = normalizeText_(buildNutritionDescriptor_(master && master.flavor, master && master.unit));
+  const baseWithFlavor = normalizeText_(`${master && master.name || ''} ${master && master.flavor || ''}`);
+  const baseWithUnit = normalizeText_(`${master && master.name || ''} ${master && master.unit || ''}`);
+  const baseWithDescriptor = normalizeText_(`${master && master.name || ''} ${buildNutritionDescriptor_(master && master.flavor, master && master.unit)}`);
   const note = normalizeText_(master && master.note);
-  return [...new Set([base, display, note].filter(Boolean))];
+  return [...new Set([base, display, flavor, unit, descriptor, baseWithFlavor, baseWithUnit, baseWithDescriptor, note].filter(Boolean))];
 }
